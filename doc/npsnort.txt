@@ -1,0 +1,3 @@
+things to consider:
+1. Make sure SOAP::Lite and SOAP::Transport::TCP is installed
+2. register with www.snort.org so your able to download latest ruleset
