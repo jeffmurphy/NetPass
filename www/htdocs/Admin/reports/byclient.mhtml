@@ -1,0 +1,22 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.1 2004/10/01 15:40:51 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+$macs = '';
+</%args>
+
+<script><!--
+setWhereAmI('Reports');
+--></script>
+
+<%perl>
+
+use Time::HiRes qw(gettimeofday tv_interval);
+use NetPass::Network qw (cidr2int searchArpCache int2cidr ip2int int2ip);
+
+if ( $m->comp('/Admin/Login', %ARGS) ) {

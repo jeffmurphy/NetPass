@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.6 2004/09/30 02:12:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.7 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -614,7 +614,8 @@ sub saveQuarChanges {
 			} else {
 				_log("DEBUG", "$mac $ipAddr found. quarantining $sw $po\n");
 				if (! $npdbh->requestMovePort(-switch => $sw, 
-						-port => $po, -vlan => 'quarantine')) {
+						-port => $po, -vlan => 'quarantine',
+						-by => 'qc.mhtml')) {
 
 					$rv = "$mac requestMovePort($sw, $po) failed\n";
 					_log("ERROR", "$rv\n");

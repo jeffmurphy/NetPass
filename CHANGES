@@ -104,4 +104,23 @@ alter table register add uqlinkup        ENUM('yes', 'no') NOT NULL DEFAULT 'no'
 	jcm added time tracking to get_mac_port_table to help determine
 	    when we've hit a slow switch
 
+2004-09-30
+	jcm fixed user.mhtml bug where non-admin would cause all admins
+	    to get deleted
+	jcm bynet.mhtml cleanup
+	jcm altered portmover.pl so that if it just did work, it wont sleep
+	jcm altered Admin/Login so that it redirects you back to the page
+	    you were trying to access.
+
+2004-10-01
+	jcm enhanced bynet.mhtml so that it pings hosts in quar to give a more
+	    accurate count. when upgrading to this release, you must install
+	    the Net::Ping::External module.
+
+sudo perl -MCPAN -e 'install Net::Ping::External'
+
+	jcm added 'requestedBy' column to portMoves table. before installing
+	    this release, execute the following SQL statement:
+
+alter table portMoves add requestedBy varchar(128) DEFAULT '';
 

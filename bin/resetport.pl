@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.2 2004/09/24 19:56:47 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -72,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.2 2004/09/24 19:56:47 jeffmurphy Exp $
+$Id: resetport.pl,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
 
 =cut
 
@@ -259,7 +259,8 @@ sub processLines {
 					_log("INFO", "-n flag given. not really doing it.\n"); 
 				} else {
 					$dbh->requestMovePort(-switch => $switch, -port => $port, 
-							      -vlan => 'quarantine') ||
+							      -vlan => 'quarantine', 
+							      -by => 'resetport.pl') ||
 								_log("ERROR", $dbh->error());
 					_log ("DEBUG", " backfrom dbh->requestMovePort\n") 
 					  if exists $opts{'D'};
@@ -300,8 +301,12 @@ sub procUQ {
 	my $uq = shift;
 	my $unq_on_linkup = shift;
 
+	my $numSwitches = keys %{$unq};
+
 	foreach my $switch (keys %{$unq}) {
 		my @failed = ();
+		_log("DEBUG", $numSwitches, " / ",
+		     ($#{$unq->{$switch}}+1)." ports on this switch to process\n");
 		foreach my $port (@{$unq->{$switch}}) {
 			# figure out what macs are on this port
 			
@@ -342,7 +347,7 @@ sub procUQ {
 								_log("DEBUG", "not really!\n");
 							} else {
 								$dbh->requestMovePort(-switch => $switch, -port => $port, 
-										      -vlan => 'unquarantine') ||
+										      -vlan => 'unquarantine', -by => 'resetport.pl') ||
 											push @failed, $port;
 							}
 						} else {
@@ -363,7 +368,7 @@ sub procUQ {
 								_log("DEBUG", "not really!\n");
 							} else {
 								$dbh->requestMovePort(-switch => $switch, -port => $port, 
-										      -vlan => 'unquarantine') ||
+										      -vlan => 'unquarantine', -by => 'resetport.pl') ||
 											push @failed, $port;
 							}
 						} else {
@@ -395,8 +400,10 @@ sub procUQ {
 					if (exists $opts{'n'}) {
 						_log("DEBUG", "not really!\n");
 					} else {
-						$dbh->requestMovePort(-switch => $switch, -port => $port, 
-								      -vlan => 'unquarantine') ||
+						$dbh->requestMovePort(-switch => $switch, 
+								      -port => $port, 
+								      -vlan => 'unquarantine',
+								      -by => 'resetport.pl') ||
 									push @failed, $port;
 					}
 				} else {

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.2 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -70,7 +70,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: portmover.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+$Id: portmover.pl,v 1.2 2004/10/01 15:40:50 jeffmurphy Exp $
 
 =cut
 
@@ -140,7 +140,8 @@ while (1) {
     _log "DEBUG", "wakeup: processing worklist\n" if $D;
 
     RUNONCE::handleConnection();
-    my $ar = $dbh->getPortMoveList();
+    my $ar      = $dbh->getPortMoveList();
+    my $didWork = 0;
 
 
     if (!defined($ar)) {
@@ -148,21 +149,27 @@ while (1) {
     }
 
     foreach my $row (@$ar) {
-	if( $np->movePort(-switch => $row->[2],
-			  -port   => $row->[3],
-			  -vlan   => $row->[4]) ) {
-	    $dbh->portMoveCompleted($row->[1]);
-	} else {
-	    my $e = $np->error;
-	    _log "ERROR", "failed to move port $row->[2] p$row->[3] to $row->[4] (ID $row->[0] $row->[1]) ERR=$e\n";
-	    $dbh->portMoveCompleted($row->[1], 'unmanaged') if ($e =~ /UNMANAGED/);
-	}
+	    $didWork = 1;
+	    if( $np->movePort(-switch => $row->[2],
+			      -port   => $row->[3],
+			      -vlan   => $row->[4]) ) {
+		    $dbh->portMoveCompleted($row->[1]);
+	    } else {
+		    my $e = $np->error;
+		    _log "ERROR", "failed to move port $row->[2] p$row->[3] to $row->[4] (ID $row->[0] $row->[1]) ERR=$e\n";
+		    $dbh->portMoveCompleted($row->[1], 'unmanaged') if ($e =~ /UNMANAGED/);
+	    }
     }
 
-    _log "DEBUG", "sleeping for 10 seconds.\n" if $D;
-    print scalar localtime(time()), " sleeping...\n" if $D;
+    # if we've been busy, immediately re-check the queue. otherwise sleep
+    # for a bit.
 
-    select(undef, undef, undef, 10.0);
+    if ($didWork == 0) {
+	    print scalar localtime(time()), "we didnt do anything. sleep for 10secs.\n" if $D;
+	    select(undef, undef, undef, 10.0);
+    } else {
+	    print scalar localtime(time()), "we've been busy. no time for sleep.\n" if $D;
+    }
 
 }
 

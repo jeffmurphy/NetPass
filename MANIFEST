@@ -127,6 +127,7 @@ www/htdocs/Admin/sq.mhtml
 www/htdocs/Admin/user.mhtml
 www/htdocs/Admin/Scan/index.mhtml
 www/htdocs/Admin/Scan/info.mhtml
+www/htdocs/Admin/reports/byclient.mhtml
 www/htdocs/Admin/reports/bynet.mhtml
 www/htdocs/autohandler
 www/htdocs/clrpxl.gif

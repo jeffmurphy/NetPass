@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.2 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -128,7 +128,7 @@ if($m->session->{'phase'} eq 'LOGIN') {
 		} else {
 			_log("DEBUG", "$mac $ip move port $sw $po\n");
 
-			my $rmp = $npdbh->requestMovePort(-switch => $sw, -port => $po, -vlan => 'unquarantine');
+			my $rmp = $npdbh->requestMovePort(-switch => $sw, -port => $po, -vlan => 'unquarantine', -by => 'netpass.mhtml');
                 	# XXX if $rmp == 0 then tell them that something bad has happened
         	}
 	} else {

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.2 2004/09/30 02:12:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -14,7 +14,8 @@ use NetPass::LOG qw(_log);
 require Exporter;
 
 @ISA = qw (Exporter);
-@EXPORT_OK = qw (searchArpCache host2addr ip2int cidr2int);
+@EXPORT_OK = qw (searchArpCache host2addr ip2int cidr2int int2cidr int2ip
+		 allOnesBroadcast);
 
 use strict;
 
@@ -29,40 +30,75 @@ A collection of networking related routines (not methods).
 =cut
 
 my @cidr_to_int = (
-0x00000000, #/0
-0x80000000, #/1
-0xc0000000, #/2
-0xe0000000, #/3
-0xf0000000, #/4
-0xf8000000, #/5
-0xfc000000, #/6
-0xfe000000, #/7
-0xff000000, #/8
-0xff800000, #/9
-0xffc00000, #/10
-0xffe00000, #/11
-0xfff00000, #/12
-0xfff80000, #/13
-0xfffc0000, #/14
-0xfffe0000, #/15
-0xffff0000, #/16
-0xffff8000, #/17
-0xffffc000, #/18
-0xffffe000, #/19
-0xfffff000, #/20
-0xfffff800, #/21
-0xfffffc00, #/22
-0xfffffe00, #/23
-0xffffff00, #/24
-0xffffff80, #/25
-0xffffffc0, #/26
-0xffffffe0, #/27
-0xfffffff0, #/28
-0xfffffff8, #/29
-0xfffffffc, #/30
-0xfffffffe, #/31
-0xffffffff  #/32
-);
+		   0x00000000, #/0
+		   0x80000000, #/1
+		   0xc0000000, #/2
+		   0xe0000000, #/3
+		   0xf0000000, #/4
+		   0xf8000000, #/5
+		   0xfc000000, #/6
+		   0xfe000000, #/7
+		   0xff000000, #/8
+		   0xff800000, #/9
+		   0xffc00000, #/10
+		   0xffe00000, #/11
+		   0xfff00000, #/12
+		   0xfff80000, #/13
+		   0xfffc0000, #/14
+		   0xfffe0000, #/15
+		   0xffff0000, #/16
+		   0xffff8000, #/17
+		   0xffffc000, #/18
+		   0xffffe000, #/19
+		   0xfffff000, #/20
+		   0xfffff800, #/21
+		   0xfffffc00, #/22
+		   0xfffffe00, #/23
+		   0xffffff00, #/24
+		   0xffffff80, #/25
+		   0xffffffc0, #/26
+		   0xffffffe0, #/27
+		   0xfffffff0, #/28
+		   0xfffffff8, #/29
+		   0xfffffffc, #/30
+		   0xfffffffe, #/31
+		   0xffffffff  #/32
+		  );
+
+my %int_to_cidr;
+
+for(my $m=0 ; $m <= $#cidr_to_int ; $m++) {
+	$int_to_cidr { $cidr_to_int[$m] } = $m;
+}
+
+=head2 $dotted = int2ip($int)
+
+Given an integer, return it in dotted quad notation.
+
+=cut
+
+sub int2ip {
+        my $i = shift;
+
+        $i &= 0xFFFFFFFF;
+        return join('.', (($i>>24) & 0xFF),
+                         (($i>>16) & 0xFF),
+		         (($i>> 8) & 0xFF),
+		         (($i    ) & 0xFF));
+}
+
+
+=head2 $bitlen = int2cidr($mask)
+
+Given an integer bit mask, return the bit length.
+
+=cut
+
+sub int2cidr {
+	my $mask = shift;
+	return $int_to_cidr{$mask} if (exists $int_to_cidr{$mask});
+	return undef;
+}
 
 =head2 ($ip, $mask) = cidr2int($network)
 
@@ -238,7 +274,20 @@ sub searchArpCache {
     }
 }
 
+=head2 my $dotted = allOnesBroadcast($dottedCidr)
 
+Given a network in CIDR notation, determine the all ones broadcast
+address and return it.
+
+=cut
+
+sub allOnesBroadcast {
+	my $nw_ = shift;
+	my ($nw, $mask) = cidr2int($nw_);
+	my $im = $mask ^ 0xFFFFFFFF;
+	my $ones = $nw | $im;
+	return int2ip($ones);
+}
 
 =head1 AUTHOR
 
@@ -252,7 +301,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Network.pm,v 1.2 2004/09/30 02:12:35 jeffmurphy Exp $
+$Id: Network.pm,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
 
 =cut
 

@@ -56,6 +56,7 @@ CREATE TABLE portMoves (
 	serverid	VARCHAR(128)     NOT NULL,
 	rowid           INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
 	requested	DATETIME         NOT NULL,
+	requestedBy     VARCHAR(128),
 	switchIP	VARCHAR(128)     NOT NULL,
 	switchPort	SMALLINT 	 NOT NULL,
 	vlanId          ENUM('quarantine', 'unquarantine') NOT NULL,

@@ -34,6 +34,10 @@ IPTables::IPv4
 
 Proc::ProcessTable::Process
 
+Net::Ping
+
+Net::Ping::External
+
 =head1 DESCRIPTION
 
 NetPass required perl modules.

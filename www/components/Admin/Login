@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -10,8 +10,9 @@ This component outputs a login prompt form.
 
 
 <%args>
-        $username => undef
-        $password => undef
+        $username  => undef
+        $password  => undef
+	$wherefrom => undef
 </%args>
 
 <%perl>
@@ -26,7 +27,11 @@ This component outputs a login prompt form.
 			$m->session->{'logged_in'} = 1; # FIX/Client/Login
 			$m->session->{'username'}  = $username;
 			$m->session->{'my_groups'} = $npdbh->getUserGroups($username);
-			$m->redirect('/Admin');
+			if ($m->caller(-1)->path =~ /^\/Admin/) {
+				$m->redirect($m->caller(-1)->path);
+			} else {
+				$m->redirect('/Admin');
+			}
 
                 	return 1;
                 } else {

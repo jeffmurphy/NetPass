@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.3 2004/09/30 01:19:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.4 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -120,6 +120,8 @@ sub new {
 
   my $cfg =  new Config::General(-ConfigFile => $cf,
 				 -AutoTrue => 1,
+				 -IncludeRelative => 1,
+				 -UseApacheInclude => 1,
 				 -ExtendedAccess => 1, 
 				 -StrictObjects => 0);
 
@@ -632,8 +634,6 @@ sub getMatchingNetwork {
     my $self = shift;
     my $ip   = shift;
 
-    _log("DEBUG", "enter\n");
-
     $self->reloadIfChanged();
 
     return undef if !defined($ip);
@@ -642,8 +642,8 @@ sub getMatchingNetwork {
 
     foreach my $n ($self->{'cfg'}->keys('network')) {
 	my ($n_, $m_) = cidr2int($n);
-	_log "DEBUG", sprintf("%x & %x ? %x (%x)\n", $ip_, $m_, $n_,
-			     ($ip_ & $m_));
+	_log("DEBUG", sprintf("%x & %x ? %x (%x)\n", $ip_, $m_, $n_,
+			     ($ip_ & $m_))) if $self->{'dbg'} > 1;
 	return $n if ( ($ip_ & $m_) == $n_);
     }
 
@@ -1123,7 +1123,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.3 2004/09/30 01:19:38 jeffmurphy Exp $
+$Id: Config.pm,v 1.4 2004/10/01 15:40:50 jeffmurphy Exp $
 
 =cut
 

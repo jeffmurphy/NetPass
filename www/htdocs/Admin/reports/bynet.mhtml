@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.3 2004/09/30 01:19:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.4 2004/10/01 15:40:51 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,53 +15,145 @@ setWhereAmI('Reports');
 
 <%perl>
 
+use Time::HiRes qw(gettimeofday tv_interval);
+use NetPass::Network qw (cidr2int searchArpCache int2cidr ip2int int2ip allOnesBroadcast);
+use Net::Ping::External qw(ping);
+
 
 if ( $m->comp('/Admin/Login', %ARGS) ) {
 
-	my $sql = "select ipAddress from register";
-	my $a   = $dbh->selectall_arrayref($sql);
+	my $t0 = [gettimeofday];
+
+	my $sql       = "select ipAddress from register";
+	my $allRows   = $dbh->selectall_arrayref($sql);
+
+	print "Be patient.. report will take some time to produce..<P>\n";
 
 	print "<PRE>";
+
+	#print "query finished in ", tv_interval($t0), "secs\n";
 
 	printf("%20.20s %20.20s %10.10s %10.10s\n", "", "", "Registered", "Active");
 	printf("%20.20s %20.20s %10.10s %10.10s\n", "Comment", "Network", "Clients", "In-Quar");
 
+  	$m->flush_buffer();
+
 	my $total = 0;
 
 	my %netStats;
-	my $totalClients;
+	my $totalClients = 0;
 
 	# count up number of registered clients by-network
 
-	foreach my $row (@$a) {
-		my $clientIP = $row->[0];
+	$t0 = [gettimeofday];
 
-		my $network = $np->cfg->getMatchingNetwork($clientIP);
-		if (defined($network) && ($network ne "")) {
-			$netStats{$network}++;
-			$totalClients++;
+	my %netInts;
+	my %masks;
+
+	foreach my $nw (@{$np->cfg->getNetworks()}) {
+		my ($a1, $b1) = cidr2int($nw);
+		$netInts{$a1} = 1;
+		$masks{$b1}   = 1;
+		$masks{$a1}   = $b1;
+	}
+
+	#print "net convert in ", tv_interval($t0), "secs\n";
+
+	foreach my $row (@$allRows) {
+		my $clientIP = $row->[0];
+		foreach my $mask (sort { $b <=> $a } keys %masks) {
+			my $clientNW = ip2int($clientIP) & $mask;
+			if (exists $netInts{$clientNW}) {
+				$netStats{$clientNW}++;
+				$totalClients++;
+				last;
+			}
 		}
 	}
+
+	#print "finding networks took ", tv_interval($t0), "secs\n";
 
 	# count up number of live clients in quarantine based on
 	# what networks we see in our local arp cache
 
+	$t0 = [gettimeofday];
+
+	my $totalInQuar   = 0;
+	my $totalPingable = 0;
+
 	foreach my $network (sort keys %netStats) {
-		my $minq = NetPass::Network::searchArpCache($network);
-		my $aq = 0; 
+		my $dottedNetwork = int2ip($network)."/".
+			int2cidr($masks{$network});
+
+# pinging the broadcast doesnt seem to populate the linux 
+# arp table, so we wont bother.
+#		ping(host => allOnesBroadcast($dottedNetwork),
+#			timeout => 1, count => 2);
+
+		my $minq = NetPass::Network::searchArpCache($dottedNetwork);
+
+		my $aq = 0;  my $aq2 = 0;
 		if (ref($minq) eq "HASH") {
-			$aq = keys %$minq;
+			$aq2 = keys %$minq;
+			$aq  = checkAlive([ keys %$minq ]);
 		} else {
-			$aq = 1 if defined($minq) && ($minq ne "");
+			if (defined($minq) && ($minq ne "")) {
+				$aq2 = 1;
+				$aq = checkAlive([ $dottedNetwork ]);
+			}
 		}
 
-		my $cmt = $np->cfg->getNetComment($network);
+		my $cmt = $np->cfg->getNetComment($dottedNetwork);
 
-		printf("%20.20s %20.20s %10.10s %10.10s\n", $cmt, $network, 
-			$netStats{$network}, $aq);
+		$totalInQuar   += $aq2;
+		$totalPingable += $aq;
+
+		printf("%20.20s %20.20s %10.10s %10.10s\n", $cmt, 
+			$dottedNetwork, 
+			$netStats{$network}, "$aq/$aq2");
+	  	$m->flush_buffer();
 	}
-	printf("\n\ntotal registered = $totalClients\n");
+
+	printf("\n\ntotal registered  = $totalClients\n");
+	printf("total act in quar = $totalInQuar  (%2.2f%%)\n", 
+		100*($totalInQuar/$totalClients));
+
+	#print "printing took ", tv_interval($t0), "secs\n";
+
 	printf("</PRE>\n");
 }
 
+sub checkAlive {
+	my $ipList = shift;
+	my $count  = 0;
+
+	#print "ipList ", $#{$ipList}, "\n";
+	foreach my $ip (@$ipList) {
+		#print "alive? $ip<P>\n";
+		if (ping(host => $ip, timeout => 1, count => 1)) {
+			$count++;
+			#print " yes $count\n";
+		} else {
+			#print " no\n";
+		}
+	}
+
+	#print "ret $count\n";
+	return $count;
+}
+
 </%perl>
+
+"Active in Quarantine" isn't necessarily true. We calculate this column based
+on the population of the ARP cache on the NetPass server. A client may have
+already left the quarantine, but will live on for a while longer in the ARP
+cache, leading to potentially more quarantine occupants than there really are.<P>
+
+The first component of "Active in Quarantine" is the number of hosts that actually
+replied to a "ping". This number might be a little low if hosts are running firewalls
+that block ICMP. The second component is the number of hosts in the ARP cache. This
+number might be a little high if a host has been unquarantined, but has not yet
+aged out of the ARP cache. The actual number of hosts in quarantine is somewhere
+between those two numbers.
+
+

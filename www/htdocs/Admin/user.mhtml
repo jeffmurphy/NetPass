@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.2 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -50,24 +50,30 @@ To delete a user, remove them from all of the groups.<P>
 				# user to Admin and you arent an
 				# Admin -> denied.
 
-				$uh->{$user} = [];
-
-				$ok = 0 if (exists $ARGS{$user."-Admin"} &&
+				if (exists $ARGS{$user."-Admin"} &&
 				    !($m->comp('/Admin/MemberOf', 
-						'group' => 'Admin')));
+						'group' => 'Admin'))) {
+					$ok = 0;
+					next;
+				}
 
 				foreach my $g (@groups) {
-print "debug: g $g<BR>\n";
-print "debug: lookfor $user-$g in args<BR>\n";
-					if(exists $ARGS{$user."-".$g}) {
-print "debug:    <font color=green>found it. push</font><BR>\n";
-						push @{$uh->{$user}}, $g;
-					} else {
-print "debug:    <font color=red>didnt find it.</font><BR>\n";
-					}
+					next if (!($m->comp('/Admin/MemberOf', 
+						                  'group' => 'Admin')) &&
+						($g eq "Admin"));
 
+					next if (!($m->comp('/Admin/MemberOf',
+						                  'group' => 'Admin')) &&
+						(grep /^Admin$/, @{$users->{$user}}));
+
+					$uh->{$user} = [] unless exists $uh->{$user};
+
+					if(exists $ARGS{$user."-".$g}) {
+						push @{$uh->{$user}}, $g;
+					} 
 				}
 			}
+
 			if ($ok) {
 				# user add. if you arent admin and you 
 				# are trying to add an admin -> denied

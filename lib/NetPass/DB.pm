@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.2 2004/09/24 19:56:47 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -438,13 +438,13 @@ Returns 1 on success, 0 on failure.
 
 sub requestMovePort {
     my $self = shift;
-    my ($hn, $port, $vlan) = simple_parms([qw(-switch -port -vlan)], @_);
+    my ($hn, $port, $vlan, $by) = simple_parms([qw(-switch -port -vlan -by)], @_);
 
     return 1 if ($self->portMovePending(-switch=>$hn, -port=>$port) == 1);
 
     my $serverid = hostname;
 
-    my $sql = qq{INSERT INTO portMoves VALUES ('$serverid', NULL, NOW(), '$hn', $port, '$vlan', 'pending')};
+    my $sql = qq{INSERT INTO portMoves (serverid, rowid, requested, requestBy, switchIP, switchPort, vlanId, status) VALUES ('$serverid', NULL, NOW(), '$by', '$hn', $port, '$vlan', 'pending')};
 
     $self->reconnect() || return 0;
 
@@ -1050,6 +1050,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.2 2004/09/24 19:56:47 jeffmurphy Exp $
+$Id: DB.pm,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
 
 1;
