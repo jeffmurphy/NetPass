@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Header: /tmp/netpass/NetPass/bin/mysql_binlog_rotate.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/mysql_binlog_rotate.pl,v 1.2 2004/10/12 17:28:04 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -36,7 +36,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: mysql_binlog_rotate.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+$Id: mysql_binlog_rotate.pl,v 1.2 2004/10/12 17:28:04 mtbell Exp $
 
 =cut
 
@@ -44,6 +44,7 @@ $Id: mysql_binlog_rotate.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
 use strict;
 use DBI;
 use Getopt::Std;
+use Pod::Usage;
 
 use lib '/opt/netpass/lib';
 use NetPass::Config;
