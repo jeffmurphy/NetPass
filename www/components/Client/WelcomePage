@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/WelcomePage,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/WelcomePage,v 1.2 2004/10/25 17:48:26 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,11 +18,18 @@
 	print "<P><font color='red'>$err</font><P>";
 	print $q->start_form(-name => 'mainForm');
 
-	print "<table border=0><tr><td>UBITname:</td><td>";
+
+	my $prompt = $np->policy('USERNAME_PROMPT') || "Username:";
+	
+	print "<table border=0><tr><td>$prompt</td><td>";
+
 	print $q->textfield(-name => 'username',
 			    -size => 8
 			    );
-	print "</td></tr><tr><td>Password:</td><td>";
+
+	$prompt = $np->policy('PASSWORD_PROMPT') || "Password:";
+
+	print "</td></tr><tr><td>$prompt</td><td>";
 	print $q->password_field(-name => 'password',
 				 -size => 8
 				 ), "</td></tr></table>";

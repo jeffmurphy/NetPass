@@ -141,3 +141,11 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 
 2004-10-12
 	jcm added install.d/convertdb to upgrade a 0.95 DB to a 0.96 DB
+
+2004-10-24
+	jcm modified messages (username, password, etc) so that they are
+	    customizable from the conf file instead of being embedded into
+	    the html, mason, etc code
+	jcm bug fixes to byclient.mhtml bynet.mhtml
+	jcm searchArpCache takes an optional param which causes it to 
+            exclude "incomplete" macs now.

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.4 2004/10/01 15:40:50 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.5 2004/10/25 17:48:24 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -48,7 +48,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.4 2004/10/01 15:40:50 jeffmurphy Exp $
+$Id: install,v 1.5 2004/10/25 17:48:24 jeffmurphy Exp $
 
 =cut
 
@@ -108,7 +108,29 @@ if ((!-f "$TARGET/www/htdocs/index.mhtml") && (!-l "$TARGET/www/htdocs/index.mht
 	system (qq{ln -s "$TARGET/www/htdocs/netpass.mhtml" "$TARGET/www/htdocs/index.mhtml"});
 }
 
+foreach my $etcf ('services', 'syslog.conf') {
+	print "Updating $etcf ..\n";
+	patchConf("/etc", $etcf);
+}
+
 exit 0;
+
+sub patchConf {
+	my ($b, $f) = (shift, shift);
+	return unless (-f "$b/$f");
+
+
+	my $src = new FileHandle "$PKGDIR/install.d/$f", "r";
+	die "cant open $PKGDIR/install.d/$f for reading: $!" unless defined($src);
+	my @d = <$src>;
+	$src->close;
+
+
+	my $dst = new FileHandle "$b/$f", "a";
+	die "cant open $b/$f for appending: $!" unless defined($dst);
+	$dst->close;
+	
+}
 
 sub cwd {
 	my $x = `/bin/pwd`;

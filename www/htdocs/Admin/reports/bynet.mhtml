@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.6 2004/10/25 17:48:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -92,10 +92,21 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 
 		my $minq = NetPass::Network::searchArpCache($dottedNetwork);
 
+		if (ref ($minq) eq "HASH") {
+			foreach my $_ip  (keys %$minq) {
+				if ($minq->{$_ip} =~ "incomplete") {
+					delete $minq->{$_ip};
+				}
+					
+			}
+		} else {
+			$minq = "" if $minq =~ "incomplete";
+		}
 
 		my $allMacs = join(' ', (values %$minq));
 		$allMacs =~ s/\://g;
 		$allMacs =~ tr [A-Z] [a-z];
+		$allMacs =~ s/\ /%20/g;
 		my $byClient = "byclient.mhtml?macs=$allMacs";
                          
 
@@ -118,7 +129,7 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 		my $byClientsHREF = "$aq/$aq2";
 		$byClientsHREF = qq{<a href="$byClient">$aq/$aq2</a>} if ($allMacs ne "");
 
-		printf("%20.20s %20.20s %10.10s %s\n", $cmt, 
+		printf("%20.20s %20.20s %10.10s     %s\n", $cmt, 
 			$dottedNetwork, 
 			$netStats{$network}, 
 			$byClientsHREF

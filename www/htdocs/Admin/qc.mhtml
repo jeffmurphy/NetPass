@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.8 2004/10/15 15:49:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.9 2004/10/25 17:48:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -80,7 +80,7 @@ print $q->table({-border=>0, -width=>600},
 						-filter => '/^\d+\.\d+\.\d+\.\d+$/',
 						-error	=> 'Please format the IP Address in the format specified.'
 				).
-				$q->small(' e.g. 128.205.10.10')
+				$q->small(' e.g. '.$np->policy('EXAMPLE_IPADDR'))
 			)
 		).
 		$q->TR(
@@ -103,7 +103,7 @@ print $q->table({-border=>0, -width=>600},
 			)
 		).
 		$q->TR(
-			$q->td({-class=>"gray"}, "UBIT Name:") .
+			$q->td({-class=>"gray"}, $np->policy('USERNAME_PROMPT') || "Username:") .
 			$q->td({-class=>"gray"},
 				$q->textfield(
 						-name 	=> "uid",
@@ -207,7 +207,7 @@ push(@rows, $q->TR(
 push(@rows, $q->TR(
 		   	$q->th("First Seen") .
 		   	$q->th("Last Seen") .
-		   	$q->th("UBIT Name") .
+		   	$q->th($np->policy('USERNAME_PROMPT') || "Username") .
 			$q->th("IP Address") .
 			$q->th("Mac Address") .
 			$q->th("Unquar<BR>When?") .

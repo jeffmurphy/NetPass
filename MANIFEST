@@ -21,7 +21,7 @@ bin/portmover.pl
 bin/resetport-restart.sh
 bin/resetport.pl
 bin/rm_stale_cookies.pl
-bin/dbcopy
+bin/proc_counter.pl
 doc/cron.monthly/mysql_binlog_rotate
 doc/Netpass_Overview.txt
 doc/add_new_network
@@ -48,6 +48,7 @@ doc/startup/npcfgd
 doc/startup/npgarp
 doc/startup/npsnortd
 doc/startup/npstatusd
+doc/.#create_tables.sql.1.2
 CHANGES
 LICENSE
 MANIFEST

@@ -43,12 +43,26 @@ CGI (MP2)
  Apache::RequestUtil;
  APR::Pool;
 
+GD
+	firstquestion -> enter 
+	jpeg -> y
+	freetype -> n
+	xpm -> n
+
+	printf "\ny\nn\nn\n" | ...
+GD::Graph
+GD::Text
+
+
+
 perl -MCPAN -I/opt/netpass/lib -e 'install Bundle::NetPass'
 
 system modifications:
 	mkdir /var/run/netpass
 	chown netpass:netpass /var/run/netpass
 	yum install vconfig mysql-server httpd mod_perl dhcp mysql-devel perl-DBD-MySQL
+		libgd libgd-devel libpng libpng-devel libjpeg libjpeg-devel
+
 	sudo modprobe 8021q
 	ifconfig eth1 up
 	vconfig eth1 12 

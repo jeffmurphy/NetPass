@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.6 2004/10/25 17:48:25 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -753,9 +753,6 @@ sub validateMac {
 
 	$self->cfg->debug(1);
 
-	_log ("DEBUG", "$mac $ip cnct to $sw with ",
-				    ($self->cfg->getCommunities($sw))[1]);
-
 	my $snmp = new SNMP::Device('hostname'  => $sw,
 				    'snmp_community'  =>
 				    ($self->cfg->getCommunities($sw))[1]);
@@ -899,7 +896,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.6 2004/10/25 17:48:25 jeffmurphy Exp $
 
 =cut
 

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.4 2004/10/25 17:48:25 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -186,11 +186,14 @@ sub host2addr {
 }
 
 
-=head2 $mac = searchArpCache($ip)
+=head2 $mac = searchArpCache($ip, $includeIncomplete = 1)
 
 Search through the ARP cache on the localhost for the specified IP
 address. If multiple matches are found, a hash ref is returned mapping
-IPs to MACs. If only one match is found, a scalar is returned.
+IPs to MACs. If only one match is found, a scalar is returned containing
+the MAC address. If C<$includeIncomplete> is 1 (true) then we'll include
+MACs that the "arp" command classifies as "incomplete". The default is
+to include "incomplete" addresses.
 
 The IP you pass in can be in a variety of formats:
 
@@ -211,67 +214,71 @@ B<Note: this is not an object oriented routine. Just call it directly.>
 =cut
 
 sub searchArpCache {
-    my $ip   = shift;
+	my $ip   = shift;
+	my $ii   = shift;
+	$ii    ||= 1;
+	
+	_log("INFO", "searching arp cache for $ip\n");
+	
+	my $fh = new FileHandle "/sbin/arp -na |";
+	if (!defined($fh)) {
+		_log "ERROR", "failed to open /sbin/arp: $!\n";
+		return undef;
+	}
+	my $mac = undef;
+	my @lines = <$fh>;
+	$fh->close;
+	return undef unless $#lines > -1;
+	
+	
+	if ($ip =~ /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2})$/) {
+		# cidr network notation passed in
+		
+		my ($nw, $mask) = cidr2int($1);
+		
+		my %rv;
+		
+		foreach my $line (@lines) {
+			if ($line =~ /\(([\d\.]+)\)\s+at\s+(\S+)/) {
+				my $ip2 = ip2int($1);
+				$mac = $2;
+				next if (!$ii && $mac =~ /incomplete/);
+				$rv{$1} = $2 if (($ip2 & $mask) == $nw);
+			}
+		}
+		return \%rv;
+		
+	}
 
-    _log("INFO", "searching arp cache for $ip\n");
-
-    my $fh = new FileHandle "/sbin/arp -na |";
-    if (!defined($fh)) {
-	_log "ERROR", "failed to open /sbin/arp: $!\n";
-	return undef;
-    }
-    my $mac = undef;
-    my @lines = <$fh>;
-    $fh->close;
-    return undef unless $#lines > -1;
-
-
-    if ($ip =~ /^([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2})$/) {
-	    # cidr network notation passed in
-
-	    my ($nw, $mask) = cidr2int($1);
-
-	    my %rv;
-
-	    foreach my $line (@lines) {
-		    if ($line =~ /\(([\d\.]+)\)\s+at\s+(\S+)/) {
-			    my $ip2 = ip2int($1);
-			    $mac = $2;
-
-			    $rv{$1} = $2 if (($ip2 & $mask) == $nw);
-		    }
-	    }
-	    return \%rv;
-
-    } else {
-	    # distinct address or regexp passed in
-
-	    my @matches = grep {/\($ip\)\s+at\s+\S+/} @lines;
-	    return undef unless $#matches > -1;
-
-	    if ($#matches == 0) {
-		    $matches[0] =~ /\($ip\)\s+at\s+(\S+)/;
-		    my $mac = $1;
-		    $mac =~ s/\://g;
-		    $mac =~ tr [A-Z] [a-z];
-		    return $mac;
-	    }
-	    
-	    my $macs = {};
-	    
-	    foreach my $l (@matches) {
-		    #_log "INFO", "($ip) arp cache: $l";
-		    chomp $l;
-		    if($l =~ /\(($ip)\)\s+at\s+(\S+)/) {
-			    my $ip  = $1;
-			    my $mac = $2;
-			    $mac =~ tr [A-Z] [a-z];
-                    $mac =~ s/\://g;
-                    $macs->{$ip} = $mac;
-            } 
-    }
-    return $macs;
-    }
+	# distinct address or regexp passed in
+		
+	my @matches = grep {/\($ip\)\s+at\s+\S+/} @lines;
+	return undef unless $#matches > -1;
+		
+	if ($#matches == 0) {
+		$matches[0] =~ /\($ip\)\s+at\s+(\S+)/;
+		my $mac = $1;
+		$mac =~ s/\://g;
+		$mac =~ tr [A-Z] [a-z];
+		return undef if (!$ii && $mac =~ /incomplete/);
+		return $mac;
+	}
+	
+	my $macs = {};
+	
+	foreach my $l (@matches) {
+		#_log "INFO", "($ip) arp cache: $l";
+		chomp $l;
+		if($l =~ /\(($ip)\)\s+at\s+(\S+)/) {
+		        my $ip  = $1;
+			my $mac = $2;
+			$mac =~ tr [A-Z] [a-z];
+			$mac =~ s/\://g;
+			next if (!$ii && $mac =~ /incomplete/);
+			$macs->{$ip} = $mac;
+		} 
+        }
+        return $macs;
 }
 
 =head2 my $dotted = allOnesBroadcast($dottedCidr)
@@ -301,7 +308,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Network.pm,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
+$Id: Network.pm,v 1.4 2004/10/25 17:48:25 jeffmurphy Exp $
 
 =cut
 
