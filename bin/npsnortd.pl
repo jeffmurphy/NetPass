@@ -13,16 +13,6 @@ use threads;
 require SOAP::Transport::TCP;
 require SOAP::Lite;
 
-my $MKNOD  = "/bin/mknod";
-my $MKFIFO = "/bin/mkfifo";
-
-umask(0000);
-
-$SIG{'INT'}  = sub {unlink "/opt/snort-2.2.0/logs/snort.log"; exit 0;};
-$SIG{'QUIT'} = sub {unlink "/opt/snort-2.2.0/logs/snort.log"; exit 0;};
-$SIG{'ABRT'} = sub {unlink "/opt/snort-2.2.0/logs/snort.log"; exit 0;};
-$SIG{'TERM'} = sub {unlink "/opt/snort-2.2.0/logs/snort.log"; exit 0;};
-
 my %opts;
 getopts('c:qDh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
@@ -33,6 +23,14 @@ if (exists $opts{'D'}) {
 } else {
     daemonize("npsoapd", "/var/run");
 }
+
+my $MKNOD  = "/bin/mknod";
+umask(0000);
+
+$SIG{'INT'}	= sub {unlink $cfg->obj('npsnortd')->value('snortpipe'); exit 0;};
+$SIG{'ABRT'}	= sub {unlink $cfg->obj('npsnortd')->value('snortpipe'); exit 0;};
+$SIG{'QUIT'}	= sub {unlink $cfg->obj('npsnortd')->value('snortpipe'); exit 0;};
+$SIG{'TERM'}	= sub {unlink $cfg->obj('npsnortd')->value('snortpipe'); exit 0;};
 
 $cfg = new Config::General(-ConfigFile        => $opts{'c'} ? $opts{'c'} :
 	           				 "/opt/netpass/etc/npsnortd.conf" ,
@@ -55,10 +53,10 @@ system($MKNOD, $pipe, 'p');
 
 my $fh = new FileHandle();
 
-while (1) {	
-	$fh->open($pipe);
-	print <$fh>;
-	$fh->close;
+while (1) {
+        $fh->open($pipe);
+        print <$fh>;
+        $fh->close;
 }
 
 exit 0;
