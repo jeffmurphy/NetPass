@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack3.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack3.pm,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -11,6 +11,7 @@ use Net::SNMP;
 use Bit::Vector;
 use Data::Dumper;
 use NetPass::LOG qw (_log _cont);
+use Time::HiRes qw(gettimeofday tv_interval);
 
 @ISA = ('SNMP::Device');
 
@@ -216,8 +217,10 @@ sub del_vlan_membership {
 
     	# fetch bitfield
 
-    	#PortSet         ::= OCTET STRING (SIZE (32))
-    	# ...32 byte (256 bit)
+	# PortSet can vary in size. Some models return 32 bytes,
+	# others 64. In the 470 Mib (BOSS 3.1) it's declared as 
+	# an 88 byte octet string. Instead of hardcoding the length,
+	# we'll calculate it.
 
     	my $oid = ".1.3.6.1.4.1.2272.1.3.2.1.11.$id";
     	my $vl  = $self->snmp->get_request($oid);
@@ -227,19 +230,24 @@ sub del_vlan_membership {
         	return 0;
     	}
 
-    	#_log ("INFO", "Bit field[1]:".unpack('H*', $vl->{$oid})."\n") if $self->debug;
+	my $field_length = length($vl->{$oid});
 
-    	my $bv = Bit::Vector->new_Hex(256, unpack('H*', $vl->{$oid}));
+    	_log ("INFO", "HEX field[BEF]: [$field_length bytes] ",
+	      unpack('H*', $vl->{$oid})."\n") if $self->debug > 1;
+
+	my $bit_width = $field_length * 8;
+
+    	my $bv = Bit::Vector->new_Hex($bit_width, unpack('H*', $vl->{$oid}));
 
     	# set our port bit to zero
 
-    	#_log("INFO", "Bitfield[BEF]:\n".$bv->to_Bin()."\n") if $self->debug;
+    	_log("INFO", "Bit field[BEF]:\n".$bv->to_Bin()."\n") if $self->debug > 1;
 
-    	$bv->Bit_Off(255-$port); # MSB=port0, in B::V, MSB=bit255
+    	$bv->Bit_Off($bit_width - 1 - $port); # MSB=port0, in B::V, MSB=bit255
 
-    	#_log("INFO", "Bitfield[AFT]:\n".$bv->to_Bin()."\n") if $self->debug;
+    	_log("INFO", "Bit field[AFT]:\n".$bv->to_Bin()."\n") if $self->debug > 1;
 
-    	#_log ("INFO", "Bit field[2]:".$bv->to_Hex()."\n") if $self->debug;
+    	_log ("INFO", "HEX field[AFT]:".$bv->to_Hex()."\n") if $self->debug > 1;
     
 	$self->snmp->set_request($oid, OCTET_STRING, pack('H*', $bv->to_Hex()));
     
@@ -428,8 +436,11 @@ sub get_mac_port_table {
     	my $res;
     	my $oid = ".1.3.6.1.2.1.17.4.3.1.2";
 
+	my $startTime = [gettimeofday];
+
     	if (!defined($res = $self->snmp->get_table($oid))) {
         	$self->err($self->snmp->error);
+		_log("DEBUG", "timeout=".$self->snmp_timeout." ip=".$self->ip." failed after ".tv_interval($startTime)." secs\n");
         	return undef;
     	}
 
@@ -454,6 +465,8 @@ sub get_mac_port_table {
             		push @{$p2m->{$ifIndex}} , $mac;
         	}
     	}
+
+	_log("DEBUG", "timeout=".$self->snmp_timeout." ip=".$self->ip." succeeded after ".tv_interval($startTime)." secs\n");
 
     	return ($m2p, $p2m);
 }
@@ -677,7 +690,7 @@ sub HexMac2DecMac {
 
 =head1 REVISION
 
-$Id: BayStack3.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+$Id: BayStack3.pm,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
 
 =cut
 

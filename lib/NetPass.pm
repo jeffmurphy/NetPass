@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.3 2004/09/28 20:24:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.4 2004/09/30 01:19:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,7 +15,7 @@ use NetPass::DB;
 use Carp;
 
 my $VERSION = 1.0001;
-my $RELEASE = 0.92;
+my $RELEASE = 0.96;
 
 =head1 NAME
 
@@ -231,6 +231,7 @@ Available tags are:\n";
 
     if ( defined($dev->err) ) {
 	_log ("ERROR", "new SNMP::Device failed: ".$dev->err."\n");
+	$self->error("new SNMP failed ".$dev->err);
 	return 0;
     }
 
@@ -238,6 +239,7 @@ Available tags are:\n";
     
     if (!defined($x)) {
 	_log ("ERROR", "failed to retrieve vlan membership for $hn/$port ".$dev->err."\n");
+	$self->error("failed to retrieve vlan membership for $hn/$port ".$dev->err);
 	return 0;
     }
 
@@ -260,6 +262,7 @@ Available tags are:\n";
 
     if ( !defined($default_vlan_id) ) {
 	_log ("ERROR", "Failed to fetch default_vlan_id for $hn/$port error: ".$dev->err."\n");
+	$self->error("Failed to fetch default_vlan_id for $hn/$port error: ".$dev->err);
 	return 0;
     }
     
@@ -286,7 +289,7 @@ Available tags are:\n";
 	    _log("ERROR", "failed to remove $port from vlan $curVlan : ".$dev->err)
 	      if !$self->Q;
 	    _log("INFO", "setting default vlan for $hn/$port back to $default_vlan_id\n");
-	    if ($dev->set_default_vlan_id($port, $default_vlan_id) == undef) {
+	    if (!defined($dev->set_default_vlan_id($port, $default_vlan_id))) {
 		_log ("ERROR", "backout failed to set default vlan $hn/$port $default_vlan_id\n");
 	    }
 	    return 0;
@@ -303,7 +306,7 @@ Available tags are:\n";
 	$self->error("failed to add $hn/$port to vlan $_vlan : ".$dev->err);
 	_log("INFO", "backingout changes $hn/$port def=$default_vlan_id vlan=",
 	     join(',', @$x), "\n");
-	if ($dev->set_default_vlan_id($port, $default_vlan_id) == undef) {
+	if (!defined($dev->set_default_vlan_id($port, $default_vlan_id))) {
 	    _log("ERROR", "backout failed to set default vlan id $hn/$port $default_vlan_id\n");
 	}
 
@@ -324,63 +327,6 @@ Available tags are:\n";
 
     return 1;
 
-}
-
-
-=head2 $mac = searchArpCache($ip)
-
-Search through the ARP cache on the localhost for the specified IP
-address. If multiple matches are found, a hash ref is returned mapping
-IPs to MACs. If only one match is found, a scalar is returned.
-
-C<undef> on failure.
-
-B<Note: this is not an object oriented routine. Just call it directly.>
-
-
-=cut
-
-sub searchArpCache {
-    my $ip   = shift;
-
-    _log("INFO", "searching arp cache for $ip\n");
-
-    my $fh = new FileHandle "/sbin/arp -na |";
-    if (!defined($fh)) {
-	_log "ERROR", "failed to open /sbin/arp: $!\n";
-	return undef;
-    }
-    my $mac = undef;
-    my @lines = <$fh>;
-    $fh->close;
-    return undef unless $#lines > -1;
-
-    my @matches = grep {/\($ip\)\s+at\s+\S+/} @lines;
-
-    return undef unless $#matches > -1;
-
-    if ($#matches == 0) {
-	    $matches[0] =~ /\($ip\)\s+at\s+(\S+)/;
-	    my $mac = $1;
-	    $mac =~ s/\://g;
-	    $mac =~ tr [A-Z] [a-z];
-	    return $mac;
-    }
-    
-    my $macs = {};
-    
-    foreach my $l (@matches) {
-	    #_log "INFO", "($ip) arp cache: $l";
-	    chomp $l;
-	    if($l =~ /\(($ip)\)\s+at\s+(\S+)/) {
-                    my $ip  = $1;
-                    my $mac = $2;
-	            $mac =~ tr [A-Z] [a-z];
-                    $mac =~ s/\://g;
-                    $macs->{$ip} = $mac;
-            } 
-    }
-    return $macs;
 }
 
 =head2 $bool = authenticateUser($username, $password)
@@ -945,7 +891,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.3 2004/09/28 20:24:13 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.4 2004/09/30 01:19:38 jeffmurphy Exp $
 
 =cut
 

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack.pm,v 1.2 2004/09/28 20:24:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack.pm,v 1.3 2004/09/30 01:19:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -11,6 +11,7 @@ use Net::SNMP;
 use Bit::Vector;
 use Data::Dumper;
 use NetPass::LOG qw (_log _cont);
+use Time::HiRes qw (gettimeofday tv_interval);
 
 @ISA = ('SNMP::Device');
 
@@ -589,9 +590,12 @@ sub get_mac_port_table {
     	my $res;
     	my $oid = ".1.3.6.1.2.1.17.4.3.1.2";
 
+	my $startTime = [gettimeofday];
+
     	if (!defined($res = $self->snmp->get_table(-baseoid        => $oid,
 						   -maxrepetitions => 10))) {
         	$self->err($self->snmp->error);
+		_log("DEBUG", "timeout=".$self->snmp_timeout." ip=".$self->ip." failed after ".tv_interval($startTime)." secs\n");
         	return undef;
     	}
 
@@ -617,6 +621,8 @@ sub get_mac_port_table {
         	}
     	}
 
+	_log("DEBUG", "timeout=".$self->snmp_timeout." ip=".$self->ip." succeeded after ".tv_interval($startTime)." secs\n");
+	
     	return ($m2p, $p2m);
 }
 
@@ -818,7 +824,7 @@ sub HexMac2DecMac {
 
 =head1 REVISION
 
-$Id: BayStack.pm,v 1.2 2004/09/28 20:24:13 jeffmurphy Exp $
+$Id: BayStack.pm,v 1.3 2004/09/30 01:19:38 jeffmurphy Exp $
 
 =cut
 

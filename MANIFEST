@@ -75,6 +75,7 @@ lib/NetPass/matt.pm
 lib/NetPass/Stats/Network.pm
 lib/NetPass/WWW/Session.pm.file
 lib/NetPass/WWW/Session.pm.mysql
+lib/NetPass/Network.pm
 lib/OSS/Template/BoxArea.pm
 lib/OSS/Template/Box.pm
 lib/OSS/Template/Templates/Site.pm

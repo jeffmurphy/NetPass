@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.2 2004/09/24 19:56:47 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.4 2004/09/30 01:19:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,6 +15,8 @@ $search => '';
 $submit => '';
 $type   => 'AND';
 $ids    => ();
+$uqlinkup => '';
+$status   => '';
 </%args>
 
 <script><!--
@@ -84,11 +86,12 @@ print $q->table({-border=>0, -width=>600},
 		$q->TR(
 			$q->td({-class=>"gray"}, "MAC Address:") .
 			$q->td({-class=>"gray"},
-				$q->textfield(
+				$q->textarea(
 						-name 	=> "mac",
 						-value 	=> $mac,
-						-filter => '/^\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}$/',
-						-error	=> 'Please format the MAC Address in the format specified.'
+						-cols   => 18, -rows => 1, 
+						#-filter => '/^\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}$/',
+						#-error	=> 'Please format the MAC Address in the format specified.'
 				).
 				$q->small(' e.g. AA:BB:CC:DD:EE:FF or AABBCCDDEEFF')
 			)
@@ -99,6 +102,31 @@ print $q->table({-border=>0, -width=>600},
 				$q->textfield(
 						-name 	=> "uid",
 						-value 	=> $uid, 
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "Status:") .
+			$q->td({-class=>"gray"},
+				$q->popup_menu(
+						-name 	=> "status",
+						-value 	=> [ '', @$statuses ],
+						-default => $status
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "Unquar When?") .
+			$q->td({-class=>"gray"},
+                                        $q->popup_menu(
+                                                        -name    => "uqlinkup",
+                                                        -values  => [ '', 'no', 'yes' ],
+                                                        -labels  => {
+									"" => "",
+                                                                        "no" => "Web Visit",
+                                                                        "yes" => "Link Up"
+                                                                     },
+                                                        -default => $uqlinkup
 				)
 			)
 		).
@@ -125,6 +153,10 @@ print $q->table({-border=>0, -width=>600},
 				$q->submit(
 						-name 	=> "search",
 						-value 	=> "Search"
+				),
+				$q->reset(	-onClick => 'javascript:formObj.getElementByName("status").value = "foo"; return 1;',
+						-name 	=> "reset",
+						-value 	=> "Reset"
 				)
 			)
 		)
@@ -147,7 +179,7 @@ if($submit) {
 	}
 }
 
-my ($results, $count) = getQuars($dbh,$ip, $mac,$uid,$type);
+my ($results, $count) = getQuars($dbh, $ip, $mac, $uid, $type, $status, $uqlinkup);
 
 if($count<0) {
 	print "Sorry, there was an error while processing your request! ($results)";
@@ -260,11 +292,13 @@ sub defne {
 }
 
 sub getQuars {
-	my $dbh	 = shift;
-	my $ip   = shift;
-	my $mac	 = shift;
-	my $uid	 = shift;
-	my $type = shift;
+	my $dbh	     = shift;
+	my $ip       = shift;
+	my $mac	     = shift;
+	my $uid	     = shift;
+	my $type     = shift;
+	my $status   = shift;
+	my $uqlinkup = shift;
 
 	# double check the value, make sure noone can sneak an insertion attack in here ;)
 	$type = ($type eq "OR")?"OR":"AND";
@@ -273,11 +307,26 @@ sub getQuars {
 	my @params = ();
 
 	if($mac) {
-		$mac =~ s/://g;
-		$mac = hex("0x" . uc($mac));
-
-		push(@clause, "macAddress=?");
-		push(@params, $mac);
+print "1MAC|<PRE>$mac</PRE>| ", ref($mac), "<P>";
+		my @macList = split("\n", $mac);
+		if ($#macList > 0) {
+			my @_clause;
+			for(my $ml = 0; $ml <= $#macList ; $ml++) {
+				$macList[$ml] =~ s/://g;
+				$macList[$ml] = hex("0x" . uc($macList[$ml]));
+				push @_clause, "macAddress=?";
+			}
+			push(@clause, 
+				" ( ". 
+					join(" OR ", @_clause).
+				" ) " );
+			push(@params, @macList);
+		} else {
+			$mac =~ s/://g;
+			$mac = hex("0x" . uc($mac));
+			push(@clause, "macAddress=?");
+			push(@params, $mac);
+		}
 	}
 	
 	if($ip) {
@@ -290,6 +339,16 @@ sub getQuars {
 		push(@params, $uid);
 	}
 
+	if($status) {
+		push(@clause, "status=?");
+		push(@params, $status);
+	}
+
+	if($uqlinkup) {
+		push(@clause, "uqlinkup=?");
+		push(@params, $uqlinkup);
+	}
+
 	my $query = "SELECT DATE_FORMAT(firstSeen, '%Y-%m-%d %H:%i:%s') as firstSeen, DATE_FORMAT(registeredOn, '%Y-%m-%d %H:%i:%s') as registeredOn, username, HEX(macAddress) as macAddress, ipAddress, OS, status, message, uqlinkup FROM register";
 	
 	if($#clause>-1) {
@@ -298,8 +357,8 @@ sub getQuars {
 
 	$query .= " ORDER BY registeredOn";
 
-	#print $query;
-	#print join(',', @params);
+	print "QUERY=$query<P>";
+	print "PARMS=",join(',', @params), "<P>";
 
 	my $sth = $dbh->prepare($query);
 
@@ -367,7 +426,7 @@ sub saveQuarChanges {
         my $dbh  = shift;
         my $args = shift;
         my $ids  = shift;
-	my $D    = 1;
+	my $D    = 0;
 
 	if(!(ref($ids) =~ /ARRAY/) ) {
 		$ids = [$ids];

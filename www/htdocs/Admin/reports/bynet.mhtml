@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.3 2004/09/30 01:19:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,29 +18,49 @@ setWhereAmI('Reports');
 
 if ( $m->comp('/Admin/Login', %ARGS) ) {
 
-	my $sql = "select count(*) as number_clients, substring(ipAddress, 1, 11) as network from register group by network";
+	my $sql = "select ipAddress from register";
 	my $a   = $dbh->selectall_arrayref($sql);
-	print "<PRE>";
-	printf("%20.20s %10.10s %10.10s\n",  "", "Registered", "Active");
-	printf("%20.20s %10.10s %10.10s\n",  "Network", "Clients", "In-Quar");
-	my $total = 0;
-	foreach my $row (@$a) {
-		my ($rc, $nw) = ($row->[0], $row->[1]);
-		$nw = join('.', (split(/\./, $nw))[0,1,2]);
-		my $_nw = $nw;
-		$_nw =~ s/\./\\\./g;
 
-		my $minq = NetPass::searchArpCache("${_nw}\\..*");
+	print "<PRE>";
+
+	printf("%20.20s %20.20s %10.10s %10.10s\n", "", "", "Registered", "Active");
+	printf("%20.20s %20.20s %10.10s %10.10s\n", "Comment", "Network", "Clients", "In-Quar");
+
+	my $total = 0;
+
+	my %netStats;
+	my $totalClients;
+
+	# count up number of registered clients by-network
+
+	foreach my $row (@$a) {
+		my $clientIP = $row->[0];
+
+		my $network = $np->cfg->getMatchingNetwork($clientIP);
+		if (defined($network) && ($network ne "")) {
+			$netStats{$network}++;
+			$totalClients++;
+		}
+	}
+
+	# count up number of live clients in quarantine based on
+	# what networks we see in our local arp cache
+
+	foreach my $network (sort keys %netStats) {
+		my $minq = NetPass::Network::searchArpCache($network);
 		my $aq = 0; 
 		if (ref($minq) eq "HASH") {
 			$aq = keys %$minq;
 		} else {
 			$aq = 1 if defined($minq) && ($minq ne "");
 		}
-		printf("%20.20s %10.10s %10.10s\n", $nw, $rc, $aq);
-		$total += $row->[0];
+
+		my $cmt = $np->cfg->getNetComment($network);
+
+		printf("%20.20s %20.20s %10.10s %10.10s\n", $cmt, $network, 
+			$netStats{$network}, $aq);
 	}
-	printf("\n\ntotal registered = $total\n");
+	printf("\n\ntotal registered = $totalClients\n");
 	printf("</PRE>\n");
 }
 

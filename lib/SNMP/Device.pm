@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device.pm,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,8 +88,8 @@ sub _initialize {
 
 	# defaults
 	$self->snmp_version('1');
-	$self->snmp_timeout('15');
-	$self->snmp_retry('1');
+	$self->snmp_timeout('60');
+	$self->snmp_retry('3');
 	$self->snmp_wait('5.0');
 	$self->snmp_mtu('1500');
 	$self->snmp_debug('0');
@@ -422,7 +422,7 @@ sub port_status {
 
 =head1 REVISION
 
-$Id: Device.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+$Id: Device.pm,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
 
 =cut
 

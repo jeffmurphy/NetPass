@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.2 2004/09/28 20:24:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.3 2004/09/30 01:19:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,8 +12,9 @@ require Config::General;
 
 use Data::Dumper;
 use FileHandle;
-use Net::DNS;
 use NetPass::LOG qw(_log _cont);
+use NetPass::Network qw(ip2int cidr2int host2addr);
+
 use Class::ParmList qw(simple_parms parse_parms);
 
 my $VERSION       	= '1.0001';
@@ -583,12 +584,12 @@ comment is specified.
 
 sub getNetComment {
     my ($self, $network) = (shift, shift);
+
     $self->reloadIfChanged();
-    # exclude the "bsw" keyword
 
     if( $self->{'cfg'}->obj('network')->exists($network) ) {
 	    if( $self->{'cfg'}->obj('network')->obj($network)->exists('comment') ) {
-		    return $self->{'cfg'}->obj('network')->obj($network)->exists('comment');
+		    return $self->{'cfg'}->obj('network')->obj($network)->value('comment');
 	    }
     }
     return "";
@@ -631,6 +632,8 @@ sub getMatchingNetwork {
     my $self = shift;
     my $ip   = shift;
 
+    _log("DEBUG", "enter\n");
+
     $self->reloadIfChanged();
 
     return undef if !defined($ip);
@@ -639,8 +642,8 @@ sub getMatchingNetwork {
 
     foreach my $n ($self->{'cfg'}->keys('network')) {
 	my ($n_, $m_) = cidr2int($n);
-	#_log "DEBUG", sprintf("%x & %x ? %x (%x)\n", $ip_, $m_, $n_,
-	#		     ($ip_ & $m_));
+	_log "DEBUG", sprintf("%x & %x ? %x (%x)\n", $ip_, $m_, $n_,
+			     ($ip_ & $m_));
 	return $n if ( ($ip_ & $m_) == $n_);
     }
 
@@ -1087,108 +1090,6 @@ sub nessusConfig {
 		$self->{'cfg'}->obj('nessus')->value('password'));
 }
 
-# for speedy lookups
-
-my @cidr_to_int = (
-0x00000000, #/0
-0x80000000, #/1
-0xc0000000, #/2
-0xe0000000, #/3
-0xf0000000, #/4
-0xf8000000, #/5
-0xfc000000, #/6
-0xfe000000, #/7
-0xff000000, #/8
-0xff800000, #/9
-0xffc00000, #/10
-0xffe00000, #/11
-0xfff00000, #/12
-0xfff80000, #/13
-0xfffc0000, #/14
-0xfffe0000, #/15
-0xffff0000, #/16
-0xffff8000, #/17
-0xffffc000, #/18
-0xffffe000, #/19
-0xfffff000, #/20
-0xfffff800, #/21
-0xfffffc00, #/22
-0xfffffe00, #/23
-0xffffff00, #/24
-0xffffff80, #/25
-0xffffffc0, #/26
-0xffffffe0, #/27
-0xfffffff0, #/28
-0xfffffff8, #/29
-0xfffffffc, #/30
-0xfffffffe, #/31
-0xffffffff  #/32
-);
-
-
-sub cidr2int {
-	my $c = shift;
-	
-	$c .= "/32" unless ($c =~ /\/\d+/);
-	
-	if($c !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d+)$/) {
-		die Carp::longmess("cidr2int: \"$c\" doesnt look like a.b.c.d/f");
-	}
-	
-	my $i   = ip2int($1);
-	my $cbf = $2;
-	my $m;
-	
-	# for the mask, did they give us, eg "/24" or did they 
-	# give us "/255.255.255.0" ?
-	
-	if ($cbf =~ /^\d+$/) { # /24
-		die Carp::longmess("cidr bit field must be between 1 and 32") 
-		  if ( $cbf < 1 || $cbf > 32 );
-		$m = $cidr_to_int[$cbf];
-	} else { #/255.255.255.0
-		$m = ip2int($cbf);
-	}
-	
-	return($i, $m);
-}
-
-sub ip2int {
-	my $i = shift;
-	
-	if ($i !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
-		die Carp::longmess("ip2int: \"$i\" doesnt look like an ip address to me");
-	}
-	
-	my @o = split(/\./, $i);
-	return ( ($o[0] << 24) |
-		 ($o[1] << 16) | 
-		 ($o[2] <<  8) |
-		 ($o[3]      ) );
-}
-
-sub host2addr {
-	my $hn    = shift;
-	my $res   = new Net::DNS::Resolver;
-	my $query = $res->search($hn);
-	
-	return $hn if ($hn =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
-	
-	my $addr;
-	
-	if ($query) {
-		foreach my $rr ($query->answer) {
-			next unless $rr->type eq "A";
-			return $rr->address;
-			last;
-		}
-	} else {
-		die Carp::longmess("cant resolve hostname ($hn) to an address: " .
-				   $res->errorstring);
-	}
-	#notreached
-}
-
 =head2 B<recur_exists>
 
 This is a routine, not a method. Useful for checking if a deep configuration
@@ -1222,7 +1123,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.2 2004/09/28 20:24:13 jeffmurphy Exp $
+$Id: Config.pm,v 1.3 2004/09/30 01:19:38 jeffmurphy Exp $
 
 =cut
 

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/GetInfo,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/GetInfo,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,7 +18,7 @@ $m->session->{'remote_addr'} = $ENV{'REMOTE_ADDR'};
 
 # XXX and if the mac address is "incomplete"???
 
-$m->session->{'remote_mac'}  = NetPass::searchArpCache($m->session->{'remote_addr'});
+$m->session->{'remote_mac'}  = NetPass::Network::searchArpCache($m->session->{'remote_addr'});
 
 if (defined($m->session->{'remote_mac'})           && 
     ($m->session->{'remote_mac'} !~ /incomplete/i) &&
