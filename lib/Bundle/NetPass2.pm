@@ -54,6 +54,24 @@ Mail::Sendmail
 
 MIME::Base64
 
+Cache::Cache - Mason
+
+Apache::Request - Mason
+
+Class::Container - Mason
+
+Apache::Test - Mason
+
+HTML::Mason
+
+Apache::Cookie
+
+Apache::Session
+
+Apache::Session::Wrapper
+
+MasonX::Request::WithApacheSession
+
 =head1 DESCRIPTION
 
 NetPass required perl modules.

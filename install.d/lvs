@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/install.d/lvs,v 1.1 2005/03/05 04:15:49 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install.d/lvs,v 1.2 2005/03/15 19:52:47 jeffmurphy Exp $
 #
 # installation script for redirectors
 
@@ -25,11 +25,13 @@ my $fh = new FileHandle "/etc/ha.d/authkeys", "w";
 die "can't open /etc/ha.d/authkeys for writing: $!" unless defined $fh;
 print $fh "auth 2\n2 sha1 $authkey\n";
 $fh->close;
+chmod 0600, "/etc/ha.d/authkeys";
 
 my $vip = ask("\nWe'll now configure /etc/ha.d/ldirectord.cf. What's the virtual IP address
 you've decided to use? ");
 my $rs1 = ask("\nWhat's the IP address of the first NetPass server? ");
 my $rs2 = ask("\nWhat's the IP address of the second NetPass server? ");
+my $d2  = ask("\nWhat's the IP address of the other NetPass redirector? ");
 
 my $fhI = new FileHandle "$PKGDIR/install.d/ldirectord.cf", "r";
 die "can't open $PKGDIR/install.d/ldirectord.cf for reading: $!" unless defined $fhI;
@@ -55,7 +57,22 @@ $fh = new FileHandle "/etc/ha.d/ha.cf", "w";
 die "cant open /etc/ha.d/ha.cf for writing: $!" unless defined $fh;
 print $fh "node $dir1\n" if ($dir1 ne "");
 print $fh "node $dir2\n" if ($dir2 ne "");
+print $fh "ucast eth0 $d2\n" if ($d2 ne "");
+print $fh "logfacility local0
+auto_failback on\n";
 $fh->close;
+
+system("touch /var/log/ha.log");
+chmod 0666, "/var/log/ha.log";
+
+$fh = new FileHandle "/etc/syslog.conf", "a";
+if ($fh) {
+	print $fh "local0.*\t\t\t/var/log/ha.log\n";
+	$fh->close;
+	system("/etc/init.d/syslog restart");
+}
+
+print "XXX IPTABLES CONFIG HERE\n\n";
 
 print "\nHA configuration complete. Use the netpass/bin/interfacecfg.pl script
 to generate your HA interface configuration script.\n";

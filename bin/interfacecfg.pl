@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.2 2005/03/15 17:18:31 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.3 2005/03/15 19:52:46 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.2 2005/03/15 17:18:31 jeffmurphy Exp $
+$Id: interfacecfg.pl,v 1.3 2005/03/15 19:52:46 jeffmurphy Exp $
 
 =cut
 
@@ -166,7 +166,7 @@ sub director () {
 
 	print "echo \"#     node              func::ip/netmask/interface/broadcast\" > $HARESOURCES\n";
 	# XXX FIX!
-	print "echo \"npr1.cit.buffalo.edu    IPaddr::128.205.10.80/32/eth0/128.205.10.255 \\\\\" >> $HARESOURCES\n";
+	print "echo \"npr1-d.cit.buffalo.edu    IPaddr::128.205.10.80/32/eth0/128.205.10.255 \\\\\" >> $HARESOURCES\n";
 
 	foreach (keys %$ifaces) {
 		my $n = $ifaces{$_}{'qvlan'};

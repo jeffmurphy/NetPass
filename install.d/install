@@ -43,6 +43,8 @@ NOTES: (READ!)
      enter them or the module won't install.
   7. mysql_config must be in your path for DBD::Mysql to build
   8. MySQL must be running for tests to complete.
+  9. When Apache::Test asks for an HTTPD to test with enter
+     "skip" and "Yes"
 
 [using -I$BD/lib]
 
@@ -63,6 +65,7 @@ echo "force install Net::SSLeay" | $PB/bin/perl -MCPAN -I${BD}/lib -e 'shell'
 
 # iptables module  wants to run tests as root. just force it 
 echo "force install IPTables::IPv4" | $PB/bin/perl -MCPAN -I${BD}/lib -e 'shell'
+
 
 sleep 10
 

@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.13 2005/03/15 19:52:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.14 2005/03/15 19:57:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,7 +57,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.13 2005/03/15 19:52:45 jeffmurphy Exp $
+$Id: install,v 1.14 2005/03/15 19:57:17 jeffmurphy Exp $
 
 =cut
 
@@ -190,17 +190,18 @@ mkdir "/var/run/netpass" unless (-d "/var/run/netpass");
 lsystem("chown -R netpass:netpass /var/run/netpass");
 
 installHTMLArea($PKGDIR, $TARGET) unless $UPGRADE;
-installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "sg.tar.bz2", "/opt");
-installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "perl-5.8.6.tar.bz2", "/opt");
+installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", $SQUIDG, "/opt");
+installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", $PERL, "/opt");
 my $APACHE_PB_INSTALLED = 
-  installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "apache-1.3.33.tar.bz2", "/opt");
+  installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", $APACHE, "/opt");
 
 lsystem (qq{ln -s /opt/apache_1.3.33 /opt/apache}) if $APACHE_PB_INSTALLED 
   && (! -l "/opt/apache");
 lsystem (qq{ln -s /opt/perl-5.8.6    /opt/perl}) if (! -l "/opt/perl");
 
 makeCookiesDir();
-my $apacheRV = apacheConfig("/opt/apache/conf/httpd.conf") if $APACHE_PB_INSTALLED;
+my $apacheRV = apacheConfig($PKGDIR."/install.d/httpd.conf",
+			    "/opt/apache/conf/httpd.conf") if $APACHE_PB_INSTALLED;
 my $swatchRV = installSwatch($PKGDIR."/install.d/swatch.conf", "/etc/swatch.conf");
 
 if ((!-d "$TARGET/www/htdocs/resources") && (!-l "$TARGET/www/htdocs/resources")) {
@@ -934,14 +935,15 @@ EOF
 }
 
 sub apacheConfig {
-	my $conf = shift;
+	my $srcConf = shift;
+	my $dstConf = shift;
 
 	my $a = ask( "Configure Apache's httpd.conf file? [Y/N] ");
 	return unless ($a =~ /^y/i);
 
-	my $fh = new FileHandle $conf, "r";
+	my $fh = new FileHandle $srcConf, "r";
 	if (!defined($fh)) {
-		ldie Carp::longmess "failed to open $conf $!\n";
+		ldie Carp::longmess "failed to open $srcConf $!\n";
 	}
 	my @conf = <$fh>;
 	$fh->close;
@@ -999,9 +1001,9 @@ real name.\n\n");
 		ll("SSLCertificateKeyFile = $SSLCertificateKeyFile\n");
 	}
 
-	my $fh = new FileHandle $conf, "w";
+	$fh = new FileHandle $dstConf, "w";
 	if (!defined($fh)) {
-		ldie Carp::longmess "Failed to open $conf for writing $!\n";
+		ldie Carp::longmess "Failed to open $dstConf for writing $!\n";
 	}
 	print $fh @conf;
 	$fh->close;
@@ -1010,11 +1012,11 @@ real name.\n\n");
 	# read in the Session.pm file and configure it
 
 	my $conf = "/opt/netpass/lib/NetPass/WWW/Session.pm.file";
-	my $fh = new FileHandle $conf, "r";
+	   $fh = new FileHandle $conf, "r";
 	if (!defined($fh)) {
 		ldie Carp::longmess "Failed to open $conf for reading $!\n";
 	}
-	my @conf = <$fh>;
+	@conf = <$fh>;
 	$fh->close;
 
 	

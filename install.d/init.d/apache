@@ -22,6 +22,12 @@ case "$1" in
 'stop')
         kill -TERM `/bin/cat /opt/apache/logs/httpd.pid`
         ;;
+'restart')
+        kill -TERM `/bin/cat /opt/apache/logs/httpd.pid`
+        echo "web daemon starting."
+	rm -fr /opt/apache/mason/*
+        $SROOT/bin/httpd %DSSL% -f $SROOT/conf/httpd.conf
+	;;
 *)
         echo "Usage: /etc/init.d/httpd { start | stop }"
         ;;

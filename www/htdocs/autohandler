@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.2 2005/03/15 19:52:48 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -31,20 +31,22 @@ $npdbh = new NetPass::DB( $np->cfg->dbSource,
 if (!defined($npdbh)) {
 	_log("ERROR", "NetPass::DB failed to connect to db: ",
 		DBI->errstr, "\n");
+	print ("Filed to connect to database: ", DBI->errstr, 
+		"Sorry, I can't recover from this.
+} else {
+
+	$dbh = $npdbh->dbh();
+	$q = new OSS::Template(\%ARGS);
+
+	$m->comp('/style/front/header', %ARGS);
+	$m->call_next(%ARGS);
+	$m->comp('/style/front/footer', %ARGS);
 }
-
-$dbh = $npdbh->dbh();
-
-$q = new OSS::Template(\%ARGS);
-
-$m->comp('/style/front/header', %ARGS);
-$m->call_next(%ARGS);
-$m->comp('/style/front/footer', %ARGS);
 
 </%init>
 
 <%cleanup>
-	$npdbh->DESTROY();
-	$np->DESTROY();
+	if (defined ($npdbh)) { $npdbh->DESTROY(); }
+	if (defined ($np)  )  { $np->DESTROY()   ; }
 </%cleanup>
 
