@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.5 2004/10/15 17:59:12 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.6 2004/10/15 18:02:10 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -72,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.5 2004/10/15 17:59:12 mtbell Exp $
+$Id: resetport.pl,v 1.6 2004/10/15 18:02:10 mtbell Exp $
 
 =cut
 
@@ -185,7 +185,7 @@ while (1) {
 		if (!defined($threads->{$switch}) ||
 		    !$myself->object($threads->{$switch}->tid)) {
 			# a thread doesnt exist for this switch 
-			$threads->{$switch} = threads->create(\&procUQ, $switch, \%opts,
+			$threads->{$switch} = threads->create(\&procUQ, $switch,
 							      $unq_on_linkup);	
 			_log("INFO", "spawning thread to handle $switch\n");
 		}
@@ -326,15 +326,14 @@ again the next time we are called.
 
 sub procUQ {
 	my $switch = shift;
-	my $opts   = shift;
 	my $unq_on_linkup = shift;
 
-	print "thread connecting to DB\n" if $opts->{'D'};
+	print "thread connecting to DB\n" if $opts{'D'};
 
-	my $np = new NetPass(-config => defined $opts->{'c'} ? $opts->{'c'} :
+	my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
                      	     "/opt/netpass/etc/netpass.conf",
-                     	     -debug => exists $opts->{'D'} ? 1 : 0,
-                     	     -quiet => exists $opts->{'q'} ? 1 : 0);
+                     	     -debug => exists $opts{'D'} ? 1 : 0,
+                     	     -quiet => exists $opts{'q'} ? 1 : 0);
 
 	if (!defined($np)) {
     		_log "ERROR", "failed to create NetPass object\n";
