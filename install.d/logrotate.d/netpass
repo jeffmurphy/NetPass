@@ -1,0 +1,36 @@
+# nessusd.dump  nessusd.messages  netpass2.log  netpass.log  snmptraps.log
+/opt/netpass/log/nessusd.messages {
+    daily
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+}
+/opt/netpass/log/nessusd.dump {
+    daily
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+}
+/opt/netpass/log/netpass.log {
+    daily
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+}
+/opt/netpass/log/snmptraps.log {
+    daily
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+    postrotate
+        /sbin/service snmptrapd reload  2> /dev/null > /dev/null || true
+    endscript
+}

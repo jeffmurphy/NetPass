@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.2 2004/12/23 21:36:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -56,11 +56,11 @@ sub getContent {
 </%perl>
 
 <script type="text/javascript">
-  _editor_url = "/Admin/Editor/";
+  _editor_url = "/Admin/Editor/htmlarea";
   _editor_lang = "en";
 </script>
 
-<script type="text/javascript" src="htmlarea.js"></script>
+<script type="text/javascript" src="htmlarea/htmlarea.js"></script>
 
 <script type="text/javascript">
       HTMLArea.loadPlugin("TableOperations");

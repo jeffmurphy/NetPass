@@ -48,7 +48,6 @@ doc/startup/npcfgd
 doc/startup/npgarp
 doc/startup/npsnortd
 doc/startup/npstatusd
-doc/.#create_tables.sql.1.2
 CHANGES
 LICENSE
 MANIFEST
@@ -63,6 +62,7 @@ install.d/spinner.pm
 install.d/services
 install.d/syslog.conf
 install.d/convertdb
+install.d/packages
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
 lib/NetPass.pm
@@ -102,6 +102,7 @@ www/components/Audit
 www/components/Admin/MemberOf
 www/components/Admin/Login
 www/components/CookieDetect
+www/components/Client/WelcomePage
 www/components/Client/BeginScan
 www/components/Client/GetInfo
 www/components/Client/Login
@@ -110,7 +111,6 @@ www/components/Client/Remediate
 www/components/Client/SideLinks
 www/components/Client/Survey
 www/components/Client/Validate
-www/components/Client/WelcomePage
 www/components/style/back/end_content
 www/components/style/back/end_sidebar
 www/components/style/back/start_sidebar

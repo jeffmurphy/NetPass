@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Header: /tmp/netpass/NetPass/lib/NetPass/WWW/Session.pm.file,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/WWW/Session.pm.file,v 1.2 2004/12/23 21:36:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -19,24 +19,25 @@ use HTML::Mason::ApacheHandler;
 use strict;
 use Sys::Hostname;
 
+
 my $VERSION = "1.0001";
 
 # XXX this is also set in netpass.conf
 # XXX we should pull this in from there
 
-my $cookieName = "UB-NetPass";
+my $cookieName = "%COOKIENAME%";
 
 if (hostname eq "cookbook.cit.buffalo.edu") {
-    $cookieName = "UB-NetPass-Devel";
+    $cookieName = "%COOKIENAME%-Devel";
 }
 
-# the session database:
-# CREATE TABLE sessions (
-#     id CHAR(64),
-#     length INT(11),
-#     a_session TEXT,
-#     index(id)
-# );
+
+
+
+
+
+
+
 
 
 # List of modules that you want to use from components
@@ -51,14 +52,21 @@ if (hostname eq "cookbook.cit.buffalo.edu") {
 my $ah =
     new HTML::Mason::ApacheHandler (
 	request_class		=> 'MasonX::Request::WithApacheSession',
-        session_class          => 'Apache::Session::File',
-        session_directory      => '/cookies/data',
-        session_lock_directory => '/cookies/lock',
+
+        session_class              => 'Apache::Session::File',
+        session_directory          => '%COOKIEDATA%',
+        session_lock_directory     => '%COOKIELOCK%',
+
+
+
+
+
+
 
         session_use_cookie	=> 1,
         session_cookie_name     => $cookieName,
         session_cookie_expires  => '+1d',
-        session_cookie_domain   => '.buffalo.edu',
+        session_cookie_domain   => '%COOKIEDOM%',
         comp_root		=>   [
 					[ private => '/opt/netpass/www/components' ],
 					[ main => '/opt/netpass/www/htdocs' ]

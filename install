@@ -1,6 +1,6 @@
 #!/usr/bin/env perl 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.5 2004/10/25 17:48:24 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.6 2004/12/23 21:36:13 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -13,6 +13,7 @@ install - installation / upgrade script
 =head1 SYNOPSIS
 
  install.pl [/dest/dir]
+     -u             uninstall
      -s             stage #
      -D             enable debugging
 
@@ -22,7 +23,11 @@ install - installation / upgrade script
 
 =item B<-s #>
 
-Start installation at given stage number. Not used right now. 
+Start installation at given stage number. Not implemented.
+
+=item B<-u>
+
+Uninstall
 
 =item B<-D> 
 
@@ -48,7 +53,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.5 2004/10/25 17:48:24 jeffmurphy Exp $
+$Id: install,v 1.6 2004/12/23 21:36:13 jeffmurphy Exp $
 
 =cut
 
@@ -58,7 +63,7 @@ use Getopt::Std;
 use Carp;
 
 my %opts;
-getopts('s:Dh?', \%opts);
+getopts('s:Duh?', \%opts);
 
 my $STAGE = $opts{'s'} || 0;
 
@@ -68,6 +73,14 @@ my $cwd = cwd();
 $PKGDIR = $cwd if ($PKGDIR  =~ /^\.{0,1}$/);
 chdir $PKGDIR;
 
+my $LOG = new FileHandle "/tmp/netpass-install.log", "w";
+if (!defined($LOG)) {
+	print "Failed to open /tmp/netpass-install.log for writing.\n";
+	exit 255;
+}
+print "Installation will be logged to /tmp/netpass-install.log\n\n";
+*STDERR = $LOG;
+
 checkKit($PKGDIR);
 my $VERSION = getVersion($PKGDIR);
 
@@ -75,9 +88,45 @@ welcome($VERSION);
 
 my $TARGET = shift;
 
+my $un = "install into:";
+   $un = "uninstall from: " if exists $opts{'u'};
+
 if (!defined($TARGET)) {
-	print "Directory to install into: ";
+	print "Directory to $un ";
 	$TARGET=<STDIN>;
+}
+
+my $ARCHBASE = "http://foobar.cit.buffalo.edu/netpass/ttt/";
+my $HTMLAREA = "HTMLArea-3.0-rc1";
+my $APACHE   = "apache-1.3.29.tar.bz2";
+my $PERL     = "perl-5.8.5.tar.bz2";
+my $SQUIDG   = "sg.tar.bz2";
+
+if (exists $opts{'u'}) {
+	lprint("Uninstalling NetPass ..\n");
+	foreach my $etcf ('services', 'syslog.conf') {
+		depatchConf("/etc", $etcf);
+	}
+	depatchConf("/etc/squid", "squid.conf");
+	removeTree($TARGET);
+	lsystem("/usr/bin/userdel netpass") && lprint("userdel netpass failed $!\n");
+	lsystem("/usr/bin/groupdel netpass") && lprint("groupdel netpass failed $!\n");
+	lsystem("rm /opt/apache /opt/perl");
+	foreach my $d ("/opt/apache_1.3.29", "/opt/perl-5.8.5", "/opt/squidguard") {
+		my $a = ask ("Remove directory $d and it's contents? [Y/N] ");
+		if ($a =~ /^y/i) {
+			lsystem("rm -fr $d");
+		}
+	}
+	lprint("Removing /cookies from /etc/fstab\n");
+
+	lsystem("/bin/umount /cookies");
+	lsystem("rmdir /cookies");
+	lsystem("rm -f /var/cookies");
+
+	depatchConf("/etc", "fstab");
+	lprint ("NetPass uninstall finished.\n");
+	exit 0;
 }
 
 my $UPGRADE = 0;
@@ -85,7 +134,9 @@ $UPGRADE = 1 if( -d $TARGET );
 
 my $CURVERSION = getVersion($TARGET) if $UPGRADE;
 
-print "KITVER=$VERSION CURVER=$CURVERSION\n";
+#print "KITVER=$VERSION CURVER=$CURVERSION\n";
+
+ll("Configuring $TARGET/log directory ..\n");
 
 mkdir $TARGET unless $UPGRADE;
 mkdir "$TARGET/log" || die "cant mkdir $TARGET/log $!";
@@ -95,41 +146,282 @@ touch("$TARGET/log/snmptraps.log");
 copyTree($PKGDIR, $TARGET);
 print "\n";
 
-installHTMLArea($PKGDIR, $TARGET) unless $UPGRADE;
+installPackages($PKGDIR);
 
-system ("mv $TARGET/lib/NetPass/WWW/Session.pm.file $TARGET/lib/NetPass/WWW/Session.pm");
-system ("chown -R netpass:netpass $TARGET");
+lsystem ("/usr/sbin/groupadd netpass");
+lsystem ("/usr/sbin/useradd -d '$TARGET' -g netpass -s /bin/false netpass");
+
+installHTMLArea($PKGDIR, $TARGET) unless $UPGRADE;
+installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "sg.tar.bz2", "/opt");
+installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "perl-5.8.5.tar.bz2", "/opt");
+installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "apache-1.3.29.tar.bz2", "/opt");
+
+lsystem (qq{ln -s /opt/apache_1.3.29 /opt/apache});
+lsystem (qq{ln -s /opt/perl-5.8.5    /opt/perl});
+
+lsystem ("/bin/mv $TARGET/lib/NetPass/WWW/Session.pm.file $TARGET/lib/NetPass/WWW/Session.pm");
+lsystem ("/bin/chown -R netpass:netpass $TARGET");
+
+makeCookiesDir();
+apacheConfig("/opt/apache/conf/httpd.conf");
 
 if ((!-d "$TARGET/www/htdocs/resources") && (!-l "$TARGET/www/htdocs/resources")) {
-	system (qq{ln -s "$TARGET/www/htdocs/OSSTemplate" "$TARGET/www/htdocs/resources"});
+	lsystem (qq{ln -s "$TARGET/www/htdocs/OSSTemplate" "$TARGET/www/htdocs/resources"});
 }
 
 if ((!-f "$TARGET/www/htdocs/index.mhtml") && (!-l "$TARGET/www/htdocs/index.mhtml")) {
-	system (qq{ln -s "$TARGET/www/htdocs/netpass.mhtml" "$TARGET/www/htdocs/index.mhtml"});
+	lsystem (qq{ln -s "$TARGET/www/htdocs/netpass.mhtml" "$TARGET/www/htdocs/index.mhtml"});
 }
 
 foreach my $etcf ('services', 'syslog.conf') {
-	print "Updating $etcf ..\n";
+	lprint ("Updating $etcf ..\n");
 	patchConf("/etc", $etcf);
 }
 
+patchSquidConf($PKGDIR, "install.d/squid.conf");
+
+lprint("Installation finished.\n");
+$LOG->close;
+
 exit 0;
+
+sub ll {
+	print $LOG @_;
+}
+
+sub lprint {
+	print $LOG @_;
+	print @_;
+}
+
+sub lsystem {
+	print $LOG "SHELL: ".join(' ', @_) ."\n";
+	return system(@_);
+}
+
+sub installPackages {
+	my $b = shift;
+	my $fh = new FileHandle $b."/install.d/packages", "r";
+	if ($fh) {
+		my $pkgs = "";
+		lprint "Installing requisite packages:\n";
+		while(my $pn = <$fh>) {
+			chomp($pn);
+			lprint "\t$pn\n";
+			$pkgs .= "$pn ";
+		}
+		if (-f '/usr/bin/yum') {
+			lsystem ("yum -y install $pkgs");
+		} else {
+			lprint "FAILED: Not sure how to install packages on this system!\n";
+		}
+	}
+}
+
+sub backupFile {
+	my $f = shift;
+	return unless -f $f;
+	lsystem("cp '$f' '$f.backupByNetPass'");
+}
+
+sub patchSquidConf {
+	my ($b, $f) = (shift, shift);
+	return unless (-f "$b/$f");
+
+	my $sc = "/etc/squid/squid.conf";
+	$sc = askUnlessExists($sc);
+
+
+	# open squid.conf and read it in
+
+	my $fh = new FileHandle $sc, "r";
+	if (!defined($fh)) {
+		print "Failed to open $sc $!\n";
+		return;
+	}
+
+	my @squidconf = <$fh>;
+	$fh->close;
+
+	# determine if the patch has already been applied
+
+	if (grep (/BEGIN-NETPASS/, @squidconf)) {
+		print "patch $b/$f already applied to $sc\n";
+		return;
+	}
+
+	my $netblocks = ask("\n\n".
+			    "We're going to configure Squid now. We'll adjust things so that\n".
+			    "only your netblocks have access to Squid. To do that you need to tell\n".
+			    "us what netblocks you'd like to permit. Enter them on a single line,\n".
+			    "separated by spaces like this: 128.205.1.0/24 128.205.2.0/24\n".
+			    "Press ENTER at the end of the line to continue.\n\n");
+	
+	print "Modifying $sc .. \n";
+
+	# read in the patch
+
+	$fh = new FileHandle "$b/$f", "r";
+	if (!defined($fh)) {
+		print "Failed to open $b/$f $!\n";
+		return;
+	}
+
+	my @patch = <$fh>;
+	$fh->close;
+
+	# insert netblocks...
+
+	for(my $ln = 0 ; $ln <= $#patch ; $ln++) {
+		$patch[$ln] =~ s/__NETBLOCK__/$netblocks/g;
+	}
+
+
+	# apply the patch
+
+	my @patched;
+	my $i;
+	for($i = 0 ; $i < $#squidconf ; $i++) {
+		last if ($squidconf[$i] =~ /^http_access deny all/);
+	}
+	if ($i == ($#squidconf-1)) {
+		print "Failed to apply patch to $sc. Didnt find 'http_access deny all' line\n";
+		return;
+	}
+	$i--;
+	@patched = @squidconf[0..$i];
+	$i++;
+	push @patched, (@patch, @squidconf[$i..$#squidconf]);
+
+	# re-open squid.conf and write out the patched version
+
+	backupFile($sc);
+
+	$fh = new FileHandle $sc, "w";
+	if (!defined($fh)) {
+		print "Failed to open $sc $!\n";
+		return;
+	}
+	print $fh @patched;
+	$fh->close;
+}
+
+sub ask {
+	my $prompt = shift;
+	my $ok = 0;
+	my $answer;
+	while(!$ok) {
+		print $prompt;
+		$answer = <STDIN>;
+		chomp($answer);
+		print "You entered: $answer      Is this OK? [y/n] ";
+		my $isok = <STDIN>;
+		chomp($isok);
+		$ok = 1 if ($isok =~ /^\s*y/i);
+	}
+	return $answer;
+}
+		
+sub askUnlessExists {
+	my $file = shift;
+	return $file if (-f $file);
+
+	my $done = 0;
+	my $f2   = $file;
+	while(!$done) {
+		print "I can't find $f2 in this system. Where is it? ";
+		$f2 = <STDIN>;
+		$done = 1 if (-f $f2);
+	}
+	return $f2;
+}
+
+
+sub depatchConf {
+	my ($b, $f) = (shift, shift);
+	return unless (-f "$b/$f");
+
+	lprint("Removing NetPass configuration from $b/$f ..\n");
+
+	my $smarker = "## BEGIN-NETPASS";
+	my $emarker = "## END-NETPASS";
+
+	my $dst = new FileHandle "$b/$f", "r";
+	die "cant open $b/$f for reading: $!" unless defined($dst);
+	my @s = <$dst>;
+	$dst->close;
+	
+	# check to see if the patch is NOT already applied
+
+	if (!grep (/$smarker/, @s)) {
+		lprint("$b/$f doesn't have any NetPass pieces to uninstall\n");
+		return;
+	}
+
+        my $dst = new FileHandle "$b/$f", "w";
+	die "cant open $b/$f for reading: $!" unless defined($dst);
+        my $insec = 0;
+        foreach (@s) {
+		if (/$smarker/) {
+			$insec = 1;
+			next;
+		}
+		elsif(/$emarker/) {
+			$insec = 0;
+			next;
+		}
+		if($insec == 0) {
+			print $dst $_;
+		}
+        }
+            
+	$dst->close;
+
+	return;
+}
 
 sub patchConf {
 	my ($b, $f) = (shift, shift);
 	return unless (-f "$b/$f");
 
+	backupFile("$b/$f");
 
 	my $src = new FileHandle "$PKGDIR/install.d/$f", "r";
 	die "cant open $PKGDIR/install.d/$f for reading: $!" unless defined($src);
 	my @d = <$src>;
 	$src->close;
 
+	my $dst = new FileHandle "$b/$f", "r";
+	die "cant open $b/$f for reading: $!" unless defined($dst);
+	my @s = <$dst>;
+	$dst->close;
+
+	# find the ID marker
+
+	my $marker = "";
+	foreach (@d) {
+		if (/^##/) {
+			$marker = $_;
+			last;
+		}
+	}
+	if ($marker eq "") {
+		print "WARNING: no ## marker found in $PKGDIR/install.d/$f\n";
+		return;
+	}
+
+	# check to see if the patch is already applied
+
+	if (grep (/$marker/, @s)) {
+		print "patch $PKGDIR/install.d/$f already applied to $b/$f\n";
+		return;
+	}
 
 	my $dst = new FileHandle "$b/$f", "a";
-	die "cant open $b/$f for appending: $!" unless defined($dst);
+	die "cant open $b/$f for reading: $!" unless defined($dst);
+	print $dst @d;
 	$dst->close;
-	
+	return;
 }
 
 sub cwd {
@@ -138,43 +430,135 @@ sub cwd {
 	return $x;
 }
 
-sub installHTMLArea {
-	my $version = "HTMLArea-3.0-rc1";
-	my $pkgd = shift;
-	my $dst = shift;
-
-	if (-f "../${version}.zip") {
-		reallyInstallHTMLArea($pkgd, $dst, $version);
-	} else {
-		print "$version not found in parent directory. downloading.\n";
-		system("wget -P ../ -q http://unc.dl.sourceforge.net/sourceforge/itools-htmlarea/${version}.zip");
-		die "couldnt download ${version}.zip" 
-		  unless (-f "../${version}.zip");
-		print "Download finished.\n";
-		reallyInstallHTMLArea($pkgd, $dst, $version);
-	}
+sub installPrebuilt {
+	my ($burl, $f, $dst) = (shift, shift, shift);
+	lprint("Installing pre-built binary\n\t\tfrom $burl/$f\n\t\tinto $dst\n");
+	fetchRemoteFile($burl, $f);
+	my $cwd = cwd();
+	chdir ("/opt");
+	my $cwd2 = cwd();
+	die "chdir failed? /opt != $cwd2\n" unless ("/opt" eq $cwd2);
+	my $unzip = "/usr/bin/bunzip2";
+	$unzip = "gunzip" if ($f =~ /(\.gz|\.tgz)$/);
+	my $cmd = "$unzip -c /tmp/$f | tar -xf -";
+	lsystem($cmd);
+	
+	chdir($cwd);
 }
 
-sub reallyInstallHTMLArea {
+
+sub fetchRemoteFile {
+	my ($burl, $f) = (shift, shift);
+
+	if (-f "/tmp/$f") {
+		my $ans = ask("/tmp/$f exists. Use that or Re-download it? [U/R] ");
+		ll ("/tmp/$f exists.\n");
+		return if ($ans =~ /^u/i);
+	}
+
+	ll("refetching $burl/$f to /tmp/$f at user's request\n");
+
+	lsystem ("wget -P /tmp -q $burl/$f");
+	die "couldnt download $burl/$f to /tmp/$f" unless (-f "/tmp/$f");
+}
+
+sub installHTMLArea {
 	my $pkgd = shift;
 	my $dst = shift;
 
-	my $filebase = shift;
+	lprint "Installing $HTMLAREA ..\n";
+
+	fetchRemoteFile("http://foobar.cit.buffalo.edu/netpass", "${HTMLAREA}.zip");
 
 	my $newd = $TARGET."/www/htdocs/Admin/Editor";
 
-	print "Installing $filebase into $newd ..\n";
+	lprint "Installing $HTMLAREA into $newd ..\n";
 
 	my $cwd = cwd();
 	chdir ($newd);
 	my $cwd2 = cwd();
 	die "chdir failed? $newd != $cwd2\n" unless ($newd eq $cwd2);
-	system("/usr/bin/unzip -q $pkgd/../${filebase}.zip");
-	system("mv ${filebase}/* .");
+	mkdir "htmlarea";
+	chdir($newd."/htmlarea");
+	lsystem("/usr/bin/unzip -q /tmp/${HTMLAREA}.zip");
+	lsystem("/bin/mv ${HTMLAREA}/* .");
 	unlink("index.html");
-	system("find $filebase -type f -exec chmod 644 {} \\;");
-	system("find $filebase -type d -exec chmod 755 {} \\;");
-	print "Done\n";
+	lsystem("/bin/touch index.html");
+	lsystem("/bin/touch index.mhtml");
+	lsystem("/usr/bin/find $HTMLAREA -type f -exec chmod 644 {} \\;");
+	lsystem("/usr/bin/find $HTMLAREA -type d -exec chmod 755 {} \\;");
+	lprint "Done\n";
+	chdir($cwd);
+}
+
+sub dirname {
+	my $path = shift;
+	$path =~ /(.*)\/[^\/]*$/;
+	return $1;
+}
+
+sub removeTree {
+	my $dst = shift;
+
+	print "Removing files from $dst ..\n";
+	
+	if (-f $dst."/etc/netpass.conf") {
+		print "Copying $dst/etc/netpass.conf  to /tmp. Save it if you want it.\n";
+		system("/bin/cp '$dst/etc/netpass.conf' /tmp");
+	}
+
+	print "Remove $dst [y/n]? ";
+	my $ans = <STDIN>;
+	if ($ans =~ /^\s*y/) {
+		system("/bin/rm -fr $dst");
+		print "Done.\n";
+	} else {
+		print "OK. I won't remove it.\n";
+	}
+	return;
+
+
+
+	my $fh = new FileHandle $dst."/MANIFEST", "r";
+	if (!defined($fh)) {
+		print "No $dst/MANIFEST file found. Can't remove files.\n";
+		return;
+	}
+
+	my $dirs;
+	while(my $l = <$fh>) {
+		chomp $l;
+		$dirs->{dirname($l)} = 1;
+		unlink ($dst."/".$l) if (-f $dst."/".$l);
+	}
+
+	my $nps = 0;
+	if (-f $dst."/etc/netpass.conf") {
+		print "Backing up $dst/etc/netpass.conf to $dst/etc/netpass.conf.save\n";
+		system("/bin/mv '$dst/etc/netpass.conf' '$dst/etc/netpass.conf.save'");
+		$nps = 1;
+	}
+
+	if (-d $dst."/www/htdocs/Admin/Editor/htmlarea") {
+		print "Removing $HTMLAREA ..\n";
+		system("/bin/rm -fr '$dst/www/htdocs/Admin/Editor/htmlarea'");
+	}
+
+	# remove symlinks
+
+	unlink ($dst."/www/htdocs/index.mhtml");
+	unlink ($dst."/www/htdocs/resources");
+
+	print "Removing directories\n";
+	foreach (sort { lc($b) cmp lc($a) } keys %$dirs) {
+		next if ($_ eq "etc" && $nps);
+		print "     $dst/$_\t\t\t";
+		if ( rmdir($dst."/$_") ) {
+			print "failed: $!\n";
+		} else {
+			print "OK\n";
+		}
+	}
 }
 
 sub copyTree {
@@ -248,6 +632,186 @@ Welcome to NetPass v$v!
 EOF
 }
 
+sub apacheConfig {
+	my $conf = shift;
+
+	my $a = ask( "Configure Apache's httpd.conf file? [Y/N] ");
+	return unless ($a =~ /^y/i);
+
+	my $fh = new FileHandle $conf, "r";
+	if (!defined($fh)) {
+		lprint Carp::longmess "failed to open $conf $!\n";
+		die;
+	}
+	my @conf = <$fh>;
+	$fh->close;
+
+	my $mt = getMemTotal();
+	# 10M per concurrent user is probably optimistic
+	my $mc = int($mt / 10);
+
+
+	# ^#MaxClients
+
+
+	print "We're going to set MaxClients to $mc (10MB of memory 
+per concurrent user). This limits the total number of concurrent 
+connections that can be handled.\n";
+
+	my $MaxClients = ask ("If you want to set it to something else enter it now or just hit
+ENTER to keep our value: ");
+	$MaxClients ||= $mc;
+	ll("Apache httpd.conf\nMaxClients=$MaxClients\n");
+	apacheConfig_set(\@conf, '^#MaxClients', "MaxClients $MaxClients");
+
+
+	# ^#ServerAdmin
+
+
+	my $ServerAdmin = ask ("Enter an email address of the person/group that administers this webserver: ");
+	ll ("ServerAdmin=$ServerAdmin\n");
+	apacheConfig_set(\@conf, '^ServerAdmin', "ServerAdmin $ServerAdmin");
+
+	# ^#ServerName
+
+	my $ServerName = ask ("Enter this server's name (e.g. netpass.your.co): ");
+	ll ("ServerName=$ServerName\n");
+	apacheConfig_set(\@conf, '^ServerName', "ServerName $ServerName");
+
+	my $ssl = ask ("Do you want to enable SSL/HTTPS (we won't make the certificates for you)? [Y/N] ");
+	if ($ssl =~ /^y/i) {
+		# VirtualHost.*:443
+		#     ^#ServerName
+		#     ^#ServerAdmin
+		#     ^#SSLCertificateFile
+		#     ^#SSLCertificateKeyFile
+
+		my $SSLCertificateFile;
+		my $SSLCertificateKeyFile;
+
+		$SSLCertificateFile    = ask ("Where's the certificate file located (full path, including the filename)? ");
+		$SSLCertificateKeyFile = ask ("Where's the certificate key file located (full path, including the filename)? ");
+
+		ll("SSLCertificateFile = $SSLCertificateFile\n");
+		ll("SSLCertificateKeyFile = $SSLCertificateKeyFile\n");
+	}
+
+	my $fh = new FileHandle $conf, "w";
+	if (!defined($fh)) {
+		lprint Carp::longmess "Failed to open $conf for writing $!\n";
+		die;
+	}
+	print $fh @conf;
+	$fh->close;
+
+
+	# read in the Session.pm file and configure it
+
+	my $conf = "/opt/netpass/lib/NetPass/WWW/Session.pm";
+	my $fh = new FileHandle $conf, "r";
+	if (!defined($fh)) {
+		lprint Carp::longmess "Failed to open $conf for reading $!\n";
+		die;
+	}
+	my @conf = <$fh>;
+	$fh->close;
+
+	
+	my $cookieName = ask("NetPass uses cookies to track user sessions. Specific a name for the cookie (no spaces): ");
+	my $cookieDomain = ask(qq{Specify a domain to restrict the cookie to (e.g. ".buffalo.edu"): });
+
+	searchReplace(\@conf, '%COOKIENAME%', $cookieName);
+	searchReplace(\@conf, '%COOKIEDATA%', '/cookies/data');
+	searchReplace(\@conf, '%COOKIELOCK%', '/cookies/lock');
+	searchReplace(\@conf, '%COOKIEDOM%',  $cookieDomain);
+
+	# lib/NetPass/WWW/Session.pm
+	#     my $cookieName = "UB-NetPass";
+	#     $cookieName = "UB-Netpass-Devel";
+	#     /cookies directory
+	#     session_directory => '/cookies/data',
+	#     session_lock_directory => '/cookies/lock',
+	#     session_cookie_domain => '.buffalo.edu',
+
+}
+
+sub installLogrotate {
+	# apache
+	# netpass
+	# cookie scrubber?
+}
+
+sub searchReplace {
+	my $data    = shift;
+	my $search  = shift;
+	my $replace = shift;
+
+	for (my $i = 0 ; $i <= $#$data ; $i++) {
+		$data->[$i] =~ s/$search/$replace/g;
+	}
+}
+
+sub makeCookiesDir {
+	if (-d '/cookies') {
+		lprint ("Looks like /cookies already exists.\n");
+		return;
+	}
+
+	# dd a 1G file /var/cookies
+	# mkreiserfs
+	# mkdir /cookies
+	# add mount to fstab, rw,noatime,loop
+	# mount it
+	# mkdir /cookies/data /cookies/lock
+	# chmod -R 755 /cookies/data /cookies/lock
+	# chown -R netpass:netpass /cookies
+
+	lsystem("/bin/dd if=/dev/zero of=/var/cookies bs=1024 count=1024000")
+	  && die Carp::longmess "/bin/dd failed $!";
+	lsystem("mkdir /cookies")
+	  && die Carp::longmess "mkdir failed $!";
+	lsystem("/sbin/mkreiserfs -f -f -q -q /var/cookies")
+	  && die Carp::longmess "/sbin/mkreiserfs failed $!"; 
+
+	patchConf("/etc", "fstab");
+
+	lsystem("/bin/mount /cookies")
+	  && die Carp::longmess "/bin/mount /cookies failed $!";
+	lsystem("mkdir -p /cookies/data /cookies/lock")
+	  && die Carp::longmess "mkdir data/lock failed $!";
+	lsystem("/bin/chown -R netpass:netpass /cookies") 
+	  && die Carp::longmess "/bin/chown failed $!";
+	lsystem("/bin/chmod -R 755 /cookies") 
+	  && die Carp::longmess "/bin/chmod failed $!";
+}
+
+
+sub apacheConfig_set {
+	my $c = shift;
+	my $k = shift;
+	my $l = shift;
+
+	for (my $i=0 ; $i < $#$c ; $i++) {
+		if ($c->[$i] =~ /$k/) {
+			splice(@$c, $i+1, 0, $l);
+			$i++;
+		}
+	}
+}
+			
+sub getMemTotal {
+	my $mt = new FileHandle "/proc/meminfo", "r";
+	die Carp::longmess "failed to open /proc/meminfo $!" unless defined $mt;
+	while(my $l = <$mt>) {
+		chomp $l;
+		if ($l =~ /MemTotal:\s+(\d+)\s+kB/) {
+			return int($1/1024);
+		}
+	}
+	my $ms = ask("I'm having trouble determining how much memory is in this machine.
+Please tell me the number of megabytes: ");
+	return $ms;
+}
 
 package spinner;
 use strict;

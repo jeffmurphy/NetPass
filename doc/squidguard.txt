@@ -4,3 +4,18 @@
 4. configure squidguard like so
 	./configure --with-db=/usr/local/BerkeleyDB-2.7.7 --with-db-lib=/usr/local/BerkeleyDB-2.7.7/lib --with-db-inc=/usr/local/BerkeleyDB-2.7.7/include --prefix=/opt/squidguard
 5. make && make install squidguard
+
+
+
+
+PATCH
+
+
+sgLog.c
+changed all occurrences of 
+	vsprintf(msg, format, ap)
+to
+	vsnprintf(msg, MAX_BUF, format, ap)
+
+
+to prevent periodic failing to 'emergency mode'
