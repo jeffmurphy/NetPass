@@ -61,9 +61,7 @@ sub getSnortRules {
 	my $network = $cfg->getNetworks();
 	return undef unless (defined ($network));
 
-	# hafta figure out a snort rule to block already quarantined
-	# machines... 
-	#push @aref, map($cfg->quarantineVlan($_), @$network);
+	push @aref, map($cfg->quarantineVlan($_), @$network);
 
 	my $rules = $dbh->getSnortRules($type);
 	return undef unless defined($rules);
