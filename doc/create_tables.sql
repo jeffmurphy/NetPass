@@ -80,8 +80,10 @@ CREATE TABLE audit (
 
 	INDEX (username(8)),
 	INDEX (ipAddress),
-	INDEX (macAddress)
-) TYPE=INNODB;
+	INDEX (macAddress),
+	INDEX (ts),
+	FULLTEXT(message),
+) TYPE=MyISAM;
 
 
 CREATE TABLE `nessusScans` (
