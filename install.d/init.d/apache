@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Startup script for the Apache Web Server
+#
+# chkconfig: - 85 15
+# description: Apache is a World Wide Web server.  It is used to serve \
+#              HTML files and CGI.
+# processname: httpd
+# pidfile: /opt/apache/logs/httpd.pid
+# config: /opt/apache/conf/httpd.conf
+
+
+SROOT=/opt/apache
+export SROOT
+
+case "$1" in
+'start')
+        echo "web daemon starting."
+	rm -fr /opt/apache/mason/*
+        $SROOT/bin/httpd -DSSL -f $SROOT/conf/httpd.conf
+        ;;
+'stop')
+        kill -TERM `/bin/cat /opt/apache/logs/httpd.pid`
+        ;;
+*)
+        echo "Usage: /etc/init.d/httpd { start | stop }"
+        ;;
+esac
+exit 0

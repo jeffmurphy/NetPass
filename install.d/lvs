@@ -1,0 +1,85 @@
+#!/usr/bin/perl -w
+#
+# $Header: /tmp/netpass/NetPass/install.d/lvs,v 1.1 2005/03/05 04:15:49 jeffmurphy Exp $
+#
+# installation script for redirectors
+
+use strict;
+
+my $PKGDIR = $0;
+my $cwd = cwd(); 
+$PKGDIR = $cwd if ($PKGDIR  =~ /^\.{0,1}$/);
+$PKGDIR =~ s/\/install\.d\/.*//;
+chdir $PKGDIR;
+
+#print "$PKGDIR\n"; exit 0;
+
+my $authkey = ask("Enter an authorization key for redirector heartbeat communication.
+This should be the same on both redirectors. This will be written to
+/etc/ha.d/authkeys.
+
+Key: ");
+
+use FileHandle;
+my $fh = new FileHandle "/etc/ha.d/authkeys", "w";
+die "can't open /etc/ha.d/authkeys for writing: $!" unless defined $fh;
+print $fh "auth 2\n2 sha1 $authkey\n";
+$fh->close;
+
+my $vip = ask("\nWe'll now configure /etc/ha.d/ldirectord.cf. What's the virtual IP address
+you've decided to use? ");
+my $rs1 = ask("\nWhat's the IP address of the first NetPass server? ");
+my $rs2 = ask("\nWhat's the IP address of the second NetPass server? ");
+
+my $fhI = new FileHandle "$PKGDIR/install.d/ldirectord.cf", "r";
+die "can't open $PKGDIR/install.d/ldirectord.cf for reading: $!" unless defined $fhI;
+my $fhO = new FileHandle "/etc/ha.d/ldirectord.cf", "w";
+die "can't open /etc/ha.d/ldirectord.cf for writing: $!" unless defined $fhO;
+
+while(my $line = <$fhI>) {
+	$line =~ s/%VIP%/$vip/g;
+	$line =~ s/%RS1%/$rs1/g;
+	$line =~ s/%RS2%/$rs2/g;
+	print $fhO $line;
+}
+
+$fhI->close;
+$fhO->close;
+
+print "We will not configure /etc/ha.d/ha.cf. The 'hostname' that we are\n\
+about to ask for must match the output of 'uname -n' on each redirector.\n";
+my $dir1 = ask("\nEnter the hostname address of the primary redirector: ");
+my $dir2 = ask("\nEnter the hostname address of the backup redirector: ");
+
+$fh = new FileHandle "/etc/ha.d/ha.cf", "w";
+die "cant open /etc/ha.d/ha.cf for writing: $!" unless defined $fh;
+print $fh "node $dir1\n" if ($dir1 ne "");
+print $fh "node $dir2\n" if ($dir2 ne "");
+$fh->close;
+
+print "\nHA configuration complete. Use the netpass/bin/interfacecfg.pl script
+to generate your HA interface configuration script.\n";
+
+exit 0;
+
+sub ask {
+	my $prompt = shift;
+	my $ok = 0;
+	my $answer;
+	while(!$ok) {
+		print $prompt;
+		$answer = <STDIN>;
+		chomp($answer);
+		print "You entered: $answer      Is this OK? [y/n] ";
+		my $isok = <STDIN>;
+		chomp($isok);
+		$ok = 1 if ($isok =~ /^\s*y/i);
+	}
+	return $answer;
+}
+
+sub cwd {
+	my $x = `/bin/pwd`;
+	chomp($x);
+	return $x;
+}

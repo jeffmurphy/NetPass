@@ -1,0 +1,38 @@
+#!/opt/perl/bin/perl -w
+#
+
+use strict;
+
+my $gotit = 0;
+
+while (<>) {
+	chomp;
+	if (/^=head1 CONTENTS/) {
+		$gotit = 1;
+		next;
+	}
+	next unless $gotit;
+	next if /^\s*$/;
+	last if /^=head1/;
+	if (/^Bundle/) {
+		print "??? cant check $_\n";
+		next;
+	}
+	/^(\S+)/;
+	testmod($1);
+}
+
+exit 0;
+
+sub testmod {
+	my $mn = shift;
+	eval 'use '.$mn;
+
+	if ($@) {
+		print "!!! $mn bad\n";
+	} else {
+		print "$mn good\n";
+	}
+}
+
+exit 0;

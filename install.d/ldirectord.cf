@@ -1,0 +1,50 @@
+# Global Directives
+checktimeout=10
+checkinterval=2
+#fallback=127.0.0.1:80
+autoreload=no
+#logfile="/var/log/ldirectord.log"
+logfile="local0"
+quiescent=no
+
+# Virtual Server for HTTP
+virtual=%VIP%:80
+        real=%RS1%:80 gate
+        real=%RS2%:80 gate
+        service=http
+        request="/throttle-status"
+        scheduler=rr
+        persistent=360
+        protocol=tcp
+        checktype=negotiate
+
+# Virtual Server for HTTPS
+virtual=%VIP%:443
+        real=%RS1%:443 gate
+        real=%RS2%:443 gate
+        service=https
+        request="/throttle-status"
+        scheduler=rr
+        persistent=360
+        protocol=tcp
+        checktype=negotiate
+
+# Virtual Server for gw
+virtual=1
+        real=%RS1%:0 gate
+        real=%RS2%:0 gate
+        service=http
+        request="/throttle-status"
+        scheduler=rr
+        persistent=360
+        protocol=fwm
+        checktype=negotiate
+
+# Virtual Server for SNMP traps
+virtual=%VIP%:162
+        real=%RS1%:162 gate
+        real=%RS2%:162 gate
+        scheduler=rr
+        #persistent=600
+        protocol=udp
+        checktype=negotiate

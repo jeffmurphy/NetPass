@@ -7,7 +7,7 @@ compiled as modules. ipvsadm will load the modules at runtime.
 3. apply lvs-netpass.patch to kernel
 4. compile and install kernel
 5. install ipvsadm userland tools
-	sudo rpm -ivh /source/lvs/ipvsadm-1.21-9.i386.rpm
+	sudo yum install ipvsadm 
 6. create setup scripts for the directors
 	examples:
 		lvs/npr1/director1.sh

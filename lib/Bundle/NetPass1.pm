@@ -18,6 +18,8 @@ C<perl -MCPAN -e 'install Bundle::NetPass'>
 
 Bundle::CPAN
 
+Mysql - skipcheck
+
 Config::General::Extended
 
 Digest::HMAC
@@ -56,7 +58,7 @@ Term::ReadKey
 
 Net::Telnet
 
-Exceptions::Class - Mason
+Exception::Class - Mason
 
 Params::Validate - Mason
 

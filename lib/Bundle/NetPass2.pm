@@ -30,8 +30,6 @@ Module::Build
 
 Archive::Tar
 
-IPTables::IPv4
-
 Proc::ProcessTable::Process
 
 Net::Ping

@@ -18,6 +18,10 @@
 [ ${NETWORKING} = "no" ] && exit 0
 
 BASE=/opt/nessus
+if [ ! -d $BASE ] ; then
+	BASE=/usr/local
+fi
+
 PID_FILE=${BASE}/var/run/nessusd.pid
 
 

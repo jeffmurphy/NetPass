@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.7 2004/12/31 19:09:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.8 2005/03/05 04:14:16 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -527,6 +527,12 @@ sub search_topology {
 	my $next_switch = $snmp->get_next_switch($ifIndex);
 	if (defined($next_switch) && ($next_switch ne "")) {
 		_log("DEBUG", "$mac it's another switch ($next_switch). searching that one.\n");
+
+                if($next_switch !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\.$/) {
+                        _log ("DEBUG", "$mac next_switch is $next_switch which doesnt look like an IP\n");
+                        next;
+                }
+
 		return $self->search_topology($next_switch,
 					      ($self->cfg->getCommunities($next_switch))[1],
 					      $mac, $loopctl);
@@ -905,7 +911,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.7 2004/12/31 19:09:08 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.8 2005/03/05 04:14:16 jeffmurphy Exp $
 
 =cut
 

@@ -1,14 +1,20 @@
 vconfig
-mysql-server
-mysql-devel
+# mysql is installed as a pre-built binary. do not use the RPMs
+#mysql-server
+#mysql-devel
 squid
 dhcp
 perl 
-perl-DBD-MySQL 
+# the DBD module will pull in mysql as a dependency. we dont want that.
+# we'll let Bundle::NetPass install the DBD module
+#perl-DBD-MySQL 
 perl-DBI 
 perl-Filter
 libgd
 libgd-devel
+# RH names libgd just "gd"
+gd
+gd-devel
 libpng
 libpng-devel
 libjpeg

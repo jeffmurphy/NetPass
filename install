@@ -1,6 +1,6 @@
 #!/usr/bin/env perl 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.8 2004/12/31 19:33:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.9 2005/03/05 04:14:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -53,7 +53,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.8 2004/12/31 19:33:09 jeffmurphy Exp $
+$Id: install,v 1.9 2005/03/05 04:14:15 jeffmurphy Exp $
 
 =cut
 
@@ -62,13 +62,17 @@ use FileHandle;
 use Getopt::Std;
 use Carp;
 
+BEGIN {
+	delete $ENV{'DISPLAY'};
+}
+
 my %opts;
 getopts('s:Duh?', \%opts);
 
 my $STAGE = $opts{'s'} || 0;
 
 my $PKGDIR = $0;
-$PKGDIR =~ s/\/[^\/]+//;
+$PKGDIR =~ s/\/[^\/]+$//;
 my $cwd = cwd(); 
 $PKGDIR = $cwd if ($PKGDIR  =~ /^\.{0,1}$/);
 chdir $PKGDIR;
@@ -174,6 +178,7 @@ lsystem ("/bin/chown -R netpass:netpass $TARGET");
 
 makeCookiesDir();
 apacheConfig("/opt/apache/conf/httpd.conf") if $APACHE_PB_INSTALLED;
+swatchConfig($PKGDIR."/install.d/swatch.conf");
 
 if ((!-d "$TARGET/www/htdocs/resources") && (!-l "$TARGET/www/htdocs/resources")) {
 	lsystem (qq{ln -s "$TARGET/www/htdocs/OSSTemplate" "$TARGET/www/htdocs/resources"});
@@ -192,6 +197,8 @@ patchSquidConf($PKGDIR, "install.d/squid.conf");
 
 loadTables($PKGDIR, "install.d/tables.sql");
 installCrontab($PKGDIR, "install.d/crontab.netpass");
+installStartupScripts($PKGDIR."/install.d/init.d");
+startupProcs();
 
 lprint("Installation finished.\n");
 $LOG->close;
@@ -217,6 +224,16 @@ sub lsystem {
 	return system(@_);
 }
 
+sub installStartupScripts {
+	my $ssdir = shift;
+	foreach my $script ("nessusd", "netpass", "swatch", "apache") {
+		lsystem("/bin/cp $ssdir/$script /etc/init.d/")
+		  unless (-f "/etc/init.d/$script");
+		lsystem("chkconfig --level 2345 $script on");
+	}
+	lsystem ("chkconfig --level 2345 squid on");
+}
+
 sub installPackages {
 	my $b = shift;
 	my $fh = new FileHandle $b."/install.d/packages", "r";
@@ -225,11 +242,15 @@ sub installPackages {
 		lprint "Installing requisite packages:\n";
 		while(my $pn = <$fh>) {
 			chomp($pn);
+			next if ($pn =~ /^#/);
 			lprint "\t$pn\n";
 			$pkgs .= "$pn ";
 		}
 		if (-f '/usr/bin/yum') {
 			lsystem ("yum -y install $pkgs");
+		} 
+		elsif (-f '/usr/bin/up2date') {
+			lsystem ("up2date --nox -i $pkgs");
 		} else {
 			lprint "FAILED: Not sure how to install packages on this system!\n";
 		}
@@ -775,11 +796,47 @@ sub searchReplace {
 }
 
 
+sub whatdist {
+	my ($rel, $ver) = getDistVersion("/etc/fedora-release");
+	if (!defined($rel)) {
+		($rel, $ver) = getDistVersion("/etc/redhat-release");
+	}
+	if (!defined($rel)) {
+		die "unsupported operating system";
+	}
+	return ($rel, $ver);
+}
+
+sub getDistVersion {
+	my $relfile = shift;
+	my $fh = new FileHandle $relfile, "r";
+	return undef unless defined $fh;
+	my $l = <$fh>;
+	$fh->close;
+	return ("FC", $1)   if ($l =~ /Fedora Core release (\D+)/i);
+	return ("RHAS", $1) if ($l =~ /ed Hat Enterprise Linux AS release (\D+)/i);
+	return undef;
+}
+
+sub installReiserprogs {
+	fetchRemoteFile("http://foobar.cit.buffalo.edu/netpass/ttt/RHAS",
+			"reiserfsprogs-3.6.8-1.i386.rpm");
+	lsystem("rpm -i /tmp/reiserfsprogs-3.6.8-1.i386.rpm");
+}
+
+
 sub makeCookiesDir {
 	if (-d '/cookies') {
 		lprint ("Looks like /cookies already exists.\n");
 		return;
 	}
+
+	# RHEL3 does not include reiserfs. we use reiser because the cookie
+	# dir can grow to thousands of files and it can handle that better
+	# than ext
+
+	my ($rel, $ver) = whatdist();
+	installReiserprogs() if ($rel eq "RHAS");
 
 	# dd a 1G file /var/cookies
 	# mkreiserfs
@@ -794,6 +851,7 @@ sub makeCookiesDir {
 	  && ldie Carp::longmess "/bin/dd failed $!";
 	lsystem("mkdir /cookies")
 	  && ldie Carp::longmess "mkdir failed $!";
+
 	lsystem("/sbin/mkreiserfs -f -f -q -q /var/cookies")
 	  && ldie Carp::longmess "/sbin/mkreiserfs failed $!"; 
 
@@ -841,7 +899,7 @@ sub loadTables {
 	my ($B, $S) = (shift, shift);
 	return unless (-f "$B/$S");
 	my $u = ask ("We'll now create the 'netpass' database and load the tables.\nWhat username should we connect with? [root] ");
-	$u ||= $root;
+	$u = "root" if($u eq "");
 	my $p = ask ("What password should we connect with? [none] ");
 	$p = "-p$p " if ($p ne "");
 	if (-f "/etc/init.d/mysqld") {
@@ -852,28 +910,37 @@ sub loadTables {
 	}
 	my $rv = lsystem("mysqladmin -u $u $p stat");
 	if ($rv != 0) {
-		ldie "It looks like mysql isnt running. (The 'mysqladmin -u $root $p stat' command failed with code $rv";
+		ldie "It looks like mysql isnt running. (The 'mysqladmin -u $u $p stat' command failed with code $rv";
 	}
 
-	$rv = lsystem("mysqladmin -u netpass $p create netpass");
+	$rv = lsystem("mysqladmin -u $u $p create netpass");
 	ldie "failed to create 'netpass' db" if $rv;
-	$rv = lsystem("mysqladmin -u netpass $p create sessions");
-	$rv - lsystem("mysql -fu root $p netpass < $B/$S");
-	ldie "failed to load $B/$s into 'netpass' db" if $rv;
+	$rv = lsystem("mysqladmin -u $u $p create sessions");
+	$rv = lsystem("mysql -fu $u $p netpass < $B/$S");
+	ldie "failed to load $B/$S into 'netpass' db" if $rv;
 
-	$rv = lsystem("mysql -fu root $p netpass < $B/pages.sql");
+	$rv = lsystem("mysql -fu $u $p netpass < $B/install.d/pages.sql");
 	ldie "failed to load $B/pages.sql into the database" if $rv;
 
-	$rv = lsystem("echo insert into users values ('$u', 'Admin')
+	$rv = lsystem(qq{echo "insert into users values ('$u', 'Admin')" | mysql -fu $u $p netpass});
+	ldie "failed to create '$u' netpass account" if $rv;
 }
 
 sub dropDatabase {
 	my $u = ask ("We're going to delete the 'netpass' (and 'sessions') databases.\nWhat username should we connect with? [root] ");
-	$u ||= $root;
+	$u = "root" if ($u eq "");
 	my $p = ask ("What password should we connect with? [none] ");
 	$p = "-p$p " if ($p ne "");
-	lsystem("mysql -u $u $p drop netpass");
-	lsystem("mysql -u $u $p drop sessions");
+
+	my $rv = lsystem("mysqladmin -u $u $p stat");
+	if ($rv != 0) {
+		ldie "It looks like mysql isnt running. (The 'mysqladmin -u $u $p stat' command failed with code $rv";
+	}
+
+	$rv = lsystem("mysql -u $u $p drop netpass");
+	ldie "failed to drop the netpass database rv=$rv" if $rv;
+	$rv = lsystem("mysql -u $u $p drop sessions");
+	ldie "failed to drop the sessions database rv=$rv" if $rv;
 }
 
 sub installCrontab {

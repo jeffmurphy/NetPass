@@ -196,3 +196,26 @@ Optional modules are available from any CPAN mirror, in particular
 
 
 ldapsearch -x -b "ou=People,dc=cit,dc=buffalo,dc=edu" uid=jcmurphy
+
+
+
+
+
+RHAS IPVS install:
+
+
+sudo up2date --nox -i glib-devel openssl-devel libnet   perl-CPAN
+ipvs*rpm
+Config.pm for CPAN
+Bundle::CPAN
+Failed dependencies:
+        perl-Mail-IMAPClient is needed by heartbeat-ldirectord-1.2.3-1
+        perl-Net-SSLeay is needed by heartbeat-ldirectord-1.2.3-1
+        perl-ldap is needed by heartbeat-ldirectord-1.2.3-1
+        perl-libnet is needed by heartbeat-ldirectord-1.2.3-1
+install Mail::IMAPClient
+force install Net::SSLeay
+install Net::LDAP
+
+heartbeat*rpm
+

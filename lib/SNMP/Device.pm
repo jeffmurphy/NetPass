@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device.pm,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device.pm,v 1.3 2005/03/05 04:14:18 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -227,6 +227,7 @@ sub _find_plugin {
 		}
 	
 		my $desc  = $result->{$oid{'sysdesc'}};
+                $desc = hex2string($desc) if ($desc =~ /^0x/);
 		$self->sys_desc($desc);
 	} else {
 		$self->log(ref($self) . "->_find_plugin() - sys_descr was supplied in constructor");
@@ -422,9 +423,24 @@ sub port_status {
 
 =head1 REVISION
 
-$Id: Device.pm,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
+$Id: Device.pm,v 1.3 2005/03/05 04:14:18 jeffmurphy Exp $
 
 =cut
+
+
+sub hex2string {
+        my $s = shift;
+        return $s if (!defined($s) || ($s eq ""));
+        my $ns = '';
+        if ($s =~ /^0x([0-9a-f]+)$/i) {
+                my $s2 = $1;
+                for(my $_i = 0 ; $_i < length($s2) ; $_i += 2) {
+                        $ns .= sprintf("%c", eval("0x".substr($s2, $_i, 2)));
+                }
+        }
+        return $ns;
+}
+
 
 
 

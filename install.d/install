@@ -1,64 +1,76 @@
 #!/bin/sh 
+#
+# you shouldnt have to use this script if you used the 
+# pre-built binaries during the installation procedure 
+# for Netpass. this script helps us construct the pre-
+# built perl binaries.
 
+PB=$1
+MD=`dirname $0`
+BD=`dirname $MD`
 
+if [ "$BD" = "." ] ; then
+    BD=`pwd`
+fi
 
-[ "$1" != "-f" -a ! -f /usr/bin/yum ] && {
-    echo <<EOF
-i dont see 'yum' on this system. make sure the following packages
-are installed using whatever package utility you're fond of.
+if [ ! -d "$BD/lib" ] ; then
+    echo "run this script from the NetPass top level directory."
+    exit 255
+fi
 
-mysql
-squid
-httpd (apache)
-dhcrelay
-perl 
-mod_perl 
-perl-DBD-MySQL 
-perl-DBI 
-perl-Filter
+if [ ! -f "$PB/bin/perl" ] ; then 
+    echo "i can't find perl. usage:"
+    echo " "
+    echo "$0 [perlbasedir]"
+    echo "   example: $0 /opt/perl"
+    echo " "
+    exit 255
+fi
 
-Once they are installed, re-run this script as follows:
+cat <<EOF
+Installing required PERL modules .. 
 
-sudo ./install -f
+NOTES: (READ!)
+  1. You might need to configure CPAN first (follow the instructions)"
+  2. You might need to insmod ip_conntrack_ftp to make CPAN work"
+  3. If CPAN asks whether or not it should install prereqs that it"
+     finds, answer YES in all cases."
+  4. If CPAN asks any other questions, accept the default answer"
+     or the answer that seems sensible to you."
+  5. When asked to configure GD, say /usr/lib, Y to jpeg and png and
+     N to GIF, FreeType and XPM.
+  6. When asked to enter test params for Authen::Radius you must
+     enter them or the module won't install.
+  7. mysql_config must be in your path for DBD::Mysql to build
+  8. MySQL must be running for tests to complete.
+
+[using -I$BD/lib]
 
 EOF
 
-    exit 255
-}
+if [ ! -e /tmp/mysql.sock ] ; then 
+    ln -s /var/lib/mysql/mysql.sock /tmp/mysql.sock
+fi
 
-exit 2
-
-echo "Installing required PERL packages .. "
-
-[ -f /usr/bin/yum ] && yum -y install perl mod_perl perl-DBD-MySQL perl-DBI perl-Filter
-
-echo "Installing required PERL modules .. "
-echo " "
-echo "NOTES:"
-echo "  1. You might need to configure CPAN first (follow the instructions)"
-echo "  2. You might need to insmod ip_conntrack_ftp to make CPAN work"
-echo "  3. If CPAN asks whether or not it should install prereqs that it"
-echo "     finds, answer YES in all cases."
-echo "  4. If CPAN asks any other questions, accept the default answer"
-echo "     or the answer that seems sensible to you."
-echo " "
 
 sleep 5
 
-perl -MCPAN -I/opt/netpass/lib -e 'install Bundle::NetPass1'
+$PB/bin/perl -MCPAN -I${BD}/lib -e 'install Bundle::NetPass1'
 
 # why doesnt '-e force install ...' work? but it does from the CPAN shell??
 
+echo "force install Net::SSLeay" | $PB/bin/perl -MCPAN -I${BD}/lib -e 'shell'
 
-echo "force install Net::SSLeay" | perl -MCPAN -I/opt/netpass/lib -e 'shell'
+# iptables module  wants to run tests as root. just force it 
+echo "force install IPTables::IPv4" | $PB/bin/perl -MCPAN -I${BD}/lib -e 'shell'
 
 sleep 10
 
-perl -MCPAN -I/opt/netpass/lib -e 'install IO::Socket::SSL'
+$PB/bin/perl -MCPAN -I${BD}/lib -e 'install IO::Socket::SSL'
 
 echo ; echo
 
-perl -MCPAN -I/opt/netpass/lib -e 'shell' <<EOF
+$PB/bin/perl -MCPAN -I${BD}/lib -e 'shell' <<EOF
 force install Net::Nessus::Client
 /opt/nessus/sbin/nessusd
 localhost
@@ -68,4 +80,18 @@ netpass
 EOF
 
 sleep 10
-perl -MCPAN -I/opt/netpass/lib -e 'install Bundle::NetPass2'
+$PB/bin/perl -MCPAN -I${BD}/lib -e 'install Bundle::NetPass2'
+
+echo " "
+echo "Verifying module installation .."
+echo " "
+
+$PB/bin/perl ${BD}/install.d/testpm ${BD}/lib/Bundle/NetPass1.pm
+cat <<EOF | $PB/bin/perl ${BD}/install.d/testpm
+=head1 CONTENTS
+IPTables::IPv4
+Net::SSLeay
+IO::Socket::SSL
+Net::Nessus::Client
+EOF
+$PB/bin/perl ${BD}/install.d/testpm ${BD}/lib/Bundle/NetPass2.pm
