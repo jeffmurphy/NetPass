@@ -5,12 +5,23 @@ use vars qw($cfg $remote_ip);
 
 use Getopt::Std;
 use Pod::Usage;
-use SOAP::Transport::TCP;
-use SOAP::Lite;
 use IO::SessionSet;
 use Socket;
 use Config::General;
+use FileHandle;
 use threads;
+require SOAP::Transport::TCP;
+require SOAP::Lite;
+
+my $MKNOD  = "/bin/mknod";
+my $MKFIFO = "/bin/mkfifo";
+
+umask(0000);
+
+$SIG{'INT'}  = sub {unlink "/opt/snort-2.2.0/logs/snort.log"; exit 0;};
+$SIG{'QUIT'} = sub {unlink "/opt/snort-2.2.0/logs/snort.log"; exit 0;};
+$SIG{'ABRT'} = sub {unlink "/opt/snort-2.2.0/logs/snort.log"; exit 0;};
+$SIG{'TERM'} = sub {unlink "/opt/snort-2.2.0/logs/snort.log"; exit 0;};
 
 my %opts;
 getopts('c:qDh?', \%opts);
@@ -23,23 +34,31 @@ if (exists $opts{'D'}) {
     daemonize("npsoapd", "/var/run");
 }
 
-my $cfg = new Config::General(-ConfigFile        => $opts{'c'} ? $opts{'c'} :
-						    "/opt/netpass/etc/npsnortd.conf" ,
-                              -AutoTrue          => 1,
-                              -IncludeRelative   => 1,
-                              -UseApacheInclude  => 1,
-                              -ExtendedAccess    => 1,
-                              -StrictObjects     => 0
-                             );
+$cfg = new Config::General(-ConfigFile        => $opts{'c'} ? $opts{'c'} :
+	           				 "/opt/netpass/etc/npsnortd.conf" ,
+                           -AutoTrue          => 1,
+                           -IncludeRelative   => 1,
+                           -UseApacheInclude  => 1,
+                           -ExtendedAccess    => 1,
+                           -StrictObjects     => 0
+                          );
 die "Unable to read config file ".$opts{'c'} unless $cfg;
 
 my $tid = threads->create(\&soapServer, $cfg);
 die "Unable to spawn soap server thread." unless $tid;
 
 # process snort logs from here on in
+my $pipe = $cfg->obj('npsnortd')->value('snortpipe');
 
-while (1) {
+die "a pipe $pipe already exists." if (-p $pipe);
+system($MKNOD, $pipe, 'p');
 
+my $fh = new FileHandle();
+
+while (1) {	
+	$fh->open($pipe);
+	print <$fh>;
+	$fh->close;
 }
 
 exit 0;
@@ -104,6 +123,9 @@ sub daemonize () {
 
 package NetPass::Snort;
 
+use strict;
+use Digest::MD5 qw(md5_hex);
+
 sub check_soap_auth {
         my $self         = shift;
         my $their_key    = shift;
@@ -119,16 +141,39 @@ sub check_soap_auth {
 sub snortRunning () {
 	my $self = shift;
 	my $key  = shift;
+        my $cfg  = $::cfg;
+	my $fh   = new FileHandle;
 
-	return -1 if ($self->check_soap_auth($key));
-
+	return -1 if (!$self->check_soap_auth($key));
 	my $pfile = $cfg->obj('npsnortd')->value('snortpid');
 
-	if (-e $pfile && open(PID, $pfile)) {
-		my $pid = chomp(<PID>);
-		close(PID);
+	if (-e $pfile && $fh->open($pfile)) {
+		my $pid = <$fh>;
+		chomp $pid;
+		$fh->close;
 		my $r = kill(0, $pid);
+		return 1 if $r;
 	}
+
+	return 0;
+}
+
+sub restartSnort () {
+	my $self = shift;
+	my $key  = shift;
+        my $cfg  = $::cfg;
+	my $fh   = new FileHandle;
+
+	return -1 if (!$self->check_soap_auth($key));
+	my $pfile = $cfg->obj('npsnortd')->value('snortpid');
+
+        if (-e $pfile && $fh->open($pfile)) {
+                my $pid = <$fh>;
+		chomp $pid;
+                $fh->close;
+                my $r = kill(1, $pid);
+                return 1 if $r;
+        }
 
 	return 0;
 }
