@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.1 2004/09/30 01:19:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.2 2004/09/30 02:12:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -66,9 +66,9 @@ my @cidr_to_int = (
 
 =head2 ($ip, $mask) = cidr2int($network)
 
-   Given an IPV4, possibly in CIDR notation (128.205.1.20, 128.205.1.0/24) return
-   the IP and Mask as integers. If the trailing /# is not present, /32 will be 
-   automatically appended.
+Given an IPV4, possibly in CIDR notation (128.205.1.20, 128.205.1.0/24) return
+the IP and Mask as integers. If the trailing /# is not present, /32 will be 
+automatically appended.
 
 =cut
 
@@ -121,9 +121,9 @@ sub ip2int {
 
 =head2 $ip = host2addr($hostname || $ipaddress)
 
-   Given a hostname, translate it (using Net::DNS) to its corresponding
-   IP address. If you pass in an IP address, we recognize that and simply
-   return it.
+Given a hostname, translate it (using Net::DNS) to its corresponding
+IP address. If you pass in an IP address, we recognize that and simply
+return it.
 
 =cut
 
@@ -152,11 +152,11 @@ sub host2addr {
 
 =head2 $mac = searchArpCache($ip)
 
-   Search through the ARP cache on the localhost for the specified IP
-   address. If multiple matches are found, a hash ref is returned mapping
-   IPs to MACs. If only one match is found, a scalar is returned.
+Search through the ARP cache on the localhost for the specified IP
+address. If multiple matches are found, a hash ref is returned mapping
+IPs to MACs. If only one match is found, a scalar is returned.
 
-   The IP you pass in can be in a variety of formats:
+The IP you pass in can be in a variety of formats:
 
 =over 8
 
@@ -168,10 +168,9 @@ sub host2addr {
 
 =back
 
-   C<undef> on failure.
+C<undef> on failure.
 
-   B<Note: this is not an object oriented routine. Just call it directly.>
-
+B<Note: this is not an object oriented routine. Just call it directly.>
 
 =cut
 
@@ -253,7 +252,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Network.pm,v 1.1 2004/09/30 01:19:38 jeffmurphy Exp $
+$Id: Network.pm,v 1.2 2004/09/30 02:12:35 jeffmurphy Exp $
 
 =cut
 

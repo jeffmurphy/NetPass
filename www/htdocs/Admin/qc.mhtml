@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.5 2004/09/30 01:50:10 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.6 2004/09/30 02:12:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -309,7 +309,6 @@ sub getQuars {
 	my @params = ();
 
 	if($mac) {
-print "1MAC|<PRE>$mac</PRE>| ", ref($mac), "<P>";
 		my @macList = split("\n", $mac);
 		if ($#macList > 0) {
 			my @_clause;
@@ -359,8 +358,8 @@ print "1MAC|<PRE>$mac</PRE>| ", ref($mac), "<P>";
 
 	$query .= " ORDER BY registeredOn";
 
-	print "QUERY=$query<P>";
-	print "PARMS=",join(',', @params), "<P>";
+	#print "QUERY=$query<P>";
+	#print "PARMS=",join(',', @params), "<P>";
 
 	my $sth = $dbh->prepare($query);
 
