@@ -97,7 +97,7 @@ exit 0;
 
 sub soapServer () {
 	my $opts = shift;
-	my $port = ($opts->{'P'}) ? $opts->{'P'} : $DEFAULTSNORTRULES;
+	my $port = ($opts->{'P'}) ? $opts->{'P'} : $DEFAULTPORT;
 
 	my $daemon = SOAP::Transport::TCP::Server->new(
 							LocalPort       => $port,
