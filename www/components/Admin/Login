@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,14 +15,15 @@ This component outputs a login prompt form.
 </%args>
 
 <%perl>
-        return 1 if (exists $m->session->{'logged_in'});
+        return 1 if (exists $m->session->{'logged_in'} && 
+			($m->session->{'logged_in'} == 1));
 
         if (defined($username) && ($username ne "")) {
 	    	my $aok = $np->authenticateUser($username,
         		                        $password);
 
 		if (defined($aok) && ($aok == 1)) {
-			$m->session->{'logged_in'} = $username; # FIX/Client/Login
+			$m->session->{'logged_in'} = 1; # FIX/Client/Login
 			$m->session->{'username'}  = $username;
 			$m->session->{'my_groups'} = $npdbh->getUserGroups($username);
 			$m->redirect('/Admin');

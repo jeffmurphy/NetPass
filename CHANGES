@@ -84,3 +84,12 @@ alter table register add uqlinkup        ENUM('yes', 'no') NOT NULL DEFAULT 'no'
 	    nessus not available. also modified it to use callback
 	    to implement progress bar.
 	jcm modified nessus timeout (in BeginScan) from 1s to 20s.
+
+2004-09-24
+	jcm modifications to qc.mhtml, DB.pm and resetport.pl to finish
+	    unq-on-linkup feature.
+
+2004-09-28
+	jcm removed calendar/menu css and js refs. they were unused. fixed
+	    some logged_in refs so admin site login meshed with client 
+            login

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -29,7 +29,6 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 		$nw = join('.', (split(/\./, $nw))[0,1,2]);
 		my $_nw = $nw;
 		$_nw =~ s/\./\\\./g;
-		print "$_nw\\..*\n";
 
 		my $minq = NetPass::searchArpCache("${_nw}\\..*");
 		my $aq = 0; 

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/style/front/header,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/style/front/header,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -31,11 +31,6 @@
 <link rel="stylesheet" type="text/css" href="<%$resource_root%>/css/site.css" />
 <link rel="stylesheet" type="text/css" href="<%$resource_root%>/css/calendar.css" />
 <script src="<%$resource_root%>/js/OSSTemplate.js" type="text/javascript"></script>
-<script src="<%$resource_root%>/js/cal/calendar.js" type="text/javascript"></script>
-<script src="<%$resource_root%>/js/cal/calendar-setup.js" type="text/javascript"></script>
-<script src="<%$resource_root%>/js/cal/calendar-en.js" type="text/javascript"></script>
-<script src="<%$resource_root%>/js/menu/menu_src.js" type="text/javascript"></script>
-<script src="<%$resource_root%>/js/menu/menu_dom.js" type="text/javascript"></script>
 </head>
 
 <body>

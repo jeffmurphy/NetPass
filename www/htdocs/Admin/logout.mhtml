@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/logout.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/logout.mhtml,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -10,7 +10,7 @@ This component deletes the session..
 
 <%perl>
         if (exists $m->session->{'logged_in'}) {
-                delete $m->session->{'logged_in'};
+                $m->session->{'logged_in'} = 0;
                 print "Logging out. Please wait..<P>";
                 print qq{<META HTTP-EQUIV=REFRESH CONTENT="1; URL=/Admin">};
         }

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -621,12 +621,14 @@ sub findOurSwitchPort_tree {
 			# that 2-3 tree searches might still be more efficient than
 			# a single linear search.
 
-			foreach my $bsw (split(' ', $self->cfg->getBSW($myNW))) {
+			my $bsw_list = $self->cfg->getBSW($myNW);
+			if (!defined($bsw_list)) {
+				_log ("WARNING", "$mac attempted to use tree-search on $myNW,  but no BSW defined. fallback to linear.\n");
+				return $self->findOurSwitchPort_linear($mac, $ip);
+			}
+
+			foreach my $bsw (split(' ', $bsw_list)) {
 				_log ("DEBUG", "$mac starting point bsw=$bsw\n");
-				if (!defined($bsw)) {
-					_log ("ERROR", "$mac attempted to use tree-search on $myNW, but no BSW defined. fallback to linear.\n");
-					return $self->findOurSwitchPort_linear($mac, $ip);
-				}
 				
 				my ($_sw, $_po, $_mp, $_pm) = $self->search_topology($bsw, 
 										     ($self->cfg->getCommunities($bsw))[1],
@@ -942,7 +944,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
 
 =cut
 
