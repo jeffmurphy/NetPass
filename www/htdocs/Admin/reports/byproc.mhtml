@@ -1,0 +1,109 @@
+<%doc>
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+</%args>
+
+<%perl>
+
+use GD;
+use GD::Graph;
+use GD::Graph::lines;
+use FileHandle;
+use File::stat;
+
+my $NPBASE     = $np->cfg()->{'cfg'}->obj('policy')->value('BASE_DIR');
+my $REPORTSDIR = $NPBASE."/www/htdocs/Admin/reports";
+
+if ( $m->comp('/Admin/Login', %ARGS) ) {
+	my $data = get_data($dbh);
+
+	print "<script><!--\nsetWhereAmI('Reports');\n--></script>";
+
+	foreach my $server (sort keys %$data) {
+		my @allvals;
+		my @x;
+		my $total;
+
+		push @x, sort keys %{$data->{$server}{mysqld}};
+
+		foreach my $p (sort keys %{$data->{$server}}) {
+			push @allvals, [map($data->{$server}{$p}{$_},
+				        sort keys %{$data->{$server}{$p}})];
+		}
+
+		my @legend = sort keys %{$data->{$server}};
+
+		my $s = $server;
+		$s =~ s/^(\w+)\.\w+.+$/$1/;
+		my $GRAPHIMG = "byproc_$s.png";
+		graph_data([\@x, @allvals], $GRAPHIMG, $REPORTSDIR, \@legend);
+
+		print "<table cellspacing=2 cellpadding=2 border=0 width=700><tr>";
+		print "<td width=30% valign=\"top\">";
+		print "<table cellspacing=2 cellpadding=2 border=0 width=100%><tr>";
+		print "<th colspan=2>$server</th></tr>";
+
+		foreach my $p (sort keys %{$data->{$server}}) {
+			my @t = sort keys %{$data->{$server}{$p}};
+			print "<tr>";
+			print "<td class='gray'>$p</td>";
+			print "<td class='gray'>".$data->{$server}{$p}{$t[-1]}."</td>";
+			print "</tr>";
+		}
+
+		print "</table></td><td width=70%>";
+		print $q->img({-src=>$GRAPHIMG});
+		print "</td></tr></table>";
+		print "<br><br>";
+	}
+}
+
+sub graph_data {
+        my $data       = shift;
+        my $GRAPHIMG   = shift;
+        my $REPORTSDIR = shift;
+	my $legend     = shift;
+
+        if (-e "$REPORTSDIR/$GRAPHIMG") {
+                my $inode = stat ("$REPORTSDIR/$GRAPHIMG");
+                my $age   = time() - $inode->mtime;
+                return (1) if ($age <= 300);
+        }
+
+        my $graph = new GD::Graph::lines(500, 250);
+
+        $graph->set('3d'                => 0,
+		    'x_labels_vertical' => 1,
+		    'x_label_skip'	=> 10,
+                   );
+
+	$graph->set_legend(@$legend);
+
+        my $fh = new FileHandle("> $REPORTSDIR/$GRAPHIMG") || die "Unable to open $GRAPHIMG";
+        binmode $fh;
+        print $fh $graph->plot($data)->png;
+        $fh->close;
+}
+
+sub get_data {
+	my $dbh = shift;
+	my %d;
+
+	my $onedayago = time() - 86400;
+
+	my $sql = "SELECT serverid, proc, dt, count FROM stats_procs WHERE dt >= FROM_UNIXTIME($onedayago)";
+	my $sth = $dbh->prepare($sql);
+	$sth->execute();
+
+	while (my($serverid, $proc, $dt, $count) = $sth->fetchrow_array()) {
+		$d{$serverid}{$proc}{$dt} = $count;
+	}
+
+	return \%d; 
+}
+
+</%perl>
