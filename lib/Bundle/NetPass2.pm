@@ -44,6 +44,18 @@ GD::Graph
 
 GD::Text
 
+Date::Calc
+
+Date::Format
+
+Date::Parse
+
+Date::Manip
+
+Mail::Sendmail
+
+MIME::Base64
+
 =head1 DESCRIPTION
 
 NetPass required perl modules.

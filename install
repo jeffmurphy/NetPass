@@ -1,6 +1,6 @@
 #!/usr/bin/env perl 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.6 2004/12/23 21:36:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.7 2004/12/31 19:09:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -53,7 +53,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.6 2004/12/23 21:36:13 jeffmurphy Exp $
+$Id: install,v 1.7 2004/12/31 19:09:07 jeffmurphy Exp $
 
 =cut
 
@@ -112,7 +112,13 @@ if (exists $opts{'u'}) {
 	lsystem("/usr/bin/userdel netpass") && lprint("userdel netpass failed $!\n");
 	lsystem("/usr/bin/groupdel netpass") && lprint("groupdel netpass failed $!\n");
 	lsystem("rm /opt/apache /opt/perl");
+
+	lsystem("rm -f /etc/logrotate.d/netpass");
+	if (-d "/opt/apache_1.3.29") {
+		lsystem("rm -f /etc/logrotate.d/apache");
+	}
 	foreach my $d ("/opt/apache_1.3.29", "/opt/perl-5.8.5", "/opt/squidguard") {
+		next unless (-f $d);
 		my $a = ask ("Remove directory $d and it's contents? [Y/N] ");
 		if ($a =~ /^y/i) {
 			lsystem("rm -fr $d");
@@ -125,6 +131,8 @@ if (exists $opts{'u'}) {
 	lsystem("rm -f /var/cookies");
 
 	depatchConf("/etc", "fstab");
+	dropDatabase();
+
 	lprint ("NetPass uninstall finished.\n");
 	exit 0;
 }
@@ -154,16 +162,17 @@ lsystem ("/usr/sbin/useradd -d '$TARGET' -g netpass -s /bin/false netpass");
 installHTMLArea($PKGDIR, $TARGET) unless $UPGRADE;
 installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "sg.tar.bz2", "/opt");
 installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "perl-5.8.5.tar.bz2", "/opt");
-installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "apache-1.3.29.tar.bz2", "/opt");
+my $APACHE_PB_INSTALLED = 
+  installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "apache-1.3.29.tar.bz2", "/opt");
 
-lsystem (qq{ln -s /opt/apache_1.3.29 /opt/apache});
+lsystem (qq{ln -s /opt/apache_1.3.29 /opt/apache}) if $APACHE_PB_INSTALLED;
 lsystem (qq{ln -s /opt/perl-5.8.5    /opt/perl});
 
 lsystem ("/bin/mv $TARGET/lib/NetPass/WWW/Session.pm.file $TARGET/lib/NetPass/WWW/Session.pm");
 lsystem ("/bin/chown -R netpass:netpass $TARGET");
 
 makeCookiesDir();
-apacheConfig("/opt/apache/conf/httpd.conf");
+apacheConfig("/opt/apache/conf/httpd.conf") if $APACHE_PB_INSTALLED;
 
 if ((!-d "$TARGET/www/htdocs/resources") && (!-l "$TARGET/www/htdocs/resources")) {
 	lsystem (qq{ln -s "$TARGET/www/htdocs/OSSTemplate" "$TARGET/www/htdocs/resources"});
@@ -180,6 +189,8 @@ foreach my $etcf ('services', 'syslog.conf') {
 
 patchSquidConf($PKGDIR, "install.d/squid.conf");
 
+loadTables($PKGDIR, "install.d/tables.sql");
+
 lprint("Installation finished.\n");
 $LOG->close;
 
@@ -187,6 +198,11 @@ exit 0;
 
 sub ll {
 	print $LOG @_;
+}
+
+sub ldie {
+	print $LOG @_;
+	die @_;
 }
 
 sub lprint {
@@ -432,6 +448,8 @@ sub cwd {
 
 sub installPrebuilt {
 	my ($burl, $f, $dst) = (shift, shift, shift);
+	my $yn = ask("Install pre-built binary $f into $dst? [Y/N] ");
+	return 0 unless ($yn =~ /^y/i);
 	lprint("Installing pre-built binary\n\t\tfrom $burl/$f\n\t\tinto $dst\n");
 	fetchRemoteFile($burl, $f);
 	my $cwd = cwd();
@@ -444,6 +462,7 @@ sub installPrebuilt {
 	lsystem($cmd);
 	
 	chdir($cwd);
+	return 1;
 }
 
 
@@ -564,13 +583,13 @@ sub removeTree {
 sub copyTree {
 	my ($src, $dst) = (shift, shift);
 	my $DH;
-	opendir($DH, $src) || die "cant open $src $!";
+	opendir($DH, $src) || ldie "cant open $src $!";
 	while(my $f = readdir($DH)) {
 		next if ($f =~ /^\.{1,2}$/);
 		next if ($f eq "install.d");
 		next if ($f eq "CVS");
 		if (-d "$src/$f") {
-			mkdir "$dst/$f" || die "cant mkdir $dst/$f";
+			mkdir "$dst/$f" || ldie "cant mkdir $dst/$f";
 			copyTree("$src/$f", "$dst/$f");
 		} else {
 			print lt80("$src/$f"), "\r";
@@ -578,7 +597,7 @@ sub copyTree {
 			system(qq{/bin/cp -p "$src/$f" "$dst/$f"});
 			print " " x 80, "\r";
 
-			die "cp $src/$f $dst/$f  failed $!"
+			ldie "cp $src/$f $dst/$f  failed $!"
 			  unless (-f "$dst/$f")
 		}
 	}
@@ -618,7 +637,7 @@ sub getVersion {
 	my $dir = shift;
 	my $fh;
 	($fh = new FileHandle "$dir/VERSION", "r" )
-		|| die Carp::longmess("distribution corrupt. file missing: $dir/VERSION");
+		|| ldie Carp::longmess("distribution corrupt. file missing: $dir/VERSION");
 	my $VERSION=<$fh>;
 	chomp $VERSION;
 	$fh->close;
@@ -640,8 +659,7 @@ sub apacheConfig {
 
 	my $fh = new FileHandle $conf, "r";
 	if (!defined($fh)) {
-		lprint Carp::longmess "failed to open $conf $!\n";
-		die;
+		ldie Carp::longmess "failed to open $conf $!\n";
 	}
 	my @conf = <$fh>;
 	$fh->close;
@@ -698,8 +716,7 @@ ENTER to keep our value: ");
 
 	my $fh = new FileHandle $conf, "w";
 	if (!defined($fh)) {
-		lprint Carp::longmess "Failed to open $conf for writing $!\n";
-		die;
+		ldie Carp::longmess "Failed to open $conf for writing $!\n";
 	}
 	print $fh @conf;
 	$fh->close;
@@ -710,8 +727,7 @@ ENTER to keep our value: ");
 	my $conf = "/opt/netpass/lib/NetPass/WWW/Session.pm";
 	my $fh = new FileHandle $conf, "r";
 	if (!defined($fh)) {
-		lprint Carp::longmess "Failed to open $conf for reading $!\n";
-		die;
+		ldie Carp::longmess "Failed to open $conf for reading $!\n";
 	}
 	my @conf = <$fh>;
 	$fh->close;
@@ -737,8 +753,13 @@ ENTER to keep our value: ");
 
 sub installLogrotate {
 	# apache
+	if ($APACHE_PB_INSTALLED) {
+		lsystem("cp $PKGDIR/install.d/apache /etc/logrotate.d/");
+	}
+	
 	# netpass
-	# cookie scrubber?
+
+	lsystem("cp $PKGDIR/install.d/netpass /etc/logrotate.d/");
 }
 
 sub searchReplace {
@@ -750,6 +771,7 @@ sub searchReplace {
 		$data->[$i] =~ s/$search/$replace/g;
 	}
 }
+
 
 sub makeCookiesDir {
 	if (-d '/cookies') {
@@ -767,22 +789,22 @@ sub makeCookiesDir {
 	# chown -R netpass:netpass /cookies
 
 	lsystem("/bin/dd if=/dev/zero of=/var/cookies bs=1024 count=1024000")
-	  && die Carp::longmess "/bin/dd failed $!";
+	  && ldie Carp::longmess "/bin/dd failed $!";
 	lsystem("mkdir /cookies")
-	  && die Carp::longmess "mkdir failed $!";
+	  && ldie Carp::longmess "mkdir failed $!";
 	lsystem("/sbin/mkreiserfs -f -f -q -q /var/cookies")
-	  && die Carp::longmess "/sbin/mkreiserfs failed $!"; 
+	  && ldie Carp::longmess "/sbin/mkreiserfs failed $!"; 
 
 	patchConf("/etc", "fstab");
 
 	lsystem("/bin/mount /cookies")
-	  && die Carp::longmess "/bin/mount /cookies failed $!";
+	  && ldie Carp::longmess "/bin/mount /cookies failed $!";
 	lsystem("mkdir -p /cookies/data /cookies/lock")
-	  && die Carp::longmess "mkdir data/lock failed $!";
+	  && ldie Carp::longmess "mkdir data/lock failed $!";
 	lsystem("/bin/chown -R netpass:netpass /cookies") 
-	  && die Carp::longmess "/bin/chown failed $!";
+	  && ldie Carp::longmess "/bin/chown failed $!";
 	lsystem("/bin/chmod -R 755 /cookies") 
-	  && die Carp::longmess "/bin/chmod failed $!";
+	  && ldie Carp::longmess "/bin/chmod failed $!";
 }
 
 
@@ -801,7 +823,7 @@ sub apacheConfig_set {
 			
 sub getMemTotal {
 	my $mt = new FileHandle "/proc/meminfo", "r";
-	die Carp::longmess "failed to open /proc/meminfo $!" unless defined $mt;
+	ldie Carp::longmess "failed to open /proc/meminfo $!" unless defined $mt;
 	while(my $l = <$mt>) {
 		chomp $l;
 		if ($l =~ /MemTotal:\s+(\d+)\s+kB/) {
@@ -812,6 +834,46 @@ sub getMemTotal {
 Please tell me the number of megabytes: ");
 	return $ms;
 }
+
+sub loadTables {
+	my ($B, $S) = (shift, shift);
+	return unless (-f "$B/$S");
+	my $u = ask ("We'll now create the 'netpass' database and load the tables.\nWhat username should we connect with? [root] ");
+	$u ||= $root;
+	my $p = ask ("What password should we connect with? [none] ");
+	$p = "-p$p " if ($p ne "");
+	if (-f "/etc/init.d/mysqld") {
+		print "We're going to call '/etc/init.d/mysqld start'. If it's already running, that's OK.\n";
+		lsystem("/etc/init.d/mysqld start");
+	} else {
+		ldie "It looks like mysql isnt installed? (I don't see the /etc/init.d/mysqld script)";
+	}
+	my $rv = lsystem("mysqladmin -u $u $p stat");
+	if ($rv != 0) {
+		ldie "It looks like mysql isnt running. (The 'mysqladmin -u $root $p stat' command failed with code $rv";
+	}
+
+	$rv = lsystem("mysqladmin -u netpass $p create netpass");
+	ldie "failed to create 'netpass' db" if $rv;
+	$rv = lsystem("mysqladmin -u netpass $p create sessions");
+	$rv - lsystem("mysql -fu root $p netpass < $B/$S");
+	ldie "failed to load $B/$s into 'netpass' db" if $rv;
+
+	$rv = lsystem("mysql -fu root $p netpass < $B/pages.sql");
+	ldie "failed to load $B/pages.sql into the database" if $rv;
+
+	$rv = lsystem("echo insert into users values ('$u', 'Admin')
+}
+
+sub dropDatabase {
+	my $u = ask ("We're going to delete the 'netpass' (and 'sessions') databases.\nWhat username should we connect with? [root] ");
+	$u ||= $root;
+	my $p = ask ("What password should we connect with? [none] ");
+	$p = "-p$p " if ($p ne "");
+	lsystem("mysql -u $u $p drop netpass");
+	lsystem("mysql -u $u $p drop sessions");
+}
+
 
 package spinner;
 use strict;

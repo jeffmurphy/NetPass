@@ -53,6 +53,13 @@ GD
 GD::Graph
 GD::Text
 
+Date::Calc
+Date::Format
+Date::Parse
+Date::Manip
+Mail::Sendmail
+
+
 
 
 perl -MCPAN -I/opt/netpass/lib -e 'install Bundle::NetPass'
@@ -187,7 +194,5 @@ Optional modules are available from any CPAN mirror, in particular
 
 
 
-#################
 
-bin/install issues:
-
+ldapsearch -x -b "ou=People,dc=cit,dc=buffalo,dc=edu" uid=jcmurphy

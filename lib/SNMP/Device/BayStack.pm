@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack.pm,v 1.4 2004/10/15 15:49:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack.pm,v 1.5 2004/12/31 19:09:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -561,7 +561,12 @@ sub get_ifDesc {
 	# for unstacked units:
 	# BayStack 450-12F - 12
 	# BayStack 450-24T - 12
+        # Nortel Networks BayStack 470_24 Ethernet Switch Module - Port 22
 	# etc
+
+        if ($response->{$oid} =~ /BayStack\s470.*-\sPort\s(\d+)/) {
+                return (1, $1);
+        }
 
 	if ($response->{$oid} =~ /BayStack\s450-\S+\s\-\s(\d+)/) {
 		return (1, $1);
@@ -895,7 +900,7 @@ sub HexMac2DecMac {
 
 =head1 REVISION
 
-$Id: BayStack.pm,v 1.4 2004/10/15 15:49:35 jeffmurphy Exp $
+$Id: BayStack.pm,v 1.5 2004/12/31 19:09:09 jeffmurphy Exp $
 
 =cut
 

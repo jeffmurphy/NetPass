@@ -149,3 +149,12 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug fixes to byclient.mhtml bynet.mhtml
 	jcm searchArpCache takes an optional param which causes it to 
             exclude "incomplete" macs now.
+
+2004-12-30
+	jcm fixed bug where changing a port from managed to unmanaged would
+	    cause a user on that port to become stuck in quarantine
+	jcm worked on installation script
+
+2004-12-31
+	jcm added NetPass::Auth::LDAP, ..Auth::Unix and ..Auth::DB modules
+	jcm moved NetPass::RADIUS to NetPass::Auth::Radius

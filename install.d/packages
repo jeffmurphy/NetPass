@@ -1,0 +1,16 @@
+vconfig
+mysql-server
+mysql-devel
+squid
+dhcp
+perl 
+perl-DBD-MySQL 
+perl-DBI 
+perl-Filter
+libgd
+libgd-devel
+libpng
+libpng-devel
+libjpeg
+libjpeg-devel
+reiserfs-utils

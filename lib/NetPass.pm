@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.6 2004/10/25 17:48:25 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.7 2004/12/31 19:09:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -736,20 +736,29 @@ sub validateMac {
 
 	# activate the clients port:
 	# 1. determine switch/port via database
-	# 2. examine mac attached to switch port. (we do this to keep
+	# 2. if that switch/port is not in the vlan map -> long method
+	# 3. examine mac attached to switch port. (we do this to keep
 	#    the move process as short as possible for registered/OK clients)
-	# 3. if we are listed on the port, activate the port
-	# 4. else (slow method) lookup list of switches
+	# 4. if we are listed on the port, activate the port
+	# 5. else (slow method) lookup list of switches
 	#    that service our network
-	# 5. search each switch for our mac
-	# 6. turn on the port we are attached too
+	# 6. search each switch for our mac
+	# 7. turn on the port we are attached too
 
 	my ($sw, $po) = $dbh->lookupSwitchPort($mac);
 
 	if (!defined($sw) || !defined($po)) {
 		_log ("DEBUG", "$mac $ip no sw/po in database. searching for them\n");
-		goto long_way; #XXX ugly
+		goto long_way;
 	}
+
+	my $managedPorts = $self->cfg->configuredPorts($sw);
+	if (ref($managedPorts) ne "ARRAY") {
+		_log ("DEBUG", "configuredPorts($sw) didnt return an array ref\n");
+		goto long_way;
+	}
+
+	goto long_way if (!grep (/^$po$/, @$managedPorts));
 
 	$self->cfg->debug(1);
 
@@ -896,7 +905,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.6 2004/10/25 17:48:25 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.7 2004/12/31 19:09:08 jeffmurphy Exp $
 
 =cut
 

@@ -1,10 +1,10 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Attic/Radius.pm,v 1.2 2004/12/31 19:09:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/Radius.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 
-package NetPass::Radius;
+package NetPass::Auth::Radius;
 
 use strict;
 no strict 'refs';
@@ -23,7 +23,7 @@ my $VERSION = '1.0001';
 
 =head1 NAME
 
-NetPass::Radius - Routines for authenticating against RADIUS
+NetPass::Auth::Radius - Routines for authenticating against RADIUS
 
 =head1 SYNOPSIS
 
@@ -43,14 +43,12 @@ sub authenticateUser {
     my $np = shift;
     my ($u, $p) = (shift, shift);
 
-    _log "DEBUG", "NP::Radius ". $np->{'configFile'}. "\n";
-
     for my $rs ($np->cfg()->{'cfg'}->keys('radius')) {
-	_log "DEBUG", "trying radius server $rs\n";
+	_log("DEBUG", "trying radius server $rs\n");
 	
 	my $sec = $np->{'cfg'}->{'cfg'}->obj('radius')->obj($rs)->value('secret');
 
-	_log "DEBUG", "trying radius secret $sec\n";
+	_log("DEBUG", "trying radius secret $sec\n");
 	
 	my $r = new Authen::Radius(Host   => $rs,
 				   Secret => $sec);
@@ -80,7 +78,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Radius.pm,v 1.2 2004/12/31 19:09:09 jeffmurphy Exp $
+$Id: Radius.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
 
 =cut
 

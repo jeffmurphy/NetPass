@@ -1,10 +1,10 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Attic/Radius.pm,v 1.2 2004/12/31 19:09:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/Unix.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 
-package NetPass::Radius;
+package NetPass::Auth::Unix;
 
 use strict;
 no strict 'refs';
@@ -14,8 +14,6 @@ use NetPass::LOG qw(_log _cont);
 use NetPass::Config;
 use base 'NetPass';
 
-use Authen::Radius;
-
 use vars qw(@ISA);
 
 @ISA = qw(NetPass);
@@ -23,7 +21,7 @@ my $VERSION = '1.0001';
 
 =head1 NAME
 
-NetPass::Radius - Routines for authenticating against RADIUS
+NetPass::Auth::Unix - Routines for authenticating against local Unix files
 
 =head1 SYNOPSIS
 
@@ -43,28 +41,12 @@ sub authenticateUser {
     my $np = shift;
     my ($u, $p) = (shift, shift);
 
-    _log "DEBUG", "NP::Radius ". $np->{'configFile'}. "\n";
-
-    for my $rs ($np->cfg()->{'cfg'}->keys('radius')) {
-	_log "DEBUG", "trying radius server $rs\n";
-	
-	my $sec = $np->{'cfg'}->{'cfg'}->obj('radius')->obj($rs)->value('secret');
-
-	_log "DEBUG", "trying radius secret $sec\n";
-	
-	my $r = new Authen::Radius(Host   => $rs,
-				   Secret => $sec);
-	$r->clear_attributes;
-	$r->add_attributes (
-		    { Name => 1, Value => $u, Type => 'string' },
-		    { Name => 2, Value => $p, Type => 'string' }
-        );
-
-	$r->send_packet(ACCESS_REQUEST);
-        my $rcv = $r->recv_packet();
-        return 1 if (defined($rcv) and $rcv == ACCESS_ACCEPT);
+    my $sysPass = getpwnam($u);
+    if ($sysPass) {
+	    my $salt = substr($sysPass, 0, 2);
+	    my $encGiven = crypt($p, $salt);
+	    return 1 if ($encGiven eq $sysPass);
     }
-
     return 0;
 }
 
@@ -80,7 +62,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Radius.pm,v 1.2 2004/12/31 19:09:09 jeffmurphy Exp $
+$Id: Unix.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
 
 =cut
 

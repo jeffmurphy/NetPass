@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.4 2004/10/01 15:40:50 jeffmurphy Exp $
+s/# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.5 2004/12/31 19:09:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -724,7 +724,7 @@ sub getCommunities {
     return (undef, undef);
 }
 
-=head2 my $ports = $cfg-E<gt>configuredPorts(host)
+=head2 my $portsArrayRef = $cfg-E<gt>configuredPorts(host)
 
 Given a hostname/IP of a switch return the list of ports we're configured to manage
 on that switch. Returns an ARRAY REF on success, C<undef> on failure.
@@ -1123,7 +1123,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.4 2004/10/01 15:40:50 jeffmurphy Exp $
+$Id: Config.pm,v 1.5 2004/12/31 19:09:09 jeffmurphy Exp $
 
 =cut
 

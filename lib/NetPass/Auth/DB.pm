@@ -1,10 +1,10 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Attic/Radius.pm,v 1.2 2004/12/31 19:09:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/DB.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 
-package NetPass::Radius;
+package NetPass::Auth::DB;
 
 use strict;
 no strict 'refs';
@@ -12,9 +12,8 @@ no strict 'refs';
 use Class::ParmList qw(simple_parms parse_parms);
 use NetPass::LOG qw(_log _cont);
 use NetPass::Config;
+use NetPass::DB;
 use base 'NetPass';
-
-use Authen::Radius;
 
 use vars qw(@ISA);
 
@@ -23,7 +22,7 @@ my $VERSION = '1.0001';
 
 =head1 NAME
 
-NetPass::Radius - Routines for authenticating against RADIUS
+NetPass::Auth::DB - Routines for authenticating against the local DB
 
 =head1 SYNOPSIS
 
@@ -43,28 +42,21 @@ sub authenticateUser {
     my $np = shift;
     my ($u, $p) = (shift, shift);
 
-    _log "DEBUG", "NP::Radius ". $np->{'configFile'}. "\n";
+    my $dbh = new NetPass::DB($np->cfg->dbSource,
+			      $np->cfg->dbUsername,
+			      $np->cfg->dbPassword,
+			      1);
 
-    for my $rs ($np->cfg()->{'cfg'}->keys('radius')) {
-	_log "DEBUG", "trying radius server $rs\n";
-	
-	my $sec = $np->{'cfg'}->{'cfg'}->obj('radius')->obj($rs)->value('secret');
-
-	_log "DEBUG", "trying radius secret $sec\n";
-	
-	my $r = new Authen::Radius(Host   => $rs,
-				   Secret => $sec);
-	$r->clear_attributes;
-	$r->add_attributes (
-		    { Name => 1, Value => $u, Type => 'string' },
-		    { Name => 2, Value => $p, Type => 'string' }
-        );
-
-	$r->send_packet(ACCESS_REQUEST);
-        my $rcv = $r->recv_packet();
-        return 1 if (defined($rcv) and $rcv == ACCESS_ACCEPT);
+    if (!defined($dbh)) {
+	    my $e = "failed to create NP:DB ".DBI->errstr."\n";
+	    _log("ERROR", $e);
+	    return 0;
     }
 
+    my $encryptedPassFromDB = $dbh->getPasswd($u);
+    my $salt = substr($encryptedPassFromDB, 0, 2);
+    my $encryptedGivenPass = crypt($salt, $p);
+    return 1 if ($encryptedGivenPass eq $encryptedPassFromDB);
     return 0;
 }
 
@@ -80,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Radius.pm,v 1.2 2004/12/31 19:09:09 jeffmurphy Exp $
+$Id: DB.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
 
 =cut
 

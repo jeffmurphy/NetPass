@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.6 2004/12/31 19:09:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -952,6 +952,56 @@ sub reqAppAction {
     return 1;
 }
 
+=head2 $pass = getPasswd($username)
+
+Lookup the password for a given user in the local database. Returns
+a scalar on success and C<undef> on failure.
+
+=cut
+
+sub getPasswd {
+	my $u = shift;
+	my $s = "SELECT password FROM passwd WHERE username = ".$self->{'dbh'}->quote($u);
+	my $x = $self->{'dbh'}->selectrow_arrayref($sql);
+	return $x->[0] if ($#x);
+	return undef;
+}
+
+=head2 0 | 1 = setPasswd($username, $password)
+
+Set the password for the given user (creating the user if it does not exist)
+in the local database. Returns 1 on success.
+
+=cut
+
+sub setPasswd {
+	my ($u, $p) = (shift, shift);
+	my $s = "INSERT INTO passwd (username, password) VALUES ('$u', ENCRYPT('$p', 'xx'))";
+	if ($self->{'dbh'}->do($sql) == 1) {
+		return 1;
+	}
+	my $s = "UPDATE passwd SET password = ENCRYPT('$p', 'xx') WHERE username = '$u'";
+	if ($self->{'dbh'}->do($sql) == 1) {
+		return 1;
+	}
+	return 0;
+}
+
+=head2 0 | 1 = deletePasswd($username)
+
+Delete the user from the passwd table. Returns 1 on success.
+
+=cut
+
+sub deletePasswd {
+	my ($u, $p) = (shift, shift);
+	my $s = "DELETE FROM passwd WHERE username = '$u'";
+	if ($self->{'dbh'}->do($sql) == 1) {
+		return 1;
+	}
+	return 0;
+}
+
 =head2 audit(severity => $sev,  $mac => $mac, ip => $ip, user => $username, $msg, ...)
 
 Submit an entry into the audit table.
@@ -1078,6 +1128,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
+$Id: DB.pm,v 1.6 2004/12/31 19:09:09 jeffmurphy Exp $
 
 1;

@@ -1,0 +1,3 @@
+## BEGIN-NETPASS
+/var/cookies	/cookies	reiserfs	noatime,rw,loop	0 0
+## END-NETPASS

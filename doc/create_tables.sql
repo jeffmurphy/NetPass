@@ -126,6 +126,15 @@ CREATE TABLE appStarter (
 	INDEX (status)
 ) TYPE=INNODB;
 
+CREATE TABLE stats_procs (
+  `serverid` varchar(128) NOT NULL,
+  `dt` datetime NOT NULL,
+  `proc` varchar(128) NOT NULL,
+  `count` integer NOT NULL,
+  INDEX(dt),
+  INDEX(proc)
+) TYPE=INNODB;
+
 # for Apache::Session
 
 use sessions;
@@ -137,11 +146,3 @@ CREATE TABLE `sessions` (
 	PRIMARY KEY (id)
 ) TYPE=INNODB;
 
-CREATE TABLE stats_procs (
-  `serverid` varchar(128) NOT NULL,
-  `dt` datetime NOT NULL,
-  `proc` varchar(128) NOT NULL,
-  `count` integer NOT NULL,
-  INDEX(dt),
-  INDEX(proc)
-) TYPE=INNODB;
