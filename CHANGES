@@ -158,3 +158,4 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 2004-12-31
 	jcm added NetPass::Auth::LDAP, ..Auth::Unix and ..Auth::DB modules
 	jcm moved NetPass::RADIUS to NetPass::Auth::Radius
+	jcm moved doc/startup/* to install.d/init.d/*

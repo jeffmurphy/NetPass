@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# swatch         This shell script takes care of starting and stopping
+#                swatch, which is used to monitor log files.
+#
+# chkconfig: - 89 11
+# description: swatch
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+[ -f /etc/sysconfig/swatch ] && . /etc/sysconfig/swatch
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+RETVAL=0
+prog="swatch"
+
+SW=/opt/perl/bin/swatch
+
+start() {
+	echo -n $"Starting $prog"
+	su  netpass --command="${SW} --daemon --config-file=/opt/squidguard/swatch.conf \
+		--tail-file=/opt/squidguard/log/squidGuard.log \
+		--pid-file=/var/run/netpass/swatch.pid"
+	echo
+        #[ $RETVAL -eq 0 ] && exit $RETVAL
+	return 0
+}
+
+stop() {
+	echo -n $"Shutting down swatch"
+	killproc swatch
+	rm /var/run/netpass/swatch.pid
+	echo
+	return 0
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	stop
+	start
+	RETVAL=$?
+	;;
+  status)
+	status swatch
+	RETVAL=$?
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|restart|status}"
+	exit 1
+esac
+
+exit $RETVAL
