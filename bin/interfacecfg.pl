@@ -1,6 +1,6 @@
-#!/usr/bin/perl
+#!/opt/perl/bin/perl
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.2 2005/03/15 17:18:31 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+$Id: interfacecfg.pl,v 1.2 2005/03/15 17:18:31 jeffmurphy Exp $
 
 =cut
 
@@ -144,9 +144,11 @@ sub realserver () {
 		print "$ROUTE add -host ".$ifaces->{$_}{'vip'}." dev lo:$s.$n\n\n";
 	}
 
-	print "# 128.205.1.0/24 network\n";
-	print "$IFCONFIG lo:1.40 128.205.1.40 broadcast 128.205.1.255 netmask 0xffffffff up\n";
-	print "$ROUTE add -host 128.205.1.40 dev lo:1.40\n\n";
+	# XXX FIX!
+
+	print "# 128.205.10.0/24 network\n";
+	print "$IFCONFIG lo:10.80 128.205.10.80 broadcast 128.205.10.255 netmask 0xffffffff up\n";
+	print "$ROUTE add -host 128.205.10.80 dev lo:10.80\n\n";
 
 	print <<END
 # hiding interface lo, will not arp
@@ -163,7 +165,8 @@ sub director () {
 	my $ifaces = shift;
 
 	print "echo \"#     node              func::ip/netmask/interface/broadcast\" > $HARESOURCES\n";
-	print "echo \"npr1.cit.buffalo.edu    IPaddr::128.205.1.40/32/eth0/128.205.1.255 \\\\\" >> $HARESOURCES\n";
+	# XXX FIX!
+	print "echo \"npr1.cit.buffalo.edu    IPaddr::128.205.10.80/32/eth0/128.205.10.255 \\\\\" >> $HARESOURCES\n";
 
 	foreach (keys %$ifaces) {
 		my $n = $ifaces{$_}{'qvlan'};

@@ -1,4 +1,4 @@
-s/# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.5 2004/12/31 19:09:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.6 2005/03/15 17:18:31 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1123,7 +1123,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.5 2004/12/31 19:09:09 jeffmurphy Exp $
+$Id: Config.pm,v 1.6 2005/03/15 17:18:31 jeffmurphy Exp $
 
 =cut
 

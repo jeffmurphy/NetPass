@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.11 2005/03/14 21:35:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.12 2005/03/15 17:18:29 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,7 +57,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.11 2005/03/14 21:35:06 jeffmurphy Exp $
+$Id: install,v 1.12 2005/03/15 17:18:29 jeffmurphy Exp $
 
 =cut
 
@@ -88,7 +88,6 @@ if (!defined($LOG)) {
 	exit 255;
 }
 print "Installation will be logged to /tmp/netpass-install.log\n\n";
-*STDERR = $LOG;
 
 
 checkKit($PKGDIR);
@@ -121,8 +120,8 @@ if (exists $opts{'u'}) {
 	depatchConf("/etc/squid", "squid.conf");
 	removeTree($TARGET);
 	lsystem("crontab -u netpass -r");
-	lsystem("/usr/bin/userdel netpass") && lprint("userdel netpass failed $!\n");
-	lsystem("/usr/bin/groupdel netpass") && lprint("groupdel netpass failed $!\n");
+	lsystem("/usr/sbin/userdel netpass") && lprint("userdel netpass failed $!\n");
+	lsystem("/usr/sbin/groupdel netpass") && lprint("groupdel netpass failed $!\n");
 	lsystem("rm /opt/apache /opt/perl");
 
 	lsystem("rm -f /etc/logrotate.d/netpass");
@@ -176,6 +175,7 @@ sub lprint;
 
 if ($copyOnly) {
 	lprint "copyOnly specified. copy finished.\n";
+	exit 0;
 }
 
 installPackages($PKGDIR);
@@ -248,17 +248,46 @@ sub ldie {
 	die @_;
 }
 
+sub lwarn {
+	print $LOG "WARNING: ".@_."\n";
+}
+
 sub lprint {
 	print $LOG @_;
 	print @_;
 }
 
 sub lsystem {
-	my $OSTDOUT = *STDOUT;
-	*STDOUT = $LOG;
-	print $LOG "SHELL: ".join(' ', @_) ."\n";
+	open (O_STDOUT, ">&STDOUT") ||
+                die "cant dup STDOUT: $!";
+        open (O_STDERR, ">&STDERR") ||
+                die "cant dup STDERR: $!";
+        # suppress warnings
+        my $junk = stat(O_STDOUT);
+           $junk = stat(O_STDERR);
+        open (STDERR, ">>&=", $LOG) ||
+                die "cant redirect STDERR to LOG: $!";
+        open (STDOUT, ">>&=", $LOG) ||
+                die "cant redirect STDOUT to LOG: $!";
+        select (STDERR);
+        $| = 1;
+        select(STDOUT);
+        $| = 1;
+
+	print $LOG "START SHELL: ".join(' ', @_) ."\n";
+
 	my $rv =  system(@_);
-	*STDOUT = $OSTDOUT;
+
+        print $LOG "END SHELL\n";
+
+	open (STDOUT, ">&O_STDOUT") ||
+                die "cant dup STDOUT back: $!";
+        open (STDERR, ">&O_STDERR") ||
+                die "cant dup STDERR back: $!";
+        select (STDERR); $| = 1;
+        select (STDOUT); $| = 1;
+        return $rv;
+
 }
 
 sub startupProcs {
@@ -353,6 +382,7 @@ is it? ");
 	$fi->close;
 	$fo->close;
 
+	lsystem("chmod 755 /etc/iptables.sh");
 	lsystem("/etc/iptables.sh");
 	lsystem("/etc/init.d/iptables save");
 }
@@ -1045,6 +1075,7 @@ sub getDistVersion {
 	return undef unless defined $fh;
 	my $l = <$fh>;
 	$fh->close;
+	chomp($l);
 	ll("getDistVersion: line=<$l>\n");
 
 	if ($l =~ /Fedora Core release (\d+)/i) {
@@ -1179,10 +1210,10 @@ sub dropDatabase {
 		ldie "It looks like mysql isnt running. (The 'mysqladmin -u $u $p stat' command failed with code $rv";
 	}
 
-	$rv = lsystem("mysqladmin -u $u $p drop netpass");
-	ldie "failed to drop the netpass database rv=$rv" if $rv;
-	$rv = lsystem("mysqladmin -u $u $p drop sessions");
-	ldie "failed to drop the sessions database rv=$rv" if $rv;
+	$rv = lsystem("mysqladmin -f -u $u $p drop netpass");
+	lwarn "failed to drop the netpass database rv=$rv" if $rv;
+	$rv = lsystem("mysqladmin -f -u $u $p drop sessions");
+	lwarn "failed to drop the sessions database rv=$rv" if $rv;
 }
 
 sub installCrontab {
