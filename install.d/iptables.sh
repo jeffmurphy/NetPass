@@ -87,11 +87,8 @@ iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 3128
 #MGT for i in %MGTDEVS% ; do
 #MGT    iptables -t nat -A PREROUTING -j ACCEPT -s $i -p tcp --dport 22
 #MGT    iptables -t nat -A PREROUTING -j ACCEPT -s $i -p udp --dport 161
+#MGT    iptables -t nat -A PREROUTING -j ACCEPT -s $i -p udp --dport 162
 #MGT done
-
-#TRAP for i in %TRAPDEVS% ; do
-#TRAP   iptables -t nat -A PREROUTING -j ACCEPT -s $i -p udp --dport 162
-#TRAP done
 
 
 # allow the netpass servers to talk to each other via mysql
