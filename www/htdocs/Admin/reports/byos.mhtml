@@ -1,0 +1,45 @@
+<%doc>
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+</%args>
+
+<%perl>
+
+my @argstring = ();
+
+if ( $m->comp('/Admin/Login', %ARGS) ) {
+	my $data = get_OS_data($dbh);
+
+	print "<script><!--\nsetWhereAmI('Reports');\n--></script>";
+
+	print "<TABLE CELLPADDING=2 CELLSPACING=2 BORDER=0 WIDTH=200>";
+	print "<TR><TH>OS</TH><TH>Registrant</TH></TR>";
+	
+	foreach my $os (sort keys %$data) {
+		print "<TR><TD TD CLASS='gray'>$os</TD>";
+		print "<TD TD CLASS='gray'>".$data->{$os}."</TD></TR>";
+		push(@argstring, $os . '=' . $data->{$os});
+	}	
+	print "</TABLE><P>";	
+
+	my $imgurl = "graph.cgi?type=pie&" . join('&', @argstring);
+
+	print $q->img({-src=>$imgurl});
+}
+
+sub get_OS_data {
+	my $dbh = shift;
+	my %d;
+
+	my $sql = "SELECT OS FROM register";
+        my $all = $dbh->selectall_arrayref($sql);
+
+	map($d{($_->[0] eq 'Unknown' or $_->[0] eq "") ? 'Unknown' : $_->[0]}++, @$all);
+	return \%d;
+}
+
+</%perl>
