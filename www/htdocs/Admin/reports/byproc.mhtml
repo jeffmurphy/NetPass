@@ -19,7 +19,7 @@ my $NPBASE     = $np->cfg()->{'cfg'}->obj('policy')->value('BASE_DIR');
 my $REPORTSDIR = $NPBASE."/www/htdocs/Admin/reports";
 
 if ( $m->comp('/Admin/Login', %ARGS) ) {
-	my $data = get_data($dbh);
+	my $data = get_data_proc($dbh);
 
 	print "<script><!--\nsetWhereAmI('Reports');\n--></script>";
 
@@ -40,7 +40,7 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 		my $s = $server;
 		$s =~ s/^(\w+)\.\w+.+$/$1/;
 		my $GRAPHIMG = "byproc_$s.png";
-		graph_data([\@x, @allvals], $GRAPHIMG, $REPORTSDIR, \@legend);
+		graph_data_proc([\@x, @allvals], $GRAPHIMG, $REPORTSDIR, \@legend);
 
 		print "<table cellspacing=2 cellpadding=2 border=0 width=700><tr>";
 		print "<td width=30% valign=\"top\">";
@@ -62,7 +62,7 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 	}
 }
 
-sub graph_data {
+sub graph_data_proc {
         my $data       = shift;
         my $GRAPHIMG   = shift;
         my $REPORTSDIR = shift;
@@ -89,7 +89,7 @@ sub graph_data {
         $fh->close;
 }
 
-sub get_data {
+sub get_data_proc {
 	my $dbh = shift;
 	my %d;
 
