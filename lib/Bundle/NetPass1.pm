@@ -30,12 +30,6 @@ Digest::SHA1
 
 Digest::HMAC_MD5
 
-GD
-
-GD::Graph
-
-GD::Text
-
 Net::DNS
 
 Net::SNMP
