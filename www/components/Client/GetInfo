@@ -1,0 +1,51 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Client/GetInfo,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc><%args>
+  $url        => ''
+  $js_enabled => ''
+</%args>
+
+<%perl>
+
+$m->session->{'url'}         = $url          if($url);
+$m->session->{'js_enabled'}  = $js_enabled   if($js_enabled);
+
+$m->session->{'remote_addr'} = $ENV{'REMOTE_ADDR'};
+
+# XXX and if the mac address is "incomplete"???
+
+$m->session->{'remote_mac'}  = NetPass::searchArpCache($m->session->{'remote_addr'});
+
+if (defined($m->session->{'remote_mac'})           && 
+    ($m->session->{'remote_mac'} !~ /incomplete/i) &&
+    ($m->session->{'remote_mac'} ne "000000000000")
+) {
+	$m->session->{'remote_mac'}  =~ tr [A-Z] [a-z];
+} else {
+	$m->session->{'remote_mac'} = "REMOTE";
+}
+
+
+$m->session->{'remote_os'}          = $m->comp('/OSDetect');
+
+my $ip = $m->session->{'remote_addr'};
+my $mac = $m->session->{'remote_mac'};
+
+_log("DEBUG", "$mac $ip os=".$m->session->{'remote_os'}."\n");
+
+if(!$m->session->{'phase'}) {
+        _log ("DEBUG", "$mac $ip /Client/GetInfo no phase for this session, setting to LOGIN\n");
+        $m->session->{'phase'}       = 'LOGIN';
+        $m->session->{'logged_in'}   = 0;
+} else {
+        _log ("DEBUG", "$mac $ip /Client/GetInfo and the phase is ".$m->session->{'phase'}."\n");
+}
+
+
+
+</%perl>
+

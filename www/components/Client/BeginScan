@@ -1,0 +1,180 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+<%args>
+	$mac      => ''
+	$ip       => ''
+</%args>
+<%perl>
+    	$mac      = $m->session->{'remote_mac'};
+    	$ip       = $m->session->{'remote_addr'};
+
+	_log("DEBUG", "$mac $ip start scan\n");
+	$m->comp('/Audit', 'msg' => [ 'start scan' ]);
+
+    	my $msg = $npdbh->getPage('msg:being_scanned', 1);
+
+    	if(defined($msg)) {
+    		print $msg;
+    	} else {
+		print $q->p("Please wait while we scan your computer.. this could take a few minutes...");
+    	}
+
+    	$m->flush_buffer();
+
+   	use NetPass::Nessus;
+
+    	my $pids = $npdbh->getNessusPluginList('enabled');
+
+    	my $plugin_total = ($#$pids+1);
+    	my $plugin_done  = 0;
+
+
+	# this is a callback function. as nessus completes each scan, it will
+	# call this function, allowing us to update the progress bar. $cbm is
+	# an array ref containing messages from nessus. $parms is an hashref
+	# that contains parameters we specify via new() [see below]
+
+	my $progressBar = sub {
+		my $cbm   = shift;
+		my $parms = shift;
+		my $plugin_total              = $parms->{'pitot'};
+		return		if ($plugin_total < 1);
+
+		my $progress_bar_width        = "500"; #px
+		my $progress_step_pixel_width = int(($progress_bar_width/$plugin_total)+1); 
+		my $progress_image            = '/resources/images/progress.gif';
+		$progress_bar_width	      = $progress_step_pixel_width*$plugin_total; # this evens out the progress bar
+		$progress_step_pixel_width    -= 4;
+
+		# nessus passes in an array. the 3rd element is basically 
+		# "pluginnum/totplugin" so we eval it to get percent done
+
+		my $percent_done = int(100*(eval($cbm->[2])));
+
+		print qq{<image src="$progress_image" border="0" width="$progress_step_pixel_width" height="10" alt="$percent_done percent">};
+    		$m->flush_buffer();
+	};
+
+
+    	my $nessus = new NetPass::Nessus(host     => $np->cfg->nessusHost,
+                                      	 port     => $np->cfg->nessusPort,
+                                         user     => $np->cfg->nessusUsername,
+                                         password => $np->cfg->nessusPassword,
+                                         ssl  => 1, timeout => 20, debug => 0,
+					 callback => $progressBar,
+					 callbackparms => { pitot => $plugin_total }
+                                         );
+
+    	$nessus->preferences( 	{ host_expansion 	=> 'none',
+        	                  safe_checks 	 	=> 'yes',
+				  checks_read_timeout 	=> 5
+                          	});
+
+    	_log "DEBUG", "$mac $ip Found ".($#$pids+1)." nessus plugins\n";
+
+    	if($#$pids < 0) {
+        	_log("ERROR", 
+		     "$mac $ip no scans found in database.. " . DBI->errstr."\n");
+		$m->comp('/Audit', 'msg' => [ 'end scan (no scans configured)' ]);
+                $m->session->{'phase'} = 'COMPLETE';
+		goto scan_finished;
+    	}
+
+    	$m->session->{'nessus'} = [];
+    	$m->session->{'nessus_defaults'} = {};
+
+	print $q->table( { -width   => "500",  # $progress_bar_width (see callback above)
+			   -border  => 0,
+			   -bgcolor => '#EFEFEF'
+			 },
+			  $q->TR(
+				 $q->td({-align=>'left'},   '0%') 	.
+				 $q->td({-align=>'center'}, $q->b('Scan Progress')) .
+				 $q->td({-align=>'right'},  '100%')
+			  )
+		);
+
+	print "<div style=\"display: inline;\">";
+
+	if( !$nessus->login()) {
+      		_log("ERROR", "couldnt login to nessus server\n");
+    		_log("ERROR", "Nessus login failed code=", $nessus->code,
+			" err=", $nessus->error, "\n");
+		$m->comp('/Audit', 'msg' => [ 'end scan (nessus login failed)' ]);
+
+		# XXX if nessus is unavailable, we implicitly pass the client.
+		# XXX use nessus->WHEN_DOWN policy
+ 
+	        $m->session->{'phase'} = 'COMPLETE';
+		goto scan_finished;
+    	}
+
+	$nessus->plugin_set(join(';', @$pids));
+       	$nessus->attack($ip);
+
+	_log("DEBUG", "$mac $ip end scan\n");
+	$m->comp('/Audit', 'msg' => [ 'end scan' ]);
+
+	# sometimes the progress bar doesnt quiet go to 100%
+	# to avoid user confusion, we print 100% for them
+
+	print " &nbsp; <b>100%</b></div><br>";
+
+	my @holes = ($nessus->hole_list, $nessus->info_list);
+ 
+       	if ($#holes > -1) {
+		foreach my $nes ( @holes ) {
+               		my $sid = $nes->ScanID;
+			$m->comp('/Audit', msg => [ "Found vulnerability: $sid" ] );
+			push(@{$m->session->{'nessus'}}, $sid);
+			$m->session->{'nessus_defaults'}->{$sid} = $nes->Description;
+		}
+	}
+	
+	# DESTROY nessus obj, just to be sure.
+
+	$nessus = undef;	
+
+	# DEBUG TESTING
+	#push(@{$m->session->{'nessus'}}, 10024);
+	#push(@{$m->session->{'nessus'}}, 11633);
+	#push(@{$m->session->{'nessus'}}, 10283);
+	#push(@{$m->session->{'nessus'}}, 10390);
+	#push(@{$m->session->{'nessus'}}, 10794);
+	# DEBUG TESTING
+
+
+    	my $number_of_holes = $#{$m->session->{'nessus'}}+1;
+
+    	if($number_of_holes > 0) {
+		_log("DEBUG", "$mac $ip end scan need remediation\n");
+		$m->comp('/Audit', msg => [ 'Scan Complete. Machine is not Clean. Forwarding to Remediation Step.' ] );
+		$m->session->{'phase'} = 'REMEDIATE';
+    	} else {
+		_log("DEBUG", "$mac $ip end scan machine clean\n");
+		$m->comp('/Audit', msg => [ 'Scan Complete. Machine is Clean.' ] );
+    		$m->session->{'phase'} = 'COMPLETE';
+    	}
+
+scan_finished:
+
+	$msg = $npdbh->getPage('msg:scan_completed', 1);
+	_log("DEBUG", "$mac $ip end scan instructing them to hit continue. phase is now ".$m->session->{'phase'}."\n");
+	if (defined($msg)) {
+		print $msg;
+	} else {
+		print $q->p("The scan has completed. Please click the Continue button.");
+	}
+	
+	print $q->start_form;
+	print $q->submit(-name=>'continue', -value=>'Continue');
+	print $q->end_form;
+
+	return;
+
+</%perl>

@@ -1,0 +1,199 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/index.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+$name    => '';
+$ta      => '';
+$search  => '';
+$submit  => '';
+</%args>
+
+
+<script><!--
+setWhereAmI('Message Editor');
+--></script>
+
+<%perl>
+
+print $q->h2("Message Editor");
+
+my @rwGroups = ('Admin', 'Editor');
+my @roGroups = ('Reports');
+my $readOnly = "disabled";
+
+if ($m->comp('/Admin/MemberOf', 'group' => [ @rwGroups ])) {
+        $readOnly = "";
+} elsif ($m->comp('/Admin/MemberOf', 'group' => [ @roGroups ])) {
+        $readOnly = "disabled";
+} else {
+        print $q->p({-class=>'error'},
+                "Sorry, permission denied.<BR>You must be in one of these groups: ",
+                join(',', @rwGroups, @roGroups));
+        return;
+}
+
+print $q->start_form();
+
+print $q->table({-border=>0, -width=>600},
+		$q->TR($q->td({-colspan=>2, -align=>"right"}, 
+
+                ($readOnly eq "")?$q->a({-href=>"edit.mhtml"}, "[ Add New Message ]"):""
+		)).
+
+		$q->TR(
+			$q->th({-colspan=>2}, "Search for messages:")
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "Name:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	=> "name",
+						-value 	=> $name
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, '&nbsp;') .
+			$q->td({-class=>"gray"},
+				$q->submit(
+						-name 	=> "search",
+						-value 	=> "Search"
+				)
+			)
+		)
+	);
+
+return if(!$submit && !$search);
+
+if($submit) {
+        if ($readOnly eq "") {
+		savePage($dbh, $name, $ta);
+		print $q->p("Your changes have been saved...");
+        } else {
+                # this really shouldnt happen. we dont give them a submit button
+                $npdbh->audit(  -user => $m->session->{'logged_in'},
+                                -severity => "ALERT",
+                                -msg => [ "tried to change a Message but is ReadOnly" ]);
+
+        }
+}
+
+my ($results, $count) = getMessages($dbh,$name);
+
+if($count<0) {
+	print $q->error("Sorry, there was an error while processing your request!");
+}
+
+print $q->h4("Your search returned $count result(s)");
+
+if($count==0) {
+	print $q->p("You may want to re-define your search to be less strict.");
+	return;
+}
+
+my @rows = ();
+
+push(@rows, 	$q->TR(
+			$q->th("Name") .
+			$q->th("Edit") 
+		)
+);
+
+my $class = "";
+
+while (my $row = $results->fetchrow_hashref() ) {
+
+	$class = ($class eq "")?"gray":"";
+	
+	my $href = "edit.mhtml?name=" . $row->{name};
+	if ($readOnly eq "disabled") {
+		$href = "view.mhtml?name=" . $row->{name};
+	}
+
+	push( @rows,	$q->TR( {-class=> $class },
+				$q->td({-align=>'center'}, $row->{name}) .
+				$q->td({-align=>'center'}, $q->a({-href=>$href}, 
+					($readOnly eq "")?"[ edit ]":"[ view ]"
+				))
+			) . "\n");
+}
+
+$results->finish();
+
+print $q->table({-width=>'80%'}, @rows);
+print $q->end_form();
+
+print $q->p();
+
+return;
+
+#######################
+
+sub getMessages {
+	my $dbh	   = shift;
+	my $name   = shift;
+
+	my @clause = ();
+	my @params = ();
+
+	if($name) {
+		push(@clause, "name LIKE ?");
+		push(@params, "%$name%");
+	}
+
+	my $query = "SELECT name FROM pages";
+	
+	if($#clause>-1) {
+		$query .= " WHERE " . join(" AND ", @clause)
+	}
+
+	$query .= " ORDER BY name LIMIT 150";
+
+	my $sth = $dbh->prepare($query);
+
+	if(!defined($sth)) {
+        	return ("prepare failed: ". $dbh->errstr, -1);
+    	}
+    
+	if( !$sth->execute(@params) ) {
+        	return ("execute failed: ". $dbh->errstr, -1);
+    	}
+
+    	my $count = $sth->rows;
+
+	return ($sth, $count);
+
+}
+
+sub savePage {
+	my $dbh     = shift;
+	my $name    = shift;
+	my $content = shift;
+
+	$npdbh->audit(
+		-user => $m->session->{'logged_in'},
+	      	-msg => [ "MessageEdit: $name editted" ]);
+
+	my $ins_query = "INSERT IGNORE INTO pages (content, name) values (?,?)";
+	my $upd_query = "UPDATE pages SET content=? WHERE name = ?";
+
+	my $ins_sth   = $dbh->prepare($ins_query);
+	my $upd_sth   = $dbh->prepare($upd_query);
+
+	$ins_sth->execute($content, $name);
+	$ins_sth->finish;
+	$upd_sth->execute($content, $name);
+	$upd_sth->finish;
+
+}
+
+
+</%perl>
+
+

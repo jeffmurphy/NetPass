@@ -1,0 +1,24 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/survey.mhtml,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%perl>
+
+if($m->comp('/Client/Survey', %ARGS)) {
+
+print $q->h3("Thank you!");
+
+print $q->p("We appreciate your feedback.");
+
+print $q->a({-href=>"http://www.buffalo.edu"}, "Click here") . " to continue.";
+
+print $q->br;
+
+}
+
+</%perl>
+

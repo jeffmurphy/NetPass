@@ -1,0 +1,12 @@
+
+Admin/ groups
+
+Group		What
+Admin		RW to all
+ScanAdmin	RW to scan configurations
+Editor		RW to pager editor
+Reports		Access to stats, reports
+User		Ability to add/remove users
+		cant add/remove Admin users
+QuarAdmin	ability to manually quarantine/unquarantine
+		clients

@@ -1,0 +1,41 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Client/WelcomePage,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+  $err   => '';
+</%args>
+
+<%perl>
+	print $npdbh->getPage('msg:welcome', 1);
+	
+	print '<P><center><iframe src="eula.mhtml?printable=1" marginwidth=0 marginheight=0 align=top width=550 height=150></iframe>';
+	
+	print "<P><font color='red'>$err</font><P>";
+	print $q->start_form(-name => 'mainForm');
+
+	print "<table border=0><tr><td>UBITname:</td><td>";
+	print $q->textfield(-name => 'username',
+			    -size => 8
+			    );
+	print "</td></tr><tr><td>Password:</td><td>";
+	print $q->password_field(-name => 'password',
+				 -size => 8
+				 ), "</td></tr></table>";
+	print $q->hidden(-name => 'js_enabled', -value => '');
+
+	print $q->submit(-name => 'beginScan',
+			 -value => 'I understand, begin the scan ..');
+
+	print $q->end_form;
+
+	print qq{</center><script language="JavaScript"><!--
+document.mainForm.js_enabled.value = 'enabled';
+//--></script>};
+	
+</%perl>
+

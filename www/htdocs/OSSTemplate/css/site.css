@@ -1,0 +1,105 @@
+/* 
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+*/
+
+A:active  { color:#1178BC; text-decoration: none}
+A:link    { color:#1178BC; text-decoration: none}
+A:visited { color:#1178BC; text-decoration: none}
+A:hover   { text-decoration: underline;  }
+
+BODY {
+	font-family: arial, helvetica, verdana, sans-serif;
+	font-size: 12px;
+       	color: #000000;
+       	background : #FFFFFF; 
+}
+
+TD, P {
+	font-family: arial, helvetica, verdana, sans-serif;
+	font-size: 12px;
+}
+
+TH {
+	font-weight: bold;
+	color: #FFFFFF;
+	background: #000000;
+
+}
+
+SMALL {
+	font-family: arial, helvetica, verdana, sans-serif;
+	font-size: 10px;
+}
+
+.error {
+	color: red;
+	font-weight: bold;
+}
+
+.gray {
+	background: #EFEFEF;
+}
+
+.highlight {
+	background: #FAF986;
+}
+
+.sbHeader {
+    	color: #FFFFFF;
+    	font-weight: bold;
+	margin-bottom: 6px;
+	margin-top: 6px;
+}
+
+.sbHeader:link, .sbHeader:visited, .sbHeader:hover, .sbHeader:active {
+    	color: #FFFFFF;
+}
+
+.sbLinks {
+	color: #FFFFFF;
+	margin-bottom: 6px;
+	margin-top: 6px;
+	margin-left: 6px;
+	margin-right: 6px;
+}
+
+.sbLinks a {
+	color: #FFFFFF;
+}
+
+.sbLinks:link, .sbLinks:visited, .sbLinks:hover, .sbLinks:active {
+	color: #FFFFFF;
+}
+
+.borderBar {
+	background: #003366;
+}
+
+.borderSubbar {
+	background: #000000;
+}
+
+.indent {
+	margin-left: 20px;
+}
+
+@media print {
+	#headerTable {
+		display: none;
+
+	}
+
+	#subHeaderTable {
+		display: none;
+	}
+
+	#sideBar {
+		display: none;
+	}
+	
+}
+

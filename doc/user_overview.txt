@@ -1,0 +1,21 @@
+
+when a user pulls up a web browser, they are redirected to our webserver
+
+store the original URL they are trying to get to
+
+determine if they are already registered
+
+if they are, determine what port they are on and unquarantine it
+
+if the are not already registered or are manually quarantined, 
+look up their results-set and display the results
+
+if the results-set is zero and they are not-manually quarantined, 
+then register them and unquarantine them
+
+if they are manually-quarantined, then basically the results-set 
+can never be zero until someone manually removes the members of
+the results-set that have been manually inserted. the end-user
+cant remove them thru self-remediation.
+
+

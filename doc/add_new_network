@@ -1,0 +1,11 @@
+
+1. /etc/init.d/dhcrelay
+2. shutdown resetport
+3. cp netpass.conf into place on npw1 npw2 npr1
+4. generate /opt/hascript  on npw1, npw2, npr1
+5. run hascript
+6. /etc/init.d/npgarp restart on npr1
+7. restart apache
+8. do matt's quarall thing
+9. restart resetport
+

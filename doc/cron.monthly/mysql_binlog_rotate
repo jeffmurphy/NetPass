@@ -1,0 +1,10 @@
+#!/bin/sh
+
+/opt/netpass/bin/mysql_binlog_rotate.pl
+EXITVALUE=$?
+if [ $EXITVALUE != 0 ]; then
+    /usr/bin/logger -t mysql_binlog_rotate "ALERT exited abnormally with [$EXITVALUE]"
+fi
+exit 0
+
+exit 0

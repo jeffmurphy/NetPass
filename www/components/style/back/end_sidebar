@@ -1,0 +1,21 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/style/back/end_sidebar,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+   $resource_root => "/resources"
+</%args>
+
+      </p>
+
+      <img src="<% $resource_root %>/images/clrpxl.gif" height="3" width="135" border="0" alt="">
+    </td>
+  </tr>
+  <tr>
+    <td valign="top" width="99%">
+	<br>

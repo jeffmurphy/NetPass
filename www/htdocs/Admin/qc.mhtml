@@ -1,0 +1,584 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+</%doc>
+
+<%args>
+$ip     => '';
+$mac    => '';
+$uid    => '';
+$search => '';
+$submit => '';
+$type   => 'AND';
+$ids    => ();
+</%args>
+
+<script><!--
+setWhereAmI('Quarantine Control');
+--></script>
+
+<%perl>
+
+my @rwGroups = ('Admin', 'QuarAdmin');
+my @roGroups = ('Reports');
+my $readOnly = "disabled";
+
+if ($m->comp('/Admin/MemberOf', 'group' => [ @rwGroups ])) {
+	$readOnly = "";
+} elsif ($m->comp('/Admin/MemberOf', 'group' => [ @roGroups ])) {
+	$readOnly = "disabled";
+} else {
+        print $q->p({-class=>'error'},
+                "Sorry, permission denied.<BR>You must be in one of these groups: ",
+                join(',', @rwGroups, @roGroups));
+        return;
+}
+
+my $statuses = ['QUAR','PQUAR','UNQUAR','PUNQUAR'];  # love the grammer!
+my $msgs     = getAllMsgs($dbh);
+
+</%perl>
+
+<h2>Quarantine Control</h2>
+
+The "IP Address" field is the address that the client had <I>when they first registered</I>. It 
+is <B>not necessarily</B> the address they have right now. So when quarantining a host, you
+should really be searching by MAC Address. To translate a currently assigned IP Address
+into a MAC address, you can use some of the other tools available until we are able to
+better integrate them into UB NetPass. <P>
+
+These tools might require additional access. If you get an access denied, click on the 
+"Apply for an account" link and apply for a  "Network Documentation" account. <P>
+
+
+<ul>
+  <li> <a target="_blank" href="http://netstats.cit.buffalo.edu/Maps/Layer2Traceroute.cgi">Layer 2
+       Traceroute</a>
+  <li> <a target="_blank" href="http://netstats.cit.buffalo.edu/oss-bin/macip.cgi">IP to MAC Translator</a>
+</ul>
+
+
+<%perl>
+print $q->start_form(-method => "POST");
+
+print $q->table({-border=>0, -width=>600},
+		$q->TR(
+			$q->th({-colspan=>2}, "Search")
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "IP Address:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	=> "ip",
+						-value 	=> $ip,
+						-filter => '/^\d+\.\d+\.\d+\.\d+$/',
+						-error	=> 'Please format the IP Address in the format specified.'
+				).
+				$q->small(' e.g. 128.205.10.10')
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "MAC Address:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	=> "mac",
+						-value 	=> $mac,
+						-filter => '/^\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}$/',
+						-error	=> 'Please format the MAC Address in the format specified.'
+				).
+				$q->small(' e.g. AA:BB:CC:DD:EE:FF or AABBCCDDEEFF')
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "UBIT Name:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	=> "uid",
+						-value 	=> $uid, 
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "Search Type:") .
+			$q->td({-class=>"gray"},
+				$q->popup_menu(
+						-name 	 => "type",
+						-values	 => [
+								"AND",
+								"OR"
+							    ],
+						-labels	 => {
+								"AND" => "Results must match ALL of the above",
+								"OR"  => "Results must match ANY of the above"
+							    },
+						-default => $type, 
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, '&nbsp;') .
+			$q->td({-class=>"gray"},
+				$q->submit(
+						-name 	=> "search",
+						-value 	=> "Search"
+				)
+			)
+		)
+	);
+
+return if(!$submit && !$search);
+
+if($submit) {
+	if ($readOnly eq "") {
+        	my $sqr = saveQuarChanges($dbh,\%ARGS, $ids);
+		if ($sqr ne "") {
+			print $q->p({-class=>"error"}, $sqr);
+		}
+	} else {
+		# this really shouldnt happen. we dont give them a submit button
+		$npdbh->audit(  -user => $m->session->{'logged_in'},
+				-severity => "ALERT",
+                                -msg => [ "tried to change QuarControl but is ReadOnly" ]);
+
+	}
+}
+
+my ($results, $count) = getQuars($dbh,$ip, $mac,$uid,$type);
+
+if($count<0) {
+	print "Sorry, there was an error while processing your request! ($results)";
+}
+
+print $q->h4("Your search returned $count result(s)");
+
+if($count==0) {
+	print $q->p("You may want to re-define your search to be less strict.<br>I would suggest removing one or more fields and modifying the Search Type.");
+	return;
+}
+
+my @rows = ();
+
+push(@rows, $q->TR(
+                   $q->td({-colspan=>6}, '&nbsp;').
+                   $q->td({-colspan=>1, -align=>"right"},
+                          $q->submit(-name  => "submit", -value => "Save Changes", $readOnly)
+                   )
+            )
+);
+
+push(@rows, $q->TR(
+		   	$q->th("First Seen") .
+		   	$q->th("Registered On") .
+		   	$q->th("UBIT Name") .
+			$q->th("IP Address") .
+			$q->th("Mac Address") .
+			$q->th("Status") .
+			$q->th("Message")
+	   )
+);
+
+while (my $row = $results->fetchrow_hashref() ) {
+	push( @rows,	$q->TR( {-class=> $row->{severity} },
+				$q->td({-align=>'center'}, $row->{firstSeen})    .
+				$q->td({-align=>'center'}, $row->{registeredOn}) .
+				$q->td({-align=>'center'}, $row->{username})     .
+				$q->td({-align=>'center'}, $row->{ipAddress})   .
+				$q->td({-align=>'center'}, padMac($row->{macAddress}))   .
+                                $q->td({-align=>'center'},
+                                        $q->popup_menu(
+                                                        -name    => "status:" . $row->{macAddress},
+                                                        -values  => $statuses,
+                                                        -labels  => {
+                                                                        "" => "Default Description"
+                                                                     },
+                                                        -default => $row->{status}, $readOnly
+                                        ), "\n",
+                                        $q->hidden(
+                                                        -name    => "ids",
+                                                        -value   => $row->{macAddress}
+                                        ), "\n",
+					$q->hidden( 	-name => 'ipAddr:' . $row->{macAddress},
+							-value =>  $row->{ipAddress}
+					), "\n",
+					$q->hidden( 	-name => 'messageOrig:' . $row->{macAddress},
+							-value =>  defne($row->{message}) ? $row->{message} : "--None--"
+					), "\n",
+					$q->hidden( 	-name => 'statusOrig:' . $row->{macAddress},
+							-value =>  $row->{status}
+					),
+                                ) . 
+                                $q->td({-align=>'center'},
+                                        $q->popup_menu(
+                                                        -name    => "message:" . $row->{macAddress},
+                                                        -values  => $msgs,
+                                                        -default => defne($row->{message}) ?  $row->{message} : "--None--", $readOnly
+                                        )
+                                )
+			));
+}
+$results->finish();
+
+push(@rows, $q->TR(
+                   $q->td({-colspan=>6}, '&nbsp;').
+                   $q->td({-colspan=>1, -align=>"right"},
+                          $q->submit(-name  => "submit", -value => "Save Changes", $readOnly)
+                   )
+            )
+);
+
+print $q->table({-width=>'80%'}, @rows);
+
+print $q->p();
+print $q->end_form();
+
+#######################
+
+sub defne {
+	my $string = shift;
+	return 0 if !defined($string);
+	return 0 if ($string eq "");
+	return 1;
+}
+
+sub getQuars {
+	my $dbh	 = shift;
+	my $ip   = shift;
+	my $mac	 = shift;
+	my $uid	 = shift;
+	my $type = shift;
+
+	# double check the value, make sure noone can sneak an insertion attack in here ;)
+	$type = ($type eq "OR")?"OR":"AND";
+	
+	my @clause = ();
+	my @params = ();
+
+	if($mac) {
+		$mac =~ s/://g;
+		$mac = hex("0x" . uc($mac));
+
+		push(@clause, "macAddress=?");
+		push(@params, $mac);
+	}
+	
+	if($ip) {
+		push(@clause, "ipAddress=?");
+		push(@params, $ip);
+	}
+	
+	if($uid) {
+		push(@clause, "username=?");
+		push(@params, $uid);
+	}
+
+	my $query = "SELECT DATE_FORMAT(firstSeen, '%Y-%m-%d %H:%i:%s') as firstSeen, DATE_FORMAT(registeredOn, '%Y-%m-%d %H:%i:%s') as registeredOn, username, HEX(macAddress) as macAddress, ipAddress, OS, status, message FROM register";
+	
+	if($#clause>-1) {
+		$query .= " WHERE " . join(" $type ", @clause)
+	}
+
+	$query .= " ORDER BY registeredOn";
+
+	#print $query;
+	#print join(',', @params);
+
+	my $sth = $dbh->prepare($query);
+
+	if(!defined($sth)) {
+        	return ("prepare failed: ". $dbh->errstr, -1);
+    	}
+    
+	if( !$sth->execute(@params) ) {
+        	return ("execute failed: ". $dbh->errstr, -1);
+    	}
+
+    	my $count = $sth->rows;
+
+	return ($sth, $count);
+
+}
+
+sub getAllMsgs {
+        my $dbh = shift;
+
+        my $query = "SELECT distinct(name) FROM pages order by name";
+        my $sth = $dbh->prepare($query);
+        $sth->execute();
+
+        my @msgs = ('');
+
+        while(my $m = $sth->fetchrow_arrayref) {
+                push(@msgs, $m->[0]);
+        }
+
+        $sth->finish;
+
+	# sort msgs so that msg:\D are at the top and
+	# msg:\d are at the bottom
+
+	my @msgs_D;
+	my @msgs_d;
+	my @msgs_huh;
+
+	foreach my $m (@msgs) {
+		if ($m =~ /^msg:\D/) {
+			push @msgs_D, $m;
+		} 
+		elsif ($m =~ /^msg:\d/) {
+			push @msgs_d, $m;
+		}
+		else {
+			push @msgs_huh, $m;
+		}
+	}
+
+	@msgs = ('--None--', @msgs_D, @msgs_d, @msgs_huh);
+        return \@msgs;
+
+}
+
+sub saveQuarChanges {
+        my $dbh  = shift;
+        my $args = shift;
+        my $ids  = shift;
+	my $D    = 0;
+
+	if(!(ref($ids) =~ /ARRAY/) ) {
+		$ids = [$ids];
+	} 
+
+	my $rv = "";
+	my @rv;
+
+	my $sql = "UPDATE register SET status=?, message=? WHERE HEX(macAddress) = ?";
+        my $sth   = $dbh->prepare($sql);
+	if (!defined($sth)) {
+		return "Failed to prepare sql: ".$dbh->errstr;
+	}
+
+        foreach my $mac (@$ids) {
+		# if nothing's changed, then dont bother with the db transaction
+
+		my $m_unc = 1;
+		my $s_unc = 1;
+
+		print "debug: processing mac $mac<P><UL>\n" if $D;
+		if ( ($args->{"message:$mac"} eq $args->{"messageOrig:$mac"}) ) {
+			if ($D) {
+				print "debug: message is unchanged.<P>\n";
+				print qq{M=|$args->{"message:$mac"}|<P>\n};
+				print qq{MO=|$args->{"messageOrig:$mac"}|<P>\n};
+			}
+			$m_unc = 1;
+		} else {
+			if ($D) {
+				print "debug: message is changed.<P>\n";
+				print qq{M=|$args->{"message:$mac"}|<P>\n};
+				print qq{MO=|$args->{"messageOrig:$mac"}|<P>\n};
+			}
+			$m_unc = 0;
+		}
+
+		if ( ($args->{"status:$mac"} eq $args->{"statusOrig:$mac"}) ) {
+			if ($D) {
+				print "debug: status is unchanged.<P>\n";
+				print qq{S=|$args->{"status:$mac"}|<P>\n};
+				print qq{SO=|$args->{"statusOrig:$mac"}|<P>\n};
+			}
+			$s_unc = 1;
+		} else {
+			if ($D) {
+				print "debug: status is changed.<P>\n";
+				print qq{S=|$args->{"status:$mac"}|<P>\n};
+				print qq{SO=|$args->{"statusOrig:$mac"}|<P>\n};
+			}
+			$s_unc = 0;
+		}
+		print "</UL>\n" if $D;
+		next if ( $m_unc && $s_unc );
+
+		if($D) {
+			print "<PRE>[debugging output - ignore this]\n";
+			print "mac ".$mac."\n";
+			print "m |", $args->{"message:$mac"},      "|\n";
+			print "mO |", $args->{"messageOrig:$mac"}, "|\n";
+			print "s |", $args->{"status:$mac"},       "|\n";
+			print "sO |", $args->{"statusOrig:$mac"},  "|\n";
+			print "[end of debugging output]</PRE>\n";
+		}
+
+		my @params = ();
+                push(@params, $args->{"status:$mac"});
+
+		# if status is PQUAR then message is required.
+		# if status is QUAR message is optional and can be NULL.
+		# if status is P/UNQUAR the message is implicitly NULL
+
+		if ($args->{"status:$mac"} eq "PQUAR") {
+			if ($args->{"message:$mac"} eq "--None--") {
+				return "Error: $mac PQUAR requires that you specify a message.";
+			} else {
+				push @params, $args->{"message:$mac"};
+			}
+		}
+
+		if ($args->{"status:$mac"} eq "QUAR") {
+			if ($args->{"message:$mac"} eq "--None--") {
+				push @params, undef;
+			} else {
+				push @params, $args->{"message:$mac"};
+			}
+		}
+
+		if ($args->{"status:$mac"} =~ /^(UNQUAR|PUNQUAR)$/) {
+			push @params, undef;
+		} 
+
+                push(@params, $mac);
+
+
+
+
+		_log("DEBUG", $m->session->{'logged_in'}." is changing $mac\n");
+
+		if ($args->{"message:$mac"} ne $args->{"messageOrig:$mac"}) {
+			$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+				-user => $m->session->{'logged_in'},
+			      	-msg => [ "QC: message changed to", $args->{"message:$mac"},
+					  "from", $args->{"messageOrig:$mac"} ]);
+		}
+
+		if ($args->{"status:$mac"} ne $args->{"statusOrig:$mac"}) {
+			$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+				-user => $m->session->{'logged_in'},
+			      	-msg => [ "QC: status changed to", $args->{"status:$mac"},
+					  "from",  $args->{"statusOrig:$mac"} ]);
+		}
+
+
+		
+		#print "sql=", $sql, "<P>";
+		#print "params=", join(", ", @params), "<P>";
+
+		# if quarantine status has changed, then we need to instruct
+		# the portmover to reset their port. if only the message is changed,
+		# portmover doesnt need to know.
+
+		# 1. is the IP active?
+		# 2. does the mac match?
+		# 3. what sw/po is it on?
+		# 4. reset that port.
+
+
+		$rv = $sth->execute(@params);
+
+		if($rv) {
+			$rv = "";
+			my $ipAddr = $args->{"ipAddr:$mac"};
+			print qq{Database update succeeded for mac address "$mac" ($ipAddr)<P>};
+			_log("DEBUG", "$mac $ipAddr record updated.\n");
+
+			my ($sw, $po, $m2p, $p2m) = $np->findOurSwitchPort($mac, $ipAddr);
+
+			if (!defined($sw) || !defined($po)) {
+				$rv = "not found on network. port reset failed.";
+
+				_log("DEBUG", "$mac $ipAddr $rv\n");
+				$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+					-user => $m->session->{'logged_in'},
+			      		-msg => [ "QC: $rv " ]);
+
+				$rv = qq{mac address "$mac" $rv};
+			} else {
+				_log("DEBUG", "$mac $ipAddr found. quarantining $sw $po\n");
+				if (! $npdbh->requestMovePort(-switch => $sw, 
+						-port => $po, -vlan => 'quarantine')) {
+
+					$rv = "$mac requestMovePort($sw, $po) failed\n";
+					_log("ERROR", "$rv\n");
+
+					$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+						-user => $m->session->{'logged_in'},
+			      			-msg => [ "QC: $rv " ]);
+				}
+
+			}
+		} else {
+			$rv = "$mac failed to update database: ".$sth->errstr;
+			_log("ERROR", "$rv\n");
+			$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+					-user => $m->session->{'logged_in'},
+		      			-msg => [ "QC: $rv " ]);
+		}
+
+		# if any of the above failed, clean up and return a message
+		# if nothing failed, we move on to the next mac address.
+
+		if ($rv ne "") {
+			$sth->finish;
+			push @rv, $rv;
+		}
+        }
+
+	$sth->finish;
+
+	return join("<BR>", @rv);
+}
+
+sub padMac {
+	my $m = shift;
+	return "0" x (12-length($m)) . $m;
+}
+
+</%perl>
+
+<HR>
+
+<h2>Definitions</h2>
+
+<dl> <dt>QUAR</dt><dd>Quarantined</dd>
+     <dt>PQUAR</dt><dd>Permanently Quarantined</dd>
+     <dt>UNQUAR</dt><dd>Unquarantined</dd>
+     <dt>PUNQUAR</dt><dd>Permanently Unquarantined</dd>
+</dl>
+
+
+<h2>Expected Behaviour</h2>
+
+<ul>
+<li> When setting a machine to UNQUAR or PUNQUAR:
+<ul>
+The port is set back to quarantined (yes, that's not a typo) 
+within 10 seconds of clicking 'save changes'. 
+The message field is implicitly set to 'None'. 
+When they go to the website, it detects that they are unquarantined, changes their port 
+and sends them to the success page. <P>
+
+Presently, UNQUAR and PUNQUAR look/act the same. In the future, the IDS feature 
+will use these. For example, you will be 
+able to permanently unquarantine a host so that the IDS can not re-quarantine it.<P>
+</Ul> 
+
+<li> When setting a machine to QUAR or PQUAR:
+<ul>
+The port is changed to quarantined within 10 seconds of clicking 'save changes'. 
+If you set a message, they are given that message when they access the web. 
+Otherwise, if the message is "None", they are scanned.<P>
+
+PQUAR requires that a message be set. QUAR does not require a message.
+<P>
+
+Presently, PQUAR and QUAR look/act the same. In the future, these will be used to 
+implement the IDS "two strikes" feature by setting a message, but 
+on the first strike you are only QUAR and the second strike you are PQUAR.
+</ul>
+</ul>
+
+
+
+
+Making changes to a record results in an <a href="/Admin/audit.mhtml">audit log</a> entry.

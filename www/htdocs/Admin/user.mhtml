@@ -1,0 +1,205 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+
+functions:
+	1) add a user
+	2) delete a user
+	3) change user's groups
+</%doc>
+
+<%args>
+	$submit => undef
+</%args>
+
+<script><!--
+setWhereAmI('User Editor');
+--></script>
+
+To delete a user, remove them from all of the groups.<P>
+
+<form method="post">
+
+<table>
+<tr><td colspan=2>
+<%perl>
+	my @groups = ('Admin', 'ScanAdmin', 'Editor', 'Reports', 'User', 'QuarAdmin');
+	my $users  = $npdbh->getUsersAndGroups();
+	my $error  = "";
+
+	if (defined($submit)) {
+		# validate all input. if we dont have right group membership -> deny
+		# update database.
+		my $uh = {};
+		my $ok = 1;
+
+		# right off the bat, if you arent at least a member of
+		# Admin or User we can deny the entire transaction
+
+		if (! ($m->comp('/Admin/MemberOf', 'group' => 'Admin') ||
+		       $m->comp('/Admin/MemberOf', 'group' => 'User')) ) {
+			$error .= "Sorry, permission denied.<BR>(You aren't Admin or User)";
+		} else {
+			foreach my $user (sort keys %$users) {
+				# if you are trying to add a
+				# user to Admin and you arent an
+				# Admin -> denied.
+
+				$uh->{$user} = [];
+
+				$ok = 0 if (exists $ARGS{$user."-Admin"} &&
+				    !($m->comp('/Admin/MemberOf', 
+						'group' => 'Admin')));
+
+				foreach my $g (@groups) {
+print "debug: g $g<BR>\n";
+print "debug: lookfor $user-$g in args<BR>\n";
+					if(exists $ARGS{$user."-".$g}) {
+print "debug:    <font color=green>found it. push</font><BR>\n";
+						push @{$uh->{$user}}, $g;
+					} else {
+print "debug:    <font color=red>didnt find it.</font><BR>\n";
+					}
+
+				}
+			}
+			if ($ok) {
+				# user add. if you arent admin and you 
+				# are trying to add an admin -> denied
+
+				if( exists $ARGS{'_newuser-Admin'} &&
+				   !$m->comp('/Admin/MemberOf', 'group' => 'Admin') ) {
+					$error .= "Sorry, you can't add someone to the Admin group.\n";
+				}
+
+				# if you arent an Admin or you arent a User then you cant
+				# any a new user.
+
+				elsif( exists $ARGS{'_newuser'} && ($ARGS{'_newuser'} ne "")) {
+					if($m->comp('/Admin/MemberOf', 'group' => 'User') ||
+					   $m->comp('/Admin/MemberOf', 'group' => 'Admin')
+					   ) {
+						my @gl;
+						foreach my $g (@groups) {
+							push @gl, $g 
+								if (exists $ARGS{"_newuser-$g"});
+						}
+						if ($ARGS{'_newuser'} eq "_newuser") {
+							$error .= "Sorry, you can't create a user with that username.<BR>";
+						} 
+						elsif (!$npdbh->createUserWithGroups($ARGS{'_newuser'}, @gl)) {
+							$error .= "Failed to add user $ARGS{_newuser}<BR> If the user doesn't already exist, let us know.<BR>";
+						}
+					} else {
+						$error .= "Sorry, you aren't allowed to add users.<BR>\n";
+					}
+				}
+				if ($npdbh->setUsersAndGroups($uh)) {
+					$error .= "Changes saved.";
+				} else {
+					$error .= "Sorry, and error occurred. Let us know.";
+				}
+			} else {
+				$error .= "Sorry. Permission denied.<BR>Did you try to change an Admin?";
+			}
+		}
+		$users  = $npdbh->getUsersAndGroups();
+	}
+
+	if( defined($users) ) {
+		print "<table><tr><th>Username</th>";
+		foreach my $g (@groups) {
+			print "<th>$g</th>";
+		}
+		print "</tr>\n";
+
+		print "<tr><td><input size=8 maxlength=10 name='_newuser'></td>";
+		foreach my $g (@groups) {
+			print "<Td align=center>";
+
+			print "<input type='checkbox' name='_newuser-$g' ";
+
+			print " disabled "
+				if (($g eq "Admin") && 
+				    !($m->comp('/Admin/MemberOf', 
+					'group' => 'Admin')));
+
+			print " disabled "
+				unless $m->comp('/Admin/MemberOf',
+					'group' => 'Admin') ||
+				       $m->comp('/Admin/MemberOf',
+					'group' => 'User') ;
+			print "></td>";
+		}
+		print "</tr>\n";
+    
+		foreach my $user (sort keys %$users) {
+			print "<tr><td>$user</td>";
+			foreach my $g (@groups) {
+				my @j = grep /^$g$/, @{$users->{$user}};
+				print "<Td align=center>";
+#	print "\n<!--$g ".join(',', keys %{$m->session->{'my_groups'}})." -->\n";
+
+
+				print "<input type='hidden' name='prev:$user-$g' value=1>\n"
+					if ($#j != -1);
+
+				print "<input type='checkbox' name='$user-$g' ";
+				if($#j != -1) {
+					print "checked ";
+				} 
+				print " disabled "
+					if (($g eq "Admin") && 
+					    !($m->comp('/Admin/MemberOf', 
+						'group' => 'Admin')));
+
+				print " disabled "
+					unless $m->comp('/Admin/MemberOf',
+						'group' => 'Admin') ||
+					       $m->comp('/Admin/MemberOf',
+						'group' => 'User') ;
+				print "></td>";
+			}
+			print "</tr>\n";
+		}
+		print "</table>";
+	}
+</%perl>
+</td></tr>
+<tr><td><%$error%>
+</td><td align=right><input type='submit' value='Commit Changes' name='submit'></td></tr></table>
+
+<dl>
+ <dt> Admin </dt>
+ <dd> Full access to all functions and pages. </dd>
+ 
+ <dt> ScanAdmin </dt>
+ <dd> Read/write access to the Scan (Nessus) configuration page and the
+      IDS (Snort) configuration page. </dd>
+
+ <dt> Editor </dt>
+ <dd> Read/write access to the Message Editor page. </dd>
+
+ <dt> Reports </dt>
+ <dd> Read only access to:
+     <ul>
+ 	<li> Message Editor </li>
+	<li> ScanAdmin </li>
+	<li> Audit Logs </li>
+	<li> Statistics </li>
+     </ul></dd>
+
+ <dt> User </dt>
+ <dd> Read/write access to the User page (this page) with the exception
+      that you can not change or add Admin users. Only another Admin
+      user can change/add an Admin user. </dd>
+
+ <dt> QuarAdmin </dt>
+ <dd> Read/write access to the Quarantine Control page. </dd>
+</dl>
+</form>

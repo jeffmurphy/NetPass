@@ -1,0 +1,4 @@
+
+master-master replication gotchas
+
+http://mysql.scarlet.be/books/hpmysql-excerpts/ch07.html

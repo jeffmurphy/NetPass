@@ -1,0 +1,108 @@
+#!/bin/sh
+#
+# netpass        This shell script takes care of starting and stopping
+#                netpass (portmover, resetport and macscan).
+#
+# chkconfig: - 89 11
+# description: netpass 
+
+# see doc/appstart for details of startup order and what
+# runs on each machine
+
+# startup order should be:
+#   1. iptables            2345 08 92
+#   2. mysql               2345 78 12
+#   4. nessusd             2345 88 12
+#   5. netpassha           2345 88 12
+#   6. npgarp              2345 89 11
+#   7. portmover               ''      (this script)
+#   8. resetport               ''      (this script)
+#   9. macscan                 ''      (this script)
+#  10. squid
+#  11. apache              2345 90 10    
+#  12. dhcrelay            2345 91 09  <- change from 66/34
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+[ -f /etc/sysconfig/netpass ] && . /etc/sysconfig/netpass
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+B=/opt/netpass
+
+
+RETVAL=0
+prog="netpass"
+
+start() {
+	# /cookies  is where Apache::Session will stash
+	# the cookie files. 'reiserfs' is recommended.
+	[ -d /cookies ] && {
+	    echo "/cookies filesystem is not mounted"
+	    exit 255
+        }
+
+	echo -n $"Starting resetport: "
+	daemon ${B}/bin/resetport.pl ${B}/log/snmptraps.log 
+	echo
+        #[ $RETVAL -eq 0 ] && exit $RETVAL
+
+        echo -n $"Starting portmover: "
+	daemon ${B}/bin/portmover.pl 
+	echo 
+        #[ $RETVAL -eq 0 ] && exit $RETVAL
+
+        #echo -n $"Starting macscan: "
+	#daemon ${B}/bin/macscan.pl 
+	#echo 
+        #[ $RETVAL -eq 0 ] && exit $RETVAL
+
+	return 0	
+}
+
+stop() {
+	echo -n $"Shutting down resetport: "
+	killproc resetport.pl
+	echo
+
+	echo -n $"Shutting down portmover: "
+	killproc portmover.pl
+	echo
+
+	echo -n $"Shutting down macscan: "
+	killproc macscan.pl
+	echo
+	return 0
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	stop
+	start
+	RETVAL=$?
+	;;
+  status)
+	status portmover
+	status resetport
+	status macscan
+	RETVAL=$?
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|restart|status}"
+	exit 1
+esac
+
+exit $RETVAL

@@ -1,0 +1,31 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/style/front/footer,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+
+<%args>
+   $resource_root => "/resources";
+   $printable	  => 0;
+</%args>
+
+% return '' if($printable);
+
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+  <tr>
+    <td class="borderBar" style="height: 8px; border-top: solid 4px #FFFFFF;"></td>
+  </tr>
+  <tr>
+    <td align=center>
+      <p class="small">
+        &copy; 2004 University at Buffalo
+      </p>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
+

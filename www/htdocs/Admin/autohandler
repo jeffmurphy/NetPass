@@ -1,0 +1,67 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+</%args>
+
+<%perl>
+$m->comp('/style/back/start_sidebar', %ARGS);
+use Sys::Hostname;
+my $serverType = "PRODUCTION";
+if (hostname eq "cookbook.cit.buffalo.edu") {
+    $serverType = "DEVELOPMENT";
+}
+</%perl>
+
+<center>
+<div class="sbHeader">NetPass Admin</div>
+<div class="sbHeader"><%$serverType%> SERVER</div>
+<P>
+% if (exists $m->session->{'logged_in'}) {
+<div class='sbHeader'>Logged in as <%$m->session->{'logged_in'}%></div><BR>
+</center>
+
+<a class='sbLinks' title='' href="/Admin/logout.mhtml"><I>Logout</I></a><P>
+
+<a class="sbLinks" href="/Admin/" title="">Home</a><br>
+
+<a class="sbLinks" href="/Admin/gencfg.mhtml" title="">General Config</a><br>
+
+<a class="sbLinks" href="/Admin/mr.mhtml" title="">Manual Register</a><br>
+
+<a class="sbLinks" href="/Admin/qc.mhtml" title="">QuarControl</a><br>
+
+<a class="sbLinks" href="/Admin/audit.mhtml" title="">Audit Logs</a><br>
+
+<a class="sbLinks" href="/Admin/Scan/" title="">Scan Config</a><br>
+
+<a class="sbLinks" href="/Admin/Editor/" title="">Message Editor</a><br>
+
+<a class="sbLinks" href="/Admin/user.mhtml" title="">User Editor</a><br>
+
+<a class="sbLinks" href="/Admin/reports.mhtml" title="">Reports</a><br>
+
+<P><P>
+
+
+**<a class="sbLinks" href="/Admin/sq.mhtml" title="">Squid Config</a><br>
+**<a class="sbLinks" href="/Admin/greset.mhtml" title="">Global Reset</a><br>
+**<a class="sbLinks" href="#" title="">IDS Config</a><br>
+**<a class="sbLinks" href="#" title="">Network</a><br>
+**<a class="sbLinks" href="#" title="">HA</a><br>
+% } 
+
+
+<%perl>
+
+$m->comp('/style/back/end_sidebar', %ARGS);
+$m->call_next;
+$m->comp('/style/back/end_content', %ARGS);
+</%perl>
+

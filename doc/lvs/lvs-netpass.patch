@@ -1,0 +1,12 @@
+--- ip_vs_core.c	2003-11-28 13:26:21.000000000 -0500
++++ /temp/ip_vs_core.c	2004-08-28 21:29:38.000000000 -0400
+@@ -1179,7 +1179,8 @@
+    applied to IPVS. */
+ static struct nf_hook_ops ip_vs_in_ops = {
+ 	{ NULL, NULL },
+-	ip_vs_in, PF_INET, NF_IP_LOCAL_IN, 100
++	/*ip_vs_in, PF_INET, NF_IP_LOCAL_IN, 100*/
++	ip_vs_in, PF_INET, NF_IP_PRE_ROUTING, 100
+ };
+ 
+ /* After packet filtering, change source only for VS/NAT */

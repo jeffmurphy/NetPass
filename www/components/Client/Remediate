@@ -1,0 +1,109 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+ $submit => ''
+</%args>
+
+<%perl>
+
+my $ip    = $m->session->{'remote_addr'};
+my $mac   = $m->session->{'remote_mac'};
+
+# if they have a message waiting, it's due to a manual quarantine.
+
+my $msg = $npdbh->getMessage($mac);
+if($msg) {
+	_log("DEBUG", "$mac $ip this client has a message waiting ($msg). we'll display it and return. there is no way for this client to get out of the quarantine.\n");
+	print $npdbh->getPage($msg);
+	return;
+}
+
+$msg = $npdbh->getPage('msg:remediate_directions', 1);
+
+if($msg) {
+	print $msg;
+} else {
+	print $q->p("<h3>Remediate Your Machine</h3><p>Check off each item below as you fix it.</p>");
+}
+
+print $q->br;
+
+$m->session->{'nessus'}          = [] if(!$m->session->{'nessus'});
+$m->session->{'nessus_defaults'} = {} if(!$m->session->{'nessus_defaults'});
+
+foreach my $sid (keys %ARGS) {
+	if($ARGS{$sid} eq 'Fixed') {
+		my @foo = grep(!/^$sid/, @{$m->session->{'nessus'}});
+		$m->session->{'nessus'} = \@foo;
+	}
+}
+
+my @vulns = @{$m->session->{'nessus'}};
+
+print $q->start_form();
+
+if($#vulns > -1) {
+
+	my $autoexpand = ($#vulns <= ($np->policy('RESULTS_EXPAND')-1));
+
+	print qq{<table border=0 cellpadding="0" cellspacing="0" style="border-collapse: collapse" width="100%"><tr><th colspan=3>Detected Security Issues</th></tr>};
+
+	foreach my $sid ( @vulns ) {
+		my ($shortName, $info) = $npdbh->getNessusInfo($sid);
+
+		print qq{<tr><td width="3%" align=center>};
+		  if ($m->session->{'js_enabled'} eq "enabled" && !$autoexpand) {
+		      print qq{<a href="#" onclick="showHideObj('nessus-$sid', this); return false;">[+]</a>};
+		  } else {
+		      print qq{[-]};
+		  }
+		  print qq{</td><td>$shortName</td>};
+		  print qq{<td width="1%" align="right">};
+		  print $q->submit(-name=>$sid, -value=>'Fixed');
+		  print qq{</td>};
+		  print qq{</tr><tr><td colspan=3 class="gray">};
+
+		  if ($m->session->{'js_enabled'} eq "enabled" && !$autoexpand) {
+		      print qq{<ul id='nessus-$sid' style='DISPLAY:None;'>};
+		  } else {
+		      print "<ul>";
+		  }
+
+		  _log "DEBUG", "$mac $ip found nessus $sid info=$info\n";
+
+		  if($info eq "nessus:") {
+		      print $q->pre($m->session->{'nessus_defaults'}->{$sid});
+		  } 
+		  elsif($info =~ /^msg:/) {
+		      print $npdbh->getPage($info, 1);
+		  }
+		  print qq{</td></tr>};
+		  # URL
+	}
+
+} else {
+
+	$m->session->{'phase'} = 'SCAN';
+
+	my $msg = $npdbh->getPage('msg:remediate_completed', 1);
+
+	if($msg) {
+		print $msg;
+	} else {
+		print $q->p("You have completed all the steps required for remediation. We must now scan your machine once again to confirm that all vulnerabilites have been fixed.");
+	}
+	print $q->submit(-name=>'submit', -value=>'Re-Scan') . $q->br;
+
+}
+	
+print $q->end_form();
+
+
+</%perl>
+

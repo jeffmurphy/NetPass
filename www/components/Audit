@@ -1,0 +1,25 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Audit,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+	$msg => []
+</%args>
+
+<%perl>
+	#my $m = $m->session->{'remote_mac'};
+	#my $i = $m->session->{'remote_addr'};
+	#my $u = $m->session->{'username'};
+
+	$npdbh->audit(  -mac  => $m->session->{'remote_mac'},
+			-ip   => $m->session->{'remote_addr'},
+			-user => $m->session->{'username'},
+			-msg  => $msg
+			);
+
+
+</%perl>

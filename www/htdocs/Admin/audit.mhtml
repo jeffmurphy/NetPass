@@ -1,0 +1,304 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+$ip      => '';
+$mac     => '';
+$uid     => '';
+$sev     => '';
+$search  => '';
+$type    => 'AND';
+$message => '';
+$start   => 0;
+</%args>
+
+<style>
+.INFO     { background: #CCCCCC; }
+.NOTICE   { background: #CCCCFF; }
+.WARNING  { background: #CC9999; }
+.ERROR    { background: #FF9933; }
+.CRITICAL { background: #FF3300; }
+.ALERT    { background: #FFFF33; }
+.DEBUG    { background: #99CC66; }
+</style>
+
+<script><!--
+setWhereAmI('Audit Logs');
+--></script>
+
+<%perl>
+
+print $q->h2("Audit Logs");
+
+if (! $m->comp('/Admin/MemberOf', 'group' => [ 'Admin', 'Reports' ]) ) { 
+       
+	print $q->p({-class=>'error'}, "Sorry, permission denied.<BR>(You must be an Admin or in the Reports group)");
+	return;
+}
+
+</%perl>
+<P>Note: a mac address of 000000000000 (all zeros) means "remote user"<P>
+<%perl>
+
+print "<!--";
+print $ip  . "<br>";
+print $mac . "<br>";
+print $uid . "<br>";
+print $type . "<br>";
+print $sev . "<br>";
+print $message . "<br>";
+print "-->";
+
+print $q->start_form(-method=>"POST", action => "audit.mhtml");
+
+print $q->table({-border=>0, -width=>600},
+		$q->TR(
+			$q->th({-colspan=>2}, "Search")
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "MAC Address:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	=> "mac",
+						-value 	=> $mac,
+#						-filter => '/^\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}$/',
+#						-error	=> 'Please format the MAC Address in the format specified.'
+				).
+				$q->small(' e.g. AABBCCDDEEFF')
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "IP Address:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	=> "ip",
+						-value 	=> $ip,
+#						-filter => '/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/',
+#						-error	=> 'Please format the IP Address in the format specified.'
+				).
+				$q->small(' e.g. 128.205.10.10 ')
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "UBIT Name:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	=> "uid",
+						-value 	=> $uid
+				)
+			)
+		).
+		$q->TR(
+
+#			$q->td({-class=>"gray"}, "Severity:") .
+#			$q->td({-class=>"gray"},
+#				$q->popup_menu(
+#						-name 	 => "sev",
+#						-values	 => [
+#								"",
+#								"ALERT",
+#								"CRITICAL",
+#								"DEBUG",
+#								"ERROR",
+#								"INFO",
+#								"NOTICE",
+#								"WARNING"
+#							    ],
+#						-labels	 => {
+#								"" => "ALL"	
+#							    },
+#						-default => $sev
+#				)
+#			)
+
+
+			$q->td({-class=>"gray"}, "Message:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	 => "message",
+						-values	 => $message
+				).
+				$q->small(' e.g. "% scan" (no quotes) ')
+			)
+
+
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "Search Type:") .
+			$q->td({-class=>"gray"},
+				$q->popup_menu(
+						-name 	 => "type",
+						-values	 => [
+								"AND",
+								"OR"
+							    ],
+						-labels	 => {
+								"AND" => "Results must match ALL of the above",
+								"OR"  => "Results must match ANY of the above"
+							    },
+						-default => $type
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, '&nbsp;') .
+			$q->td({-class=>"gray"},
+				$q->submit(
+						-name 	=> "search",
+						-value 	=> "Search"
+				)
+			)
+		)
+	);
+
+print $q->end_form();
+
+return if(!$search);
+
+my ($results, $count, $result_set, $next_link, $prev_link) = getAudits($dbh,$ip,$mac,$uid,$sev,$type,$message,$start);
+
+if($count<0) {
+	print $q->p( {-class => 'error'}, "Sorry, there was an error while processing your request!");
+}
+
+print $q->h4("Showing Results $result_set");
+
+if($count==0 && $start==0) {
+	print $q->p("You may want to re-define your search to be less strict.<br>I would suggest removing one or more fields and modifying the Search Type.");
+	return;
+}
+
+print $q->a({ -href=>$prev_link }, "<-- Previous Page") if($start >0);
+print "&nbsp;";
+print $q->a({ -href=>$next_link }, "Next Page -->") if($next_link ne '');
+print $q->br;
+
+my @rows = (
+		$q->TR(
+			$q->th("Date/Time") .
+			$q->th("UBIT Name") .
+			$q->th("IP Address") .
+			$q->th("Mac Address") .
+			#$q->th("Severity") .
+			#$q->th("Location") .
+			$q->th("Message")
+		));
+
+while (my $row = $results->fetchrow_hashref() ) {
+	push( @rows,	$q->TR( {-class=> $row->{severity} },
+				$q->td({-align=>'center'}, $row->{dt})         .
+				$q->td({-align=>'center'}, $row->{username})   .
+				$q->td({-align=>'center'}, $row->{ipAddress})  .
+				$q->td({-align=>'center'}, padMac($row->{macAddress})) .
+				#$q->td({-align=>'center'}, $row->{severity})   .
+				#$q->td({-align=>'center'}, $row->{location})   . 
+				$q->td({-align=>'center'}, $row->{message}) 
+			));
+}
+
+$results->finish();
+
+print $q->table({-width=>'80%'}, @rows);
+
+print $q->p();
+
+#######################
+
+sub padMac {
+	my $m = shift;
+	return "0" x (12-length($m)) . $m;
+}
+
+sub getAudits {
+	my $dbh	 = shift;
+	my $ip	 = shift;
+	my $mac	 = shift;
+	my $uid	 = shift;
+	my $sev	 = shift;
+	my $type = shift;
+	my $message = shift;
+	my $start = shift;
+
+	$start = 0 if(!($start =~ /\d+/) || $start<0);
+	my $limit = 250;
+
+	# double check the value, make sure noone can sneak an insertion attack in here ;)
+	$type = ($type eq "OR")?"OR":"AND";
+	
+	my @clause = ();
+	my @params = ();
+
+	if($ip) {
+		push(@clause, "ipAddress=?");
+		push(@params, $ip);
+	}
+
+	if($message) {
+		push(@clause, "message LIKE ?");
+		push(@params, $message);
+	}
+
+	if($mac) {
+		$mac =~ s/://g;
+
+		push(@clause, "macAddress=?");
+		push(@params, hex("0x" . uc($mac)));
+	}
+	
+	if($uid) {
+		push(@clause, "username=?");
+		push(@params, $uid);
+	}
+
+	if($sev) {
+		push(@clause, "severity=?");
+		push(@params, $sev);
+	}
+
+	my $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d %H:%i:%s') as dt, username, ipAddress, HEX(macAddress) as macAddress, severity, location, message FROM audit ";
+	
+	if($#clause>-1) {
+		$query .= " WHERE " . join(" $type ", @clause)
+	}
+
+	$query .= " ORDER BY ts DESC LIMIT $start,$limit";
+
+	#print $query;
+	#print join(',', @params);
+
+	my $sth = $dbh->prepare($query);
+
+	if(!defined($sth)) {
+        	return ("prepare failed: ". $dbh->errstr, -1);
+    	}
+    
+	if( !$sth->execute(@params) ) {
+        	return ("execute failed: ". $dbh->errstr, -1);
+    	}
+
+	my $count      = $sth->rows;
+
+	my $link      = "audit.mhtml?ip=$ip&mac=$mac&uid=$uid&type=$type&message=$message&search=Search&start=";
+	my $prev_link = $link . ($start-$limit);
+	my $next_link = '';
+
+    	my $result_set = "";
+	if($count==$limit) {
+    		$result_set = "$start to " . ($start+$limit);
+		$next_link = $link . ($start+$limit);
+	} else {
+    		$result_set = "$start to " . ($start+$count);
+		$next_link = '';
+	}
+	return ($sth, $count, $result_set, $next_link, $prev_link);
+
+}
+
+</%perl>
+

@@ -1,0 +1,71 @@
+#!/bin/sh 
+
+
+
+[ "$1" != "-f" -a ! -f /usr/bin/yum ] && {
+    echo <<EOF
+i dont see 'yum' on this system. make sure the following packages
+are installed using whatever package utility you're fond of.
+
+mysql
+squid
+httpd (apache)
+dhcrelay
+perl 
+mod_perl 
+perl-DBD-MySQL 
+perl-DBI 
+perl-Filter
+
+Once they are installed, re-run this script as follows:
+
+sudo ./install -f
+
+EOF
+
+    exit 255
+}
+
+exit 2
+
+echo "Installing required PERL packages .. "
+
+[ -f /usr/bin/yum ] && yum -y install perl mod_perl perl-DBD-MySQL perl-DBI perl-Filter
+
+echo "Installing required PERL modules .. "
+echo " "
+echo "NOTES:"
+echo "  1. You might need to configure CPAN first (follow the instructions)"
+echo "  2. You might need to insmod ip_conntrack_ftp to make CPAN work"
+echo "  3. If CPAN asks whether or not it should install prereqs that it"
+echo "     finds, answer YES in all cases."
+echo "  4. If CPAN asks any other questions, accept the default answer"
+echo "     or the answer that seems sensible to you."
+echo " "
+
+sleep 5
+
+perl -MCPAN -I/opt/netpass/lib -e 'install Bundle::NetPass1'
+
+# why doesnt '-e force install ...' work? but it does from the CPAN shell??
+
+
+echo "force install Net::SSLeay" | perl -MCPAN -I/opt/netpass/lib -e 'shell'
+
+sleep 10
+
+perl -MCPAN -I/opt/netpass/lib -e 'install IO::Socket::SSL'
+
+echo ; echo
+
+perl -MCPAN -I/opt/netpass/lib -e 'shell' <<EOF
+force install Net::Nessus::Client
+/opt/nessus/sbin/nessusd
+localhost
+1241
+netpass
+netpass
+EOF
+
+sleep 10
+perl -MCPAN -I/opt/netpass/lib -e 'install Bundle::NetPass2'

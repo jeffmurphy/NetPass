@@ -1,0 +1,74 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/style/front/header,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+
+<%args>
+   $resource_root => "/resources";
+   $printable     => 0;
+</%args>
+
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+
+<head>
+<title>UB NetPass</title>
+<meta  HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<meta  HTTP-EQUIV="Cache-Control" CONTENT="no-cache">
+<meta  HTTP-EQUIV="Expires" CONTENT="0">
+
+
+<link type="image/x-icon" rel="icon" href="/favicon.ico" />
+<link type="image/x-icon" rel="shortcut icon" href="/favicon.ico" />
+<link rel="stylesheet" type="text/css" href="<%$resource_root%>/css/OSSTemplate.css.cgi" />
+<link rel="stylesheet" type="text/css" href="<%$resource_root%>/css/site.css" />
+<link rel="stylesheet" type="text/css" href="<%$resource_root%>/css/calendar.css" />
+<script src="<%$resource_root%>/js/OSSTemplate.js" type="text/javascript"></script>
+<script src="<%$resource_root%>/js/cal/calendar.js" type="text/javascript"></script>
+<script src="<%$resource_root%>/js/cal/calendar-setup.js" type="text/javascript"></script>
+<script src="<%$resource_root%>/js/cal/calendar-en.js" type="text/javascript"></script>
+<script src="<%$resource_root%>/js/menu/menu_src.js" type="text/javascript"></script>
+<script src="<%$resource_root%>/js/menu/menu_dom.js" type="text/javascript"></script>
+</head>
+
+<body>
+% return '' if($printable);
+
+
+<script><!--
+function setWhereAmI(w) {
+        var wai = new getObj('WhereAmI');
+        wai.obj.innerHTML = w;
+}
+--></script>
+
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0" id="headerTable">
+  <tr>
+   <td colspan="2">&nbsp; </td>
+  </tr>
+  <tr>
+    <td class="borderBar" valign="top" align="left"><img src="<% $resource_root %>/images/corner.gif" height="26" width="13" alt=""></td>
+    <td width="100%" class="borderBar" valign="middle" align="left">
+      <p class="sbLinks" id='WhereAmI'>&nbsp;</p>
+    </td>
+  </tr>
+</table>
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0" id="subHeaderTable">
+  <tr>
+    <td valign="middle" class="borderSubbar" height="30">
+      <p class="sbHeader">&nbsp; University at Buffalo</p>
+    </td>
+    <td valign="middle" align="right" class="borderSubbar" height="30">
+      <p class="sbHeader">Computing and Information Technology &nbsp; </p>
+    </td>
+  </tr>
+</table>

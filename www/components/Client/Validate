@@ -1,0 +1,97 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Client/Validate,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+
+<%perl>
+	my $mac = $m->session->{'remote_mac'};
+	my $ip  = $m->session->{'remote_addr'};
+
+	_log("DEBUG", "$mac $ip /Client/Validate called\n");
+
+	# remote clients are always implicitly UNREGistered. we dont
+	# record them in the database, since we require their MAC
+	# address to do so
+
+	if ($mac eq "REMOTE") {
+		_log("DEBUG", "$mac $ip /Client/Validate we are remote. returning.\n");
+		return;
+	}
+
+	_log("DEBUG", "$mac $ip /Client/Validate calling validateMac()\n");
+
+	my ($rv, $sw, $po);
+
+	# Returns a status of "UNREG", "QUAR", "PQUAR", "UNQUAR", "PUNQUAR"
+	($rv, $sw, $po) = $np->validateMac($npdbh, $mac, $ip);
+
+	$m->session->{'regStatus'} = $rv;
+
+	if(defined($sw)) {
+		$m->session->{'switch'} = $sw;
+		$m->session->{'port'}   = $po;
+		_log("INFO", "$mac $ip /Client/Validate validateMac returned ($rv, $sw, $po)\n");
+	} else {
+		_log("INFO", "$mac $ip /Client/Validate validateMac returned ($rv, undef, undef)\n");
+	}
+
+	# if Validate says you are unquarantined, then you jump to the Complete
+	# phase and you're done. you are either given a page saying so, or you
+	# are redirected based on the policy setting.
+
+	if( ($rv eq "UNQUAR") || ($rv eq "PUNQUAR") ) {
+		_log("DEBUG", "$mac $ip /Client/Validate since $rv is P/UNQUAR phase is COMPLETE\n");
+		$m->session->{'returning_user'} = 1;
+		$m->session->{'phase'} = 'COMPLETE';
+		return;
+	}
+
+
+	# if you are quarantined (manually) for some reason, we want to see
+	# if your session state is Complete (from a previous successful scan) 
+	# and if it is, we reset it to Remediate so you can see any messages waiting
+	# for you or to go back thru the scan (if there arent messages waiting).
+
+	if ( ($rv eq "QUAR") || ($rv eq "PQUAR") ) {
+		# if your session wasnt deleted, for some reason, and you are
+		# now quarantined, then reset you to the login phase
+
+		#if ($m->session->{'phase'} eq 'COMPLETE') {
+		#	$m->session->{'phase'} = 'LOGIN';
+		#} 
+
+		# if you have results pending, then send you to the remediate phase
+
+		if ($#{$m->session->{'nessus'}} != -1) {
+			_log("DEBUG", "$mac $ip /Client/Validate status is P/QUAR and results pending. setting Phase to REMEDIATE\n");
+			$m->session->{'phase'} = "REMEDIATE";			
+		}
+
+		# if you have messages waiting, then send you to remediate phase
+
+		else {
+			my $Xmsg = $npdbh->getMessage($mac);
+			if(defined($Xmsg) && ($Xmsg ne "")) {
+				_log("DEBUG", "$mac $ip /Client/Validate status is P/QUAR and messages pending. setting Phase to REMEDIATE\n");
+				$m->session->{'phase'} = "REMEDIATE";
+			} else {
+				_log("DEBUG", "$mac $ip /Client/Validate $rv is P/QUAR, but theres no results or messages. phase left at ".$m->session->{'phase'}."\n");
+			}
+		}
+	}
+
+	# finally, if you werent handled above, then you are UNREG and 
+	# we want to log you in.
+
+	if ($m->session->{'phase'} eq "LOGIN") {
+		_log("DEBUG", "$mac $ip /Client/Validate we are not logged in yet.\n");
+		return;
+	}
+
+
+
+</%perl>

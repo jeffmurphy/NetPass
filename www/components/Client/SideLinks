@@ -1,0 +1,39 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Client/SideLinks,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+</%args>
+
+
+<a class="sbLinks" href="http://itpolicies.buffalo.edu/">Policies</a><BR>
+
+%       if ( ($m->session->{'remote_os'} eq "unknown") || ($m->session->{'remote_os'} eq "Windows") ) {
+
+<a class="sbLinks" href="http://windowsupdate.microsoft.com" title="">Microsoft</a><br>
+
+%       } if( ($m->session->{'remote_os'} eq "unknown") || ($m->session->{'remote_os'} eq "Linux") ) {
+
+<a class="sbLinks" href="http://www.redhat.com/security/" title="">Redhat</a><br>
+
+%       } if( ($m->session->{'remote_os'} eq "unknown") || ($m->session->{'remote_os'} eq "Mac") ) {
+
+<a class="sbLinks" href="http://www.info.apple.com/usen/security/index.html" title="">Apple</a><br>
+
+%       }
+
+%       if ( ($m->session->{'remote_os'} eq "unknown") || ($m->session->{'remote_os'} eq "Windows") ) {
+
+<a class="sbLinks" href="https://webdfs.buffalo.edu/soft/ub/Win2000/production/Norton_AntiVirus/" title="">Norton Antivirus</a><br>
+
+%       } if( ($m->session->{'remote_os'} eq "unknown") || ($m->session->{'remote_os'} eq "Mac") ) {
+
+<a class="sbLinks" href="https://webdfs.buffalo.edu/soft/ub/Mac/ppc/production/Norton_AntiVirus/" title="">Norton Antivirus</a><br>
+
+%       }
+
+

@@ -1,0 +1,104 @@
+#
+# linux virtualizaition installation director setup
+#
+1. download latest kernel 2.4.26
+2. run "make xconfig" and make sure that all the lvs stuff is selected to be
+compiled as modules. ipvsadm will load the modules at runtime.
+3. apply lvs-netpass.patch to kernel
+4. compile and install kernel
+5. install ipvsadm userland tools
+	sudo rpm -ivh /source/lvs/ipvsadm-1.21-9.i386.rpm
+6. create setup scripts for the directors
+	examples:
+		lvs/npr1/director1.sh
+		lvs/npr2/director2.sh
+7. run the above scripts on the corresponding machines
+#
+# make things more permanent
+#
+8. use the /etc/sysconfig/network-scripts conf files to config the ethernet
+interfaces
+9. add the following to /etc/sysctl.conf
+	net.ipv4.ip_forward = 0
+	net.ipv4.conf.all.send_redirects = 1 
+	net.ipv4.conf.default.send_redirects = 1 
+	net.ipv4.conf.eth0.send_redirects = 1 
+10. save ipvsadm config
+	sudo /sbin/ipvsadm-save > /etc/sysconfig/ipvsadm
+11. setup ipvsadm to start up on boot. Note: make sure ipvsadm start up before heartbeat
+	sudo /sbin/chkconfig --level 3 ipvsadm on
+	sudo /sbin/chkconfig --level 4 ipvsadm on
+	sudo /sbin/chkconfig --level 5 ipvsadm on
+
+#
+# linux virtualizaition installation real server setup
+#
+1. download latest kernel 2.4.26
+2. patch kernel with hidden patch (patch only has to be applied to the
+realserver machines not the director.). hidden patch prevents the realserver
+loopback interfaces from arping the virtual IP assigned to them.
+        sudo patch -p1 < /source/lvs/hidden-2.4.26-1.diff
+3. build and install the kernel
+4. create setup scripts for the real servers
+        examples:
+                lvs/realserver1.sh
+                lvs/realserver2.sh
+5. run the above scripts on the corresponding machines
+
+#
+# HA director failover
+#
+# DO THE FOLLOWING STEPS ON THE DIRECTORS
+1. install necessary perl modules
+	sudo yum install perl-Parse-RecDescent
+	sudo yum install perl-Digest-HMAC
+	sudo rpm -ivh /source/lvs/perl/perl*
+2. install heartbeat and ldirectord
+	sudo rpm -ivh /source/lvs/libnet-1.1.0-1.rh.9.um.1.i386.rpm
+	sudo rpm -ivh /source/lvs/hearbeat*
+
+3. create a /etc/ha.d/ldirectord.cf file for the services on the realservers.
+ldirectord monitors the services on the realservers and uses ipvsadm to add or
+remove services as they go up and down on the realservers.
+	example:
+		lvs/npr1/ldirectord.cf 
+		lvs/npr2/ldirectord.cf 
+
+4. create a /etc/ha.d/ha.cf file to config the heartbeat daemon
+	example:
+		lvs/npr1/ha.cf
+		lvs/npr2/ha.cf
+
+5. create a /etc/ha.d/haresources file to define the resources on each
+director. The haresources file defines the services that each node of the
+cluster owns, all the haresources files should be identicle on all of the nodes.
+So in this example the service ldirectord is owned by npr1.cit.buffalo.edu and
+npr2.cit.buffalo.edu doesnt own any services. If npr1.cit.buffalo.edu goes
+down npr2.cit.buffalo.edu will take over ldirectord and the ip address listed
+in haresources. When npr1.cit comes back up npr2.cit will release the ip and
+shut down ldirectord.
+	example:
+		lvs/npr1/haresources
+		lvs/npr2/haresources
+
+6. create a /etc/ha.d/authkeys file to define a secure key for heartbeat
+communication. dont forget to chmod the authkeys file to 600
+	example:
+		lvs/npr1/authkeys
+		lvs/npr2/authkeys
+7. open port 694/udp on both of the directors
+8. config heartbeat to startup at boottime
+	sudo /sbin/chkconfig --level 3 heartbeat on
+	sudo /sbin/chkconfig --level 4 heartbeat on
+	sudo /sbin/chkconfig --level 5 heartbeat on
+9. add local0.* to /etc/syslog.conf for debugging and logging purposes.
+#
+# fix HA bug
+# 
+# the problem is with the IPaddr script when it takes down an interface
+# after heartbeat shutdown, it essentially parses the output of ifconfig
+# to get the interface name however for long interface names such as vlan'd
+# ones ifconfig chops off part of the name. getint.c given an ip address 
+# will retrieve the entire interface name so IPaddr can work with it properly.
+1. compile lvs/getint.c and install in /usr/lib/heartbeat
+2. cp lvs/IPaddr /etc/ha.d/resource.d/IPaddr

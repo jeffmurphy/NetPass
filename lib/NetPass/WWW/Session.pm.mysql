@@ -1,0 +1,83 @@
+#!/usr/bin/perl
+
+package NetPass::WWW::Session;
+
+use HTML::Mason;
+use MasonX::Request::WithApacheSession;
+use HTML::Mason::ApacheHandler;
+use strict;
+use Sys::Hostname;
+use Apache::DBI;
+
+my $VERSION = "1.0001";
+
+my $cookieName = "UB-NetPass";
+
+if (hostname eq "cookbook.cit.buffalo.edu") {
+    $cookieName = "UB-NetPass-Devel";
+}
+
+# the session database:
+# CREATE TABLE sessions (
+#     id CHAR(64),
+#     length INT(11),
+#     a_session TEXT,
+#     index(id)
+# );
+
+
+# List of modules that you want to use from components
+{  package HTML::Mason::Commands;
+
+   # use ...
+}
+
+
+# Create ApacheHandler object
+
+my $ah =
+    new HTML::Mason::ApacheHandler (
+	request_class		=> 'MasonX::Request::WithApacheSession',
+
+        session_class              => 'Apache::Session::MySQL',
+        session_data_source        => "dbi:mysql:sessions",
+        session_user_name          => 'root',
+        session_password           => '',
+        session_lock_data_source   => "dbi:mysql:sessions",
+        session_lock_user_name     => 'root',
+        session_lock_password      => '',
+
+        session_use_cookie	=> 1,
+        session_cookie_name     => $cookieName,
+        session_cookie_expires  => '+1d',
+        session_cookie_domain   => '.buffalo.edu',
+        comp_root		=>   [
+					[ private => '/opt/netpass/www/components' ],
+					[ main => '/opt/netpass/www/htdocs' ]
+		       		     ],
+        data_dir		=> '/opt/apache/mason',
+	allow_globals		=> [qw($dbh $np $npdbh $q)]
+   );
+
+sub handler
+{
+    my ($r) = @_;
+
+    # If you plan to intermix images in the same directory as
+    # components, activate the following to prevent Mason from
+    # evaluating image files as components.
+
+    # this also tells mason to handle directories that don't exist, which is pretty handy
+
+    return -1 if $r->content_type && $r->content_type !~ m|^text/|i;
+
+    my $status = $ah->handle_request($r);
+    return $status;
+
+}
+
+1;
+
+
+__END__
+

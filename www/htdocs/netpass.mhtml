@@ -1,0 +1,155 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%init>
+#use NetPass::LOG qw (_log);
+</%init>
+
+<%doc>
+</%doc>
+
+<%perl>
+
+_log("DEBUG", $m->session->{'_session_id'}." calling /Client/GetInfo\n");
+$m->comp('/Client/GetInfo', %ARGS);
+
+my $mac = $m->session->{'remote_mac'};
+my $ip  = $m->session->{'remote_addr'};
+
+_log("DEBUG", "$mac $ip calling /Client/Login\n");
+$m->comp('/Client/Login', %ARGS);
+
+_log("DEBUG", "$mac $ip calling /Client/Validate\n");
+$m->comp("/Client/Validate", %ARGS);
+
+_log("DEBUG", "$mac $ip Phase: ".$m->session->{'phase'}."\n");
+
+if($np->policy('COOKIE_DETECT')) {
+	return if ($m->comp('/CookieDetect', %ARGS) != 1);
+}
+
+if($m->session->{'phase'} eq 'LOGIN') {
+	$m->session->{'logged_in'} = 0;
+	_log("DEBUG", "$mac $ip calling /Client/WelcomePage\n");
+	$m->comp('/Client/WelcomePage', %ARGS);
+
+} elsif($m->session->{'phase'} eq 'SCAN') {
+	_log("DEBUG", "$mac $ip calling /Client/BeginScan\n");
+	$m->comp('/Client/BeginScan', %ARGS);
+
+} elsif($m->session->{'phase'} eq 'REMEDIATE') {
+	_log("DEBUG", "$mac $ip calling /Client/Remediate\n");
+	$m->comp('/Client/Remediate', %ARGS);
+
+} elsif( ($m->session->{'phase'} eq 'COMPLETE') && ($m->session->{'remote_mac'} eq "REMOTE") ) {
+	_log("DEBUG", "$mac $ip Phase is COMPLETE and we are REMOTE: show you passed and delete session\n");
+
+	# We can't register b/c no MAC
+
+	my $msg = $npdbh->getPage('msg:remote_you_passed', 1);
+        my $msg2 = (defined($msg) && ($msg ne "")) ? $msg : "You are a remote user and you passed the scans successfully.";
+	print $msg2;
+
+	# then we delete their session completely so that they can do it again, if 
+	# they want to.
+	tied(%{$m->session})->delete;
+
+} elsif($m->session->{'phase'} eq 'COMPLETE') {
+ 
+	_log("DEBUG", "$mac $ip Phase is COMPLETE and we are LOCAL: show you passed, register and motd\n");
+	my $url = $m->session->{'url'};
+
+	if(!$url) {
+		$url = $np->policy('REDIR_URL_DEFAULT');
+	}
+	
+	if(ref($url) =~ /ARRAY/) {
+		# this bug has been fixed, it should never happen...
+		# but if it does, we'll catch it here
+		$url = $url->[0];
+	}
+
+	my @msgs = ();
+
+	if($m->session->{'returning_user'}) {
+		push(@msgs, 'welcome_to_resnet');	
+	} else {
+		push(@msgs, 'you_passed');	
+	}
+	push(@msgs, 'daily_message');	
+
+	foreach my $msg (@msgs) {
+	
+		my $m = $npdbh->getPage("msg:$msg", 1);
+        	next if (!defined($m));
+		$m =~ s/\$original_destination/$url/g;  # <-- we should get rid of this
+		print $m;
+	}
+
+	if ($np->policy('AUTO_REDIRECT') eq "yes") {
+		print "<meta http-equiv=\"Refresh\" content=\"15;$url\">";
+	}
+
+	_log("DEBUG", "$mac $ip registerHost()\n");
+      	$npdbh->registerHost($m->session->{'remote_mac'},
+			     $m->session->{'remote_addr'},
+                             $m->session->{'remote_os'},
+                             $m->session->{'username'});
+
+	my $sw = $m->session->{'switch'};
+	my $po = $m->session->{'port'};
+        
+	# cache in db to improve performance
+
+	$npdbh->setSwitchPort($mac, $sw, $po);
+
+	# at this point we want to send them back thru the validate process
+        # one more time. since they are now registered and unquarantined,
+        # the validate page will check for MULTI_MAC compliance and then
+        # redirect them as appropriate.
+
+	_log("DEBUG", "$mac $ip re-Validating (required to check multi-mac compliance after successful registration)\n");
+
+	$m->comp("/Client/Validate", %ARGS);
+
+	if($m->session->{'phase'} eq 'COMPLETE') {
+		# if our phase is still COMPLETE, there are no problems with the validate
+		_log("DEBUG", "$mac $ip phase is still COMPLETE. unquarantine!\n");
+
+		if ($npdbh->portMovePending(-switch => $sw, -port => $po)) {
+			_log("DEBUG", "$mac $ip port move already pending for $sw $po\n");
+
+			#print "Just a few more seconds .. please wait while your network connection is configured ..";
+		} else {
+			_log("DEBUG", "$mac $ip move port $sw $po\n");
+
+			my $rmp = $npdbh->requestMovePort(-switch => $sw, -port => $po, -vlan => 'unquarantine');
+                	# XXX if $rmp == 0 then tell them that something bad has happened
+        	}
+	} else {
+		_log("DEBUG", "$mac $ip phase is not COMPLETE (",
+				$m->session->{'phase'},
+				")\n");
+	}
+	# then we delete their session completely
+
+	_log("DEBUG", "$mac $ip is finished. delete session\n");
+
+	$m->session->{'phase'} = "LOGIN";
+	$m->session->{'regStatus'} = undef;
+
+	# this doesnt seem to do anything.
+	tied(%{$m->session})->delete;
+
+} else {}
+
+################################################
+
+return;
+
+</%perl>

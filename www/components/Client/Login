@@ -1,0 +1,51 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Client/Login,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+        $username => ''
+        $password => ''
+</%args>
+
+<%perl>
+	my $ip = $m->session->{'remote_addr'};
+	my $mac = $m->session->{'remote_mac'};
+
+        if ($m->session->{'logged_in'} == 1) {
+		_log("DEBUG", "$mac $ip /Client/Login this session is logged in. returning.\n");
+		return;
+	}
+	
+	if (!defined($username) || ($username eq "")) {
+		_log("DEBUG", "$mac $ip /Client/Login no username given, Phase=LOGIN\n");
+		$m->session->{'phase'} = 'LOGIN';
+		return;
+	}
+
+    	my $aok = $np->authenticateUser($username, $password);
+
+	if (!defined($aok) || ($aok != 1)) {
+                print $q->p({-class=>'error'}, "Authentication failed.");
+		_log("DEBUG", "$mac $ip /Client/Login authentication for $username failed, Phase=LOGIN\n");
+		$m->session->{'phase'} = 'LOGIN';
+		return;
+	}
+
+
+	$m->session->{'username'}  = $username;
+	$m->session->{'logged_in'} = 1;
+	$m->session->{'my_groups'} = $npdbh->getUserGroups($username);
+
+	$m->session->{'phase'}     = 'SCAN';
+
+	_log("DEBUG", "$mac $ip /Client/Login authentication for $username succeeded, Phase=SCAN ".$m->session->{'_session_id'}."\n");
+
+	$m->comp('/Audit', msg => [ 'authentication successful' ] );
+
+	return;
+</%perl>
+

@@ -1,0 +1,177 @@
+#!/usr/bin/env perl 
+
+# $Header: /tmp/netpass/NetPass/install,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+=head1 NAME
+
+install - installation / upgrade script
+
+=head1 SYNOPSIS
+
+ install.pl [/dest/dir]
+     -s             stage #
+     -D             enable debugging
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-s #>
+
+Start installation at given stage number. Not used right now. 
+
+=item B<-D> 
+
+Enable debugging output. Runs script in the foreground. Otherwise script will
+run in the background.
+
+=back
+
+=head1 DESCRIPTION
+
+This script will install NetPass into the given directory or upgrade a
+NetPass distribution that is already in that directory.
+
+=head1 AUTHOR
+
+Jeff Murphy <jcmurphy@buffalo.edu>
+
+=head1 LICENSE
+
+   (c) 2004 University at Buffalo.
+   Available under the "Artistic License"
+   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+=head1 REVISION
+
+$Id: install,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+
+=cut
+
+use strict;
+use FileHandle;
+use Getopt::Std;
+use Carp;
+
+my %opts;
+getopts('s:Dh?', \%opts);
+
+my $STAGE = $opts{'s'} || 0;
+
+my $PKGDIR = $0;
+$PKGDIR =~ s/\/[^\/]+//;
+my $cwd; chomp($cwd = `pwd`);
+$PKGDIR = $cwd if ($PKGDIR  =~ /^\.{0,1}$/);
+chdir $PKGDIR;
+
+print "0 $0 $PKGDIR\n";
+
+checkKit($PKGDIR);
+my $VERSION = getVersion($PKGDIR);
+
+welcome($VERSION);
+
+my $TARGET = shift;
+
+if (!defined($TARGET)) {
+	print "Directory to install into: ";
+	$TARGET=<STDIN>;
+}
+
+my $UPGRADE = 0;
+$UPGRADE = 1 if( -d $TARGET );
+
+my $CURVERSION = getVersion($TARGET) if $UPGRADE;
+
+print "KITVER=$VERSION CURVER=$CURVERSION\n";
+
+mkdir $TARGET unless $UPGRADE;
+mkdir "$TARGET/log" || die "cant mkdir $TARGET/log $!";
+touch("$TARGET/log/netpass.log");
+touch("$TARGET/log/snmptraps.log");
+
+copyTree($PKGDIR, $TARGET);
+
+
+exit 0;
+
+sub copyTree {
+	my ($src, $dst) = (shift, shift);
+	my $DH;
+	opendir($DH, $src) || die "cant open $src $!";
+	while(my $f = readdir($DH)) {
+		next if ($f =~ /^\.{1,2}$/);
+		next if ($f eq "install.d");
+		if (-d "$src/$f") {
+			mkdir "$dst/$f" || die "cant mkdir $dst/$f";
+			copyTree("$src/$f", "$dst/$f");
+		} else {
+			print "$src/$f\n";
+			system(qq{/bin/cp -p "$src/$f" "$dst/$f"});
+			die "cp $src/$f $dst/$f  failed $!"
+			  unless (-f "$dst/$f")
+		}
+	}
+	closedir($DH);
+}
+
+
+sub touch {
+	my $file = shift;
+	system (qq{/bin/touch "$file"}) if (!-f $file);
+}
+
+sub checkKit {
+	my $d = shift;
+
+	print "Checking kit ($d) .. ";
+
+	my $fh = new FileHandle $d."/MANIFEST", "r";
+	while(my $l = <$fh>) {
+		chomp $l;
+		spinner::spinner();
+		if (!-f $l) {
+			print Carp::longmess("\nkit corrupt. missing file $d/$l\n");
+			exit 255;
+		}
+	}
+	print "\b OK.\n";
+	$fh->close;
+}
+
+sub getVersion {
+	my $dir = shift;
+	my $fh;
+	($fh = new FileHandle "$dir/VERSION", "r" )
+		|| die Carp::longmess("distribution corrupt. file missing: $dir/VERSION");
+	my $VERSION=<$fh>;
+	chomp $VERSION;
+	$fh->close;
+	return $VERSION;
+}
+
+sub welcome {
+	my $v = shift;
+	print <<EOF;
+Welcome to NetPass v$v!
+EOF
+}
+
+
+package spinner;
+use strict;
+
+my @S = ('|', '/', '-', '\\');
+my $s = 0;
+sub spinner {
+	$s = ($s+1) % 4;
+	my $p = ('|', '/', '-', '\\')[$s];
+	print "\b$p";
+	#for(my $i=0; $i<1000;$i++){}
+}
+
+1;

@@ -1,0 +1,25 @@
+<%once>
+	use Apache::Cookie;
+</%once>
+
+<%args>
+	$url => ""
+</%args>
+
+<%perl>
+	my $cn = 'netpass_cookie_detect';
+
+	Apache::Cookie->new(	$r,
+				name  => $cn,
+				value => "yes",
+				path  => "/",
+				expires => "+1y" )->bake;
+
+</%perl>
+
+
+<META HTTP-EQUIV=REFRESH CONTENT="1; URL=/netpass.mhtml?url=<%$url%>">
+<P><P>
+If your browser doesn't automatically refresh in 1-2 seconds, please
+<a href="/netpass.mhtml?url=<%$url%>">click here</a>.
+<P><P>

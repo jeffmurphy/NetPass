@@ -1,0 +1,10 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/eula.mhtml,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+
+%      print $npdbh->getPage('msg:eula');

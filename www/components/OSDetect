@@ -1,0 +1,32 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/OSDetect,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+</%args>
+
+<%perl>
+	my $ua = lc($ENV{'HTTP_USER_AGENT'});
+        my $os = "Unknown";
+
+        my $os_map =    {
+                         'linux' => 'Linux',
+                         'x11'   => 'Unix',
+                         'mac'   => 'Mac',
+                         'win'   => 'Windows',
+                         'bsd'   => 'BSD'
+                        };
+
+        foreach my $k (sort keys(%$os_map)) {
+                if($ua =~ /$k/) {
+                        $os = $os_map->{$k};
+                        last;
+                }
+        }
+
+        return $os;	
+</%perl>

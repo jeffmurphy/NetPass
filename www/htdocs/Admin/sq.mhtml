@@ -1,0 +1,221 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Attic/sq.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+</%doc>
+
+<%args>
+</%args>
+
+<script><!--
+setWhereAmI('Squid Config');
+
+function deleteEntry (item, index) {
+	item.options[index] = null;
+}
+
+function addEntry (item, text) {
+	var val = text.value
+	if (val != "") {
+		var opt = new Option(val, val)
+		item.options[item.options.length] = opt 
+		text.value = "";
+	}
+}
+
+function gatherList(item, variable) {
+	var str = ""
+
+        for (var i = 0; i < item.options.length; i++) {
+		str += "|"+item[i].value
+        }
+	variable.value = str
+	return true
+}
+
+-->
+</script>
+
+<%perl>
+
+use FileHandle;
+
+my $npcfg  = $np->cfg();
+my $squidbasedir = $npcfg->{'cfg'}->obj('squid')->value('BASE_DIR');
+
+my $SQUIDCONFFILE      = "$squidbasedir/SquidGuard.conf";
+my $ALLOWEDURLS        = "$squidbasedir/allowed_urls";
+my $ALLOWEDDOMAINS     = "$squidbasedir/allowed_domains";
+
+if ($ARGS{'action'}) {
+	writeConf($SQUIDCONFFILE, $ALLOWEDURLS, $ALLOWEDDOMAINS, \%ARGS);
+	$npdbh->reqAppAction('squid',   'restart', '')
+}
+
+my $data = readConf($SQUIDCONFFILE, $ALLOWEDURLS, $ALLOWEDDOMAINS);
+
+if (! $m->comp('/Admin/MemberOf', 'group' => [ 'Admin' ]) ) {
+        print $q->p({-class=>'error'}, "Sorry, permission denied.<BR>(You must be an Admin)");
+        return;
+}
+
+print $q->start_form(-name => 'form', -method => "POST");
+print "<h2>SquidGuard Configuration</h2>";
+print "<TABLE CLASS='gray' CELLSPACING=2 CELLPADDING=2 WIDTH=400 BORDER=0>";
+print "<TR><TH COLSPAN=2>Allowed Urls</TH>";
+print "<TH COLSPAN=2>Allowed Domains</TH></TR>";
+
+print "<TR><TD CLASS='gray' ROWSPAN=6>";
+print $q->textfield (
+                                -name   => 'newurl',
+                                -size   => '30',
+                    );
+print $q->scrolling_list (
+				-name	=> 'allowedurls',
+				-values => [sort @{$data->{allowed_urls}}],
+				-size 	=> 9,
+				-style	=> 'width:223px;'
+			 );
+print "</TD><TD CLASS='gray'>";
+print $q->button (
+				-name	=> 'addurl',
+				-value	=> 'Add',
+                                -onClick => "addEntry(document.form.allowedurls,
+                                                      document.form.newurl);
+                                                      return false;",
+		 );
+print "</TD><TD ROWSPAN=6 CLASS='gray'>";
+print $q->textfield (
+				-name   => 'newdomain',
+				-size   => '30',
+		    );
+print "<BR>";
+print $q->scrolling_list (
+                                -name   => 'alloweddomains',
+                                -values => [sort @{$data->{allowed_domains}}],
+                                -size   => 9,
+				-style	=> 'width:223px;'
+                         );
+print "</TD><TD CLASS='gray'>";
+print $q->button (
+                                -name   => 'adddom',
+                                -value  => 'Add',
+				-onClick => "addEntry(document.form.alloweddomains,
+						      document.form.newdomain);
+						      return false;",
+                 );
+print "</TD></TR>";
+print "<TR><TD CLASS='gray'>&nbsp;</TD><TD CLASS='gray'>&nbsp;</TD></TR>";
+print "<TR><TD CLASS='gray'>&nbsp;</TD><TD CLASS='gray'>&nbsp;</TD></TR>";
+print "<TR><TD CLASS='gray'>&nbsp;</TD><TD CLASS='gray'>&nbsp;</TD></TR>";
+print "<TR><TD CLASS='gray'>&nbsp;</TD><TD CLASS='gray'>&nbsp;</TD></TR>";
+print "<TR><TD CLASS='gray'>";
+print $q->button (
+                                -name   => 'delurl',
+                                -value  => 'Del',
+				-onClick => "deleteEntry(document.form.allowedurls,
+						         document.form.allowedurls.selectedIndex);
+							 return false;",
+                 );
+print "</TD><TD CLASS='gray'>";
+print $q->button (
+                                -name   => 'deldom',
+                                -value  => 'Del',
+                                -onClick => "deleteEntry(document.form.alloweddomains,
+                                                         document.form.alloweddomains.selectedIndex);
+						         return false;",
+                 );
+print "</TD></TR><TR><TD CLASS='gray' COLSPAN=4>&nbsp;</TD></TR>";
+print "<TR><TD CLASS='gray' COLSPAN=4><B>Redirect</B><BR>";
+print $q->textfield (
+                                -name   => 'redirect',
+				-value	=> $data->{redirect},
+                                -size   => '40',
+                    );
+print "</TD></TR>";
+print "</TABLE>";
+print "<input TYPE=\"hidden\" NAME=\"listad\" VALUE=\"$ARGS{'listad'}\">";
+print "<input TYPE=\"hidden\" NAME=\"listau\" VALUE=\"$ARGS{'listau'}\">";
+print $q->submit(
+			-name	=> 'action',
+			-value	=> 'Commit Changes',
+			-onClick => "return (
+				     gatherList(document.form.allowedurls,
+						document.form.listau) &&
+				     gatherList(document.form.alloweddomains,
+				                document.form.listad));"
+		);
+print $q->end_form();
+
+sub writeConf {
+
+        use File::Copy;
+
+	my($cf, $au, $ad, $args) = @_;
+
+        my $AD  = new FileHandle;
+        my $AU  = new FileHandle;
+        my $CF  = new FileHandle;
+	my @t;
+
+	$AU->open("> $au");
+	foreach (split(/\|/, $args->{'listau'})) {
+		next unless (/^\w+\.\w+\.{0,1}\w*\.{0,1}\w*$/);
+		print $AU $_."\n";
+	}
+	$AU->close;
+
+        $AD->open("> $ad");
+        foreach (split(/\|/, $args->{'listad'})) {
+                next unless (/^\w+\.\w+\.{0,1}\w*\.{0,1}\w*$/);
+                print $AD $_."\n";
+        }
+        $AD->close;
+
+	$CF->open($cf);
+	@t = <$CF>;
+	$CF->close;
+
+	$CF->open("> $cf");
+	foreach (@t) { 
+                if (/^\s+redirect\s302\:.+$/) {
+			print $CF "\tredirect 302:".$args->{'redirect'}."\n";
+                        next;
+                }
+		print $CF $_;
+	}
+	$CF->close;
+}
+
+sub readConf {
+	my($cf, $au, $ad) = @_;
+	my $data = {};
+
+	my $AD = new FileHandle;
+	my $AU = new FileHandle;
+	my $CF = new FileHandle;
+
+	$AD->open($ad);
+	while (<$AD>) { chomp; push @{$data->{allowed_domains}}, $_; }
+	$AD->close;
+
+	$AU->open($au);
+	while (<$AU>) { chomp; push @{$data->{allowed_urls}}, $_; }
+	$AU->close;
+
+	$CF->open($cf);	
+	while (<$CF>) {
+		if (/^\s+redirect\s302\:(.+)$/) {
+			$data->{redirect} = $1;
+			last;
+		}
+	}
+	$CF->close;
+	
+	return $data;
+}
+
+</%perl>

@@ -1,0 +1,239 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+</%args>
+
+<script><!--
+setWhereAmI('General Config');
+--></script>
+
+<%perl>
+
+use Config::General;
+
+if (! $m->comp('/Admin/MemberOf', 'group' => [ 'Admin' ]) ) {
+        print $q->p({-class=>'error'}, "Sorry, permission denied.<BR>(You must be an Admin)");
+        return;
+}
+
+my $npcfg  = $np->cfg();
+my %config = $npcfg->{'cfg'}->getall();
+
+my $restartnetpass = 0;
+my $restartnessus  = 0;
+my $restarthttpd   = 0;
+
+if ($ARGS{'action'} eq 'Commit Changes') {
+	print '<DIV CLASS="error">Please Wait about 5 minutes for Changes to take affect</DIV>';
+
+	foreach my $p (sort $npcfg->{'cfg'}->keys('policy')) {
+		if ($ARGS{"p_$p"} ne $config{'policy'}{$p}) {
+			$config{'policy'}{$p} = $ARGS{"p_$p"};
+			
+			if ($p =~ /PID_DIR|BASE_DIR/) {
+				$restartnetpass = 1;
+			} else {
+				$restarthttpd = 1;
+			}
+		}
+	}
+
+        foreach my $n (sort $npcfg->{'cfg'}->keys('nessus')) {
+		if ($ARGS{"n_$n"} ne $config{'nessus'}{$n}) {
+			if (ref($config{'nessus'}{$n}) eq 'HASH') {
+				map($config{'nessus'}{$n}{$_} = "",
+				    split(',', $ARGS{"n_$n"}));
+				$restartnessus = 1;
+				next;
+			}
+                	$config{'nessus'}{$n} = $ARGS{"n_$n"};
+			$restartnessus = 1
+		}
+        }
+
+        foreach my $d (sort $npcfg->{'cfg'}->keys('database')) {
+		if ($ARGS{"d_$d"} ne $config{'database'}{$d}) {
+                	$config{'database'}{$d} = $ARGS{"d_$d"};
+			$restartnetpass = 1;
+		}
+        }
+
+	$npdbh->reqAppAction('nessusd', 'restart', '') if ($restartnessus);
+	$npdbh->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
+	$npdbh->reqAppAction('httpd',   'restart', '') if ($restarthttpd);
+
+	use File::Copy;
+	copy($np->{'configFile'}, $np->{'configFile'}.'.bak');
+	SaveConfig($np->{'configFile'}, \%config);
+}
+
+print $q->start_form(-method => "POST");
+
+print "<h2>General Configuration</h2>";
+print "<TABLE CELLSPACING=2 CELLPADDING=2 WIDTH=400 BORDER=0>";
+print "<TR><TH COLSPAN=2>Policy</TH></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>AUTH_METHOD</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+                        -name   => 'p_AUTH_METHOD',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('AUTH_METHOD'),
+                        -size   => 25,
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>ADMIN_AUTH_METHOD</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+			-name   => 'p_ADMIN_AUTH_METHOD',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('ADMIN_AUTH_METHOD'),
+                        -size   => 25,
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50>MULTI_MAC</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->popup_menu (
+                        -name     => 'p_MULTI_MAC',
+                        -values   => ['ALL_OK', 'ONE_OK', 'DISALLOWED'],
+                        -default  => $npcfg->{'cfg'}->obj('policy')->value('MULTI_MAC'),
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>RESULTS_DISPLAY</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->popup_menu (
+                        -name     => 'p_RESULTS_DISPLAY',
+			-values	  => ['INLINE', 'POPUP'],
+                        -default  => $npcfg->{'cfg'}->obj('policy')->value('RESULTS_DISPLAY'),
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>RESULTS_EXPAND</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+                        -name   => 'p_RESULTS_EXPAND',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('RESULTS_EXPAND'),
+                        -size   => 3,
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>AUTO_REDIRECT</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->radio_group (
+                        -name    => 'p_AUTO_REDIRECT',
+			-values  => ['Yes', 'No'],
+                        -default => ($npcfg->{'cfg'}->obj('policy')->value('AUTO_REDIRECT')) ? 'Yes' : 'No',
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>REDIR_URL_DEFAULT</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+                        -name   => 'p_REDIR_URL_DEFAULT',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('REDIR_URL_DEFAULT'),
+                        -size   => 25,
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>SURVEY_ENABLED</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->radio_group (
+                        -name    => 'p_SURVEY_ENABLED',
+                        -values  => ['Yes', 'No'],
+                        -default => ($npcfg->{'cfg'}->obj('policy')->value('SURVEY_ENABLED')) ? 'Yes' : 'No',
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>SURVEY_EMAIL</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+                        -name   => 'p_SURVEY_EMAIL',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('SURVEY_EMAIL'),
+                        -size   => 25,
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>PID_DIR</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+                        -name   => 'p_PID_DIR',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('PID_DIR'),
+                        -size   => 25,
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>BASE_DIR</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+                        -name   => 'p_BASE_DIR',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('BASE_DIR'),
+                        -size   => 25,
+                    );
+print "</TD></TR>";
+print "</TABLE>";
+print "<P>";
+
+print "<TABLE CELLSPACING=2 CELLPADDING=2 WIDTH=400 BORDER=0>";
+print "<TR><TH COLSPAN=2>Nessus</TH></TR>";
+
+foreach my $n (sort $npcfg->{'cfg'}->keys('nessus')) {
+        print "<TR>";
+        print "<TD CLASS='gray' WIDTH=50%>$n</TD>";
+        print "<TD CLASS='gray' WIDTH=50%>";
+	my $val = $npcfg->{'cfg'}->obj('nessus')->value($n);
+
+	if (ref($val) eq 'HASH') {
+		$val = join(',', keys %$val);
+	} 
+
+        print $q->textfield (
+                                -name   => "n_$n",
+				-value  => $val,
+				-size 	=> 25,
+                            );
+        print "</TD></TR>";
+}
+print "</TABLE>";
+print "<P>";
+
+print "<TABLE CELLSPACING=2 CELLPADDING=2 WIDTH=400 BORDER=0>";
+print "<TR><TH COLSPAN=2>Database</TH></TR>";
+
+foreach my $d (sort $npcfg->{'cfg'}->keys('database')) {
+        print "<TR>";
+        print "<TD CLASS='gray' WIDTH=50%>$d</TD>";
+        print "<TD CLASS='gray' WIDTH=50%>";
+        print $q->textfield (
+                                -name   => "d_$d",
+				-value  => $npcfg->{'cfg'}->obj('database')->value($d),
+				-size 	=> 25 ,
+                            );
+        print "</TD></TR>";
+}
+print "</TABLE>";
+print $q->submit(
+			-name	=> 'action',
+			-value	=> 'Commit Changes'
+		);
+
+print $q->end_form();
+</%perl>

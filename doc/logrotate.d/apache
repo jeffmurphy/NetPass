@@ -1,0 +1,29 @@
+/opt/apache/logs/access_log {
+    daily
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+}
+
+/opt/apache/logs/error_log {
+    daily
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+}
+
+/opt/apache/logs/ssl_engine_log {
+    daily
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+    postrotate
+        [ -e /opt/apache/logs/httpd.pid ] && /bin/kill -HUP `cat /opt/apache/logs/httpd.pid 2> /dev/null ` || /bin/true
+    endscript
+}

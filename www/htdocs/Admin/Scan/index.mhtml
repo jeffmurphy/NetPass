@@ -1,0 +1,373 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+$id      => '';
+$key     => '';
+$status  => '';
+$type    => 'AND';
+$search  => '';
+$submit  => '';
+$ids	 => ();
+$start   => 0;
+$update	 => '';
+</%args>
+
+<script><!--
+setWhereAmI('Scan Config');
+--></script>
+
+
+<%perl>
+
+
+my @reqGroups = ('Admin', 'ScanAdmin', 'Reports');
+my $readOnly  = $m->comp('/Admin/MemberOf', 'group' => 'Reports') ? "disabled" : "";
+
+if (! $m->comp('/Admin/MemberOf', 'group' => [ @reqGroups ]) ) {
+
+        print $q->p({-class=>'error'},
+                "Sorry, permission denied.<BR>You must be in one of these groups: ",
+                join(',', @reqGroups));
+        return;
+}
+
+
+
+
+my $msgs = getMsgs($dbh);
+
+print $q->h2("Scan Configuration");
+
+print $q->start_form(-method=>"POST", action => "index.mhtml");
+
+print $q->table({-border=>0, -width=>600},
+		$q->TR(
+			$q->th({-colspan=>2}, "Search for plugins")
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "Keywords:") .
+			$q->td({-class=>"gray"},
+				$q->textfield(
+						-name 	=> "key",
+						-value 	=> $key
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "Status:") .
+			$q->td({-class=>"gray"},
+				$q->popup_menu(
+						-name 	 => "status",
+						-values	 => [
+								"",
+								"ENABLED",
+								"DISABLED"
+							    ],
+						-labels	 => {
+								"" => "ALL"	
+							    },
+						-default => $status
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, "Search Type:") .
+			$q->td({-class=>"gray"},
+				$q->popup_menu(
+						-name 	 => "type",
+						-values	 => [
+								"AND",
+								"OR"
+							    ],
+						-labels	 => {
+								"AND" => "Results must match ALL of the above",
+								"OR"  => "Results must match ANY of the above"
+							    },
+						-default => $type
+				)
+			)
+		).
+		$q->TR(
+			$q->td({-class=>"gray"}, '&nbsp;') .
+			$q->td({-class=>"gray"},
+				$q->submit(
+						-name 	=> "search",
+						-value 	=> "Search"
+				)
+			)
+		)
+	);
+
+return if(!$submit && !$search && !$update);
+
+if ($update) {
+        if ($readOnly eq "") {
+		$npdbh->reqAppAction('reload_nessus_plugins', 'start', '');
+        } else {
+                # this really shouldnt happen. we dont give them a Refresh Plugins button
+                $npdbh->audit(  -user => $m->session->{'logged_in'},
+                                -severity => "ALERT",
+                                -msg => [ "tried to Refresh Plugins but is ReadOnly" ]);
+        }
+}
+
+if($submit) {
+        if ($readOnly eq "") {
+                saveChanges($dbh,\%ARGS, $ids);
+        } else {
+                # this really shouldnt happen. we dont give them a submit button
+                $npdbh->audit(  -user => $m->session->{'logged_in'},
+                                -severity => "ALERT",
+                                -msg => [ "tried to change ScanAdmin but is ReadOnly" ]);
+
+        }
+}
+
+my ($results, $count, $result_set, $next_link, $prev_link) = getResults($dbh,$key,$status,$type, $start);
+
+if($count<0) {
+	print $q->error("Sorry, there was an error while processing your request!");
+}
+
+print $q->h4("Showing Results $result_set");
+
+if($count==0) {
+	print $q->p("You may want to re-define your search to be less strict.<br>I would suggest removing one or more fields and modifying the Search Type.");
+	return;
+}
+
+print $q->a({ -href=>$prev_link }, "<-- Previous Page") if($start >0);
+print "&nbsp;";
+print $q->a({ -href=>$next_link }, "Next Page -->") if($next_link ne '');
+print $q->br;
+
+my @rows = ();
+
+push(@rows, $q->TR(
+		   $q->td({-colspan=>5}, '&nbsp;').
+		   $q->td({-colspan=>2, -align=>"right"},
+			  $q->submit(-name  => "submit", -value => "Save Changes", $readOnly),
+			  $q->submit(-name  => "update", -value => "Refresh Plugins", $readOnly)
+		   )
+	    )
+);
+
+push(@rows, 	$q->TR(
+			$q->th("Family") .
+			$q->th("Name") .
+			$q->th("Revision") .
+			$q->th("Plugin Id") .
+			$q->th("Enabled") .
+			$q->th("Message") .
+			$q->th("More Information") 
+		)
+);
+
+my $class = "";
+
+while (my $row = $results->fetchrow_hashref() ) {
+
+	$class = ($class eq "")?"gray":"";
+	
+	$row->{revision} =~ s/\$//g;
+	$row->{revision} =~ s/\s*Revision:\s*//g;
+
+	my $href = "info.mhtml?id=" . $row->{pluginID};
+
+	push( @rows,	$q->TR( {-class=> $class },
+				$q->td({-align=>'center'}, $row->{family})         .
+				$q->td({-align=>'center'}, $row->{name})           .
+				$q->td({-align=>'center'}, $row->{revision})       .
+				$q->td({-align=>'center'}, $row->{pluginID})       .
+				$q->td({-align=>'center'}, 
+					$q->checkbox(
+							-name    => "status:" .$row->{pluginID},
+							-label	 => "",
+							-checked => ($row->{status} eq "enabled"),
+							$readOnly
+					) .
+					$q->hidden(
+							-name	=> "statusOrig:".$row->{pluginID},
+							-value  => $row->{status}
+					) .
+					$q->hidden(
+							-name	 => "ids",
+							-value	 => $row->{pluginID}
+					)
+				)         .
+				$q->td({-align=>'center'}, 
+					$q->popup_menu(
+							-name    => "message:" . $row->{pluginID},
+							-values  => $msgs,
+							-labels	 => {
+									"nessus:" => "Default Description"	
+							    	     },
+							-default => $row->{info},
+							$readOnly 
+					).
+					$q->hidden(	-name => "messageOrig:".$row->{pluginID},
+							-value => $row->{info}
+					)
+				) .
+				$q->td({-align=>'center'}, $q->a({-href=>$href, -target=>'_blank'}, "[ view ]"))
+			) . "\n");
+}
+
+$results->finish;
+
+push(@rows, $q->TR($q->td({-colspan=>7, -align=>"right"}, $q->submit(-name  => "submit", -value => "Save Changes", $readOnly), $q->submit(-name  => "update", -value =>"Refresh Plugins", $readOnly))));
+
+print $q->table({-width=>'80%'}, @rows);
+print $q->end_form();
+
+print $q->p();
+
+return;
+
+#######################
+
+sub getResults {
+	my $dbh	   = shift;
+	my $key	   = shift;
+	my $status = shift;
+	my $type   = shift;
+	my $start  = shift;
+	my $limit  = 250;
+
+	# double check the value, make sure noone can sneak an insertion attack in here ;)
+	$type = ($type eq "OR")?"OR":"AND";
+	$start = 0 if(!($start =~ /\d+/) || $start<0);
+	
+	my @clause = ();
+	my @params = ();
+
+	if($key) {
+		push(@clause, "(name LIKE ? OR pluginID = ?)");
+		push(@params, "%$key%");
+		push(@params, $key);
+	}
+
+	if($status) {
+		push(@clause, "status=?");
+		push(@params, $status);
+	}
+
+	my $query = "SELECT DATE_FORMAT(addedOn, '%Y-%m-%d %H:%i:%s') as addedOn, DATE_FORMAT(lastModifiedOn, '%Y-%m-%d %H:%i:%s') as lastModifiedOn, pluginID, name, family, revision, addedBy, lastModifiedBy, status, info FROM nessusScans";
+	
+	if($#clause>-1) {
+		$query .= " WHERE " . join(" $type ", @clause)
+	}
+
+	$query .= " ORDER BY family LIMIT $start,$limit";
+
+	my $sth = $dbh->prepare($query);
+
+	if(!defined($sth)) {
+        	return ("prepare failed: ". $dbh->errstr, -1);
+    	}
+    
+	if( !$sth->execute(@params) ) {
+        	return ("execute failed: ". $dbh->errstr, -1);
+    	}
+
+    	my $count = $sth->rows;
+
+        my $link      = "index.mhtml?key=$key&type=$type&status=$status&search=Search&start=";
+        my $prev_link = $link . ($start-$limit);
+        my $next_link = '';
+
+        my $result_set = "";
+        if($count==$limit) {
+                $result_set = "$start to " . ($start+$limit);
+                $next_link = $link . ($start+$limit);
+        } else {
+                $result_set = "$start to " . ($start+$count);
+                $next_link = '';
+        }
+
+	return ($sth, $count, $result_set, $next_link, $prev_link);
+
+}
+
+sub getMsgs {
+	my $dbh = shift;
+	
+	my $query = "SELECT distinct(name) FROM pages order by name";
+	my $sth = $dbh->prepare($query);
+	$sth->execute();
+	
+	my @msgs = ('nessus:', 'http://');
+
+	while(my $m = $sth->fetchrow_arrayref) {
+		push(@msgs, $m->[0]);
+	}
+
+	$sth->finish;
+
+	return \@msgs;	
+
+}
+
+sub saveChanges {
+	my $dbh  = shift;
+	my $args = shift;
+	my $ids	 = shift;
+
+        if(!(ref($ids) =~ /ARRAY/) ) {
+                $ids = [$ids];
+        }
+
+	foreach my $id (@$ids) {
+
+		my @clause = ();
+		my @params = ();
+
+		my $status = ($args->{"status:$id"})?"enabled":"disabled";
+
+		# if there's nothing to do, then do nothing.
+
+		next if ( ($args->{'statusOrig:'.$id} eq $status) &&
+			  ($args->{'messageOrig:'.$id} eq $args->{"message:$id"}) );
+
+		if ($args->{"message:$id"} ne $args->{"messageOrig:$id"}) {
+			$npdbh->audit(
+				-user => $m->session->{'logged_in'},
+			      	-msg => [ "ScanAdmin: $id message changed to", $args->{"message:$id"},
+					  "from", $args->{'messageOrig:'.$id} ]);
+		}
+
+		if ($args->{"status:$id"} ne $args->{"statusOrig:$id"}) {
+			$npdbh->audit(
+				-user => $m->session->{'logged_in'},
+			      	-msg => [ "ScanAdmin: $id status changed to", $status, "from", 
+					  $args->{'statusOrig:'.$id} ]);
+		}
+
+		push(@clause, "status=?");
+		push(@params, $status);
+	
+		push(@clause, "info=?");
+		push(@params, $args->{"message:$id"});
+
+		my $query = "UPDATE nessusScans SET " . join(", ", @clause) . " WHERE pluginID = ?";
+
+		my $sth   = $dbh->prepare($query);
+
+		push(@params, $id);
+		$sth->execute(@params);		
+	}
+
+
+}
+
+
+</%perl>
+
+

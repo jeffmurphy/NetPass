@@ -1,0 +1,127 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/info.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+$id      => '';
+</%args>
+
+<%perl>
+
+my ($results, $count) = getInfo($dbh,$id);
+
+if($count<=0) {
+	print $q->p("hmm...");
+	return;
+}
+
+
+print $q->h2("Plugin Information");
+
+my $row = $results->fetchrow_hashref();
+my @rows = ();
+
+$row->{description} =~ s/\\n/<br>/g;
+$row->{revision} =~ s/\$//g;
+
+push(@rows,
+		$q->TR(
+			$q->th({-colspan=>2}, $row->{name} . $q->br . $row->{revision})
+		).
+		$q->TR(
+			$q->td({-colspan=>2, -align=>'center'}, $row->{copyright})
+		).
+		$q->TR( {-class=>'gray'},
+			$q->td("Family:") .
+			$q->td($row->{family})
+		).
+		$q->TR( {-class=>'gray'},
+			$q->td({-width=>'100'}, "Added:") .
+			$q->td($row->{addedOn} . " by " . $row->{addedBy})
+		).
+		$q->TR( {-class=>'gray'},
+			$q->td("Modified:") .
+			$q->td($row->{lastModifiedOn} . " by " . $row->{lastModifiedBy})
+		)
+);
+
+if($row->{bugtraq}) {
+
+	push(@rows,
+			$q->TR( {-class=>'gray'},
+				$q->td("Bugtraq:") .
+				$q->td(makeLinks($q, "http://www.securityfocus.com/bid/", $row->{bugtraq}))
+			)
+	);
+}
+
+if($row->{cve}) {
+
+	push(@rows,
+			$q->TR( {-class=>'gray'},
+				$q->td("CVE:") .
+				$q->td(makeLinks($q, "http://cve.mitre.org/cgi-bin/cvename.cgi?name=", $row->{cve}))
+			)
+	);
+}
+
+push(@rows,
+		$q->TR( {-class=>'gray'},
+			$q->td({-colspan=>2}, $q->p($row->{description}))
+		)
+);
+
+
+print $q->table( {-border=>0, -width=>'100%'}, @rows);
+
+
+print $q->p();
+
+return;
+
+#######################
+
+sub getInfo {
+	my $dbh	   = shift;
+	my $id	   = shift;
+
+	my $query = "SELECT DATE_FORMAT(addedOn, '%Y-%m-%d %H:%i:%s') as addedOn, DATE_FORMAT(lastModifiedOn, '%Y-%m-%d %H:%i:%s') as lastModifiedOn, pluginID, name, family, short_desc, addedBy, lastModifiedBy, status, revision, copyright, bugtraq, cve, description FROM nessusScans WHERE pluginID=?";
+
+	my $sth = $dbh->prepare($query);
+
+	if(!defined($sth)) {
+        	return ("prepare failed: ". $dbh->errstr, -1);
+    	}
+    
+	if( !$sth->execute($id) ) {
+        	return ("execute failed: ". $dbh->errstr, -1);
+    	}
+
+    	my $count = $sth->rows;
+
+	return ($sth, $count);
+
+}
+
+sub makeLinks {
+	my $q	 = shift;
+	my $link = shift;
+	my $csv  = shift;
+
+	my $buf = '';
+
+	foreach my $i (split(/\s*,\s*/, $csv)) {
+		$buf .= $q->a({-href=>"$link$i", -target=>"_blank"}, $i) . " ";
+	}
+
+	return $buf;
+}
+
+</%perl>
+
+

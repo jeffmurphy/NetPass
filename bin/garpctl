@@ -1,0 +1,350 @@
+#!/usr/bin/perl -w
+#
+# $Header: /tmp/netpass/NetPass/bin/garpctl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+=head1 NAME
+
+garpctl - manage garp processes
+
+=head1 SYNOPSIS
+
+ garpctl [-c config] [-qnDh?] <start | stop | status | restart> [interface]
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<command>
+
+One of the typical initscript commands (start, stop, restart, status). If we
+aren't the appropriate host to start garp on, we won't. For example, in an
+HA configuration, garp should run on the currently active redirector. 
+
+=item B<interface>
+
+Optional parameter specifying that we only want to fiddle with one of the
+garp processes. Example: C<garpctl stop eth1.812>
+
+=item B<-c config>
+
+Specify location of C<netpass.conf>
+
+=item B<-q>
+
+Quiet
+
+=item B<-n>
+
+Not really
+
+=item B<-D>
+
+Debug
+
+=item B<-h> or B<-?>
+
+Print this message.
+
+=back
+
+=head1 SEE ALSO
+
+C<netpass.conf>
+
+=head1 AUTHOR
+
+Jeff Murphy <jcmurphy@buffalo.edu>
+
+=head1 LICENSE
+
+   (c) 2004 University at Buffalo.
+   Available under the "Artistic License"
+   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+=head1 REVISION
+
+$Id: garpctl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+
+=cut
+
+use strict;
+
+use Getopt::Std;
+use lib '/opt/netpass/lib';
+use Pod::Usage;
+
+use NetPass;
+use NetPass::Config;
+use NetPass::LOG qw(_log _cont);
+
+use Proc::ProcessTable;
+use Proc::ProcessTable::Process;
+
+use FileHandle;
+
+use Sys::Hostname;
+
+use Data::Dumper;
+
+NetPass::LOG::init [ 'garpctl', 'local0' ];
+
+
+my %opts;
+getopts('c:qnDh?', \%opts);
+
+my ($cmd, $if) = (shift, shift);
+
+
+
+
+
+my ($started, $uid, $ifn, $name, $_pid);
+
+print "new NetPass\n" if exists $opts{'D'};
+
+if ( !defined($cmd) || ($cmd !~ /^(start|stop|restart|status)$/i) ) {
+    print "cmd=$cmd which isnt start|stop|restart|status\n" 
+      if exists $opts{'D'};
+    pod2usage(1);
+}
+
+my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
+		     "/opt/netpass/etc/netpass.conf",
+		     -debug => exists $opts{'D'} ? 1 : 0,
+		     -quiet => exists $opts{'q'} ? 1 : 0);
+
+die "failed to create NetPass object" unless defined $np;
+
+my $pidDir = $np->policy('PID_DIR') || "/var/run/netpass";
+my $pids   = getPids($pidDir);
+
+my $baseDir = $np->policy('BASE_DIR') || "/opt/netpass";
+
+print "calling command $cmd\n" if exists $opts{'D'};
+
+no strict 'refs';
+my $status = &$cmd($np, $pids, $if);
+
+exit $status;
+
+sub getPids {
+    my $d = shift;
+    [ -d $d && -r $d ] || die "bad pid directory ($d) $!";
+
+    my %pids;
+
+    opendir(DH, "/var/run/netpass") || die "cant open $d : $!";
+    foreach my $fn (grep { /^garp\.[0-9]+\.pid$/ } readdir(DH)) {
+	my $fh = new FileHandle "$d/$fn", "r";
+	die "cant open $d/$fn: $!" unless defined $fh;
+	my ($pid, $if) = (<$fh>, <$fh>);
+	chomp($pid); chomp($if);
+	die "file didnt contain correct info"
+	  unless defined($pid) && defined($if);
+	$pids{$pid} = $if;
+    }
+    closedir(DH);
+    return \%pids;
+}
+
+sub start {
+    my $np   = shift;
+    my $pids = shift;
+    my $if   = shift;
+
+    print "in 'start'..\n" if exists $opts{'D'};
+
+    # foreach network:
+    #   if garp == enabled then
+    #       fetch quar/unquar vlan id
+    #       fetch interface 
+    #       if ha enabled then 
+    #          if we are the redirector then
+    #            garp.pl -i int.quar  -r 5 -a virt-ip
+    #            garp.pl -i int.unquar -r 5 -a virt-ip
+    #          else
+    #            print warning
+    #          endif
+    #       else 
+    #            garp.pl -i int.quar  -r 5
+    #            garp.pl -i int.unquar -r 5
+    #       endif
+    #   end
+    # end
+
+    my $rv = 0;
+
+    print "foreach network:\n" if exists $opts{'D'};
+
+    foreach my $nw (  @{$np->cfg->getNetworks()}  ) {
+	print "\t$nw is garp enabled?\n" if exists $opts{'D'};
+
+	if( $np->cfg->garp($nw) == 1 ) {
+	    print "\t\tyes\n" if exists $opts{'D'};
+
+	    my $if = $np->cfg->interface($nw);
+	    die "interface for $nw not specified" unless defined($if);
+	    my ($u, $q) = $np->cfg->availableVlans(-network => $nw);
+	    die "cant determine unquar vlan id" unless defined($u);
+	    die "cant determine   quar vlan id" unless defined($q);
+
+	    my $vip = "";
+
+	    print "\t\tare we a redirector?\n" if exists $opts{'D'};
+
+	    if ($np->cfg->ha($nw) == 1) {
+		my $pr = $np->cfg->primary_redirector($nw) || "UNDEF";
+		my $sr = $np->cfg->secondary_redirector($nw) || "UNDEF";
+
+		if ( ($pr ne hostname) && ($sr ne hostname) ) {
+		    print "Warning: HA is enabled for $nw, but we are not one of the
+redirectors. garp will not be started. (we=".hostname." rds=$pr $sr)\n" unless exists $opts{'q'};
+		    next;
+		}
+
+		$vip = $np->cfg->virtualIP($nw);
+		die "cant determine virtual IP address" unless defined($vip);
+		$vip = "-a $vip";
+	    } else {
+		print "\t\t\tyes\n" if exists $opts{'D'};
+	    }
+
+	    my ($gn, $gd) = ($np->cfg->garp($nw, 'number'),
+			     $np->cfg->garp($nw, 'delay'));
+
+	    if(defined($gn)) {
+		$gn = "-n $gn";
+	    } else {
+		$gn = "";
+	    }
+
+	    if(defined($gd)) {
+		$gd = "-r $gd";
+	    } else {
+		$gd = "";
+	    }
+
+	    my $shell_comm = qq{$baseDir/bin/garp.pl -i ${if}.${u} $gn $gd $vip};
+	    print "\t\tshell_comm = $shell_comm\n" if exists $opts{'D'};
+
+	    $rv = system $shell_comm || $rv;
+
+	    $shell_comm = qq{$baseDir/bin/garp.pl -i ${if}.${q} $gn $gd $vip};
+	    print "\t\tshell_comm = $shell_comm\n" if exists $opts{'D'};
+
+	    $rv = system $shell_comm || $rv;
+
+	}
+    }
+    return $rv;
+}
+    
+sub stop {
+    my $np   = shift;
+    my $pids = shift;
+    my $if   = shift;
+
+    my $p = new Proc::ProcessTable( 'cache_ttys' => 1 );
+    die "cant create ProcessTable obj: $!" unless defined($p);
+    my $pt = $p->table;
+    die "cant fetch process table: $!" unless defined($pt);
+
+    my $rv = 0;
+
+    if (defined($if)) {
+	die "no garp running on interface $if\n" 
+	  unless exists $pids->{$if};
+
+	foreach my $p (@$pt) {
+	    if ($p->pid == $pids->{$if}) {
+		print "Stopping pid $p->pid .. " unless exists $opts{'q'};
+		if ($p->kill(15)) {
+		    print "FAILED\n" unless exists $opts{'q'};
+		    $rv = -1;
+		} else {
+		    print "OK\n" unless exists $opts{'q'};
+		}
+		last;
+	    }
+	}
+    }
+    else {
+	foreach my $pid (keys %$pids) {
+	    print "Stopping pid $pid .. " unless exists $opts{'q'};
+	    if ( kill(15, $pid) == 0 ) {
+		print "FAILED\n" unless exists $opts{'q'};
+		$rv = -1;
+	    } else {
+		print "OK\n" unless exists $opts{'q'};
+	    }
+	}
+    }
+    return $rv;
+}
+
+sub status {
+    my $np   = shift;
+    my $pids = shift;
+    my $if   = shift;
+
+    my $p = new Proc::ProcessTable( 'cache_ttys' => 1 );
+    die "cant create ProcessTable obj: $!" unless defined($p);
+    my $pt = $p->table;
+    die "cant fetch process table: $!" unless defined($pt);
+
+    my @pidList = (keys %$pids);
+
+    my $running = 0;
+
+    foreach my $process (@$pt) {
+	#print $process->pid, " ";
+	my $pp      = $process->pid;
+
+	if ( grep ( /^$pp$/ ,  @pidList ) ) {
+	    $_pid    = $pp;
+	    $running = 1;
+
+	    my ($s, $min, $h, $md, $m, $y) = 
+	      (localtime($process->start))[0,1,2,3,4,5];
+	    $y+=1900; $m++;
+
+	    $started = sprintf ("%4.4d.%2.2d.%2.2d %2.2d:%2.2d",
+				$y, $m, $md, $h, $min);
+	    $uid     = $process->uid;
+	    $ifn     = $pids->{$pp};
+	    $name    = $process->cmndline;
+	    $~ = 'STATUS'; write; $~ = 'STDOUT';
+	} else {
+	    #print "skip";
+	}
+	#print "\n";
+    }
+
+    if (!$running) { 
+	print "No garp daemons are running.\n";
+    }
+
+    return 0;
+}
+
+
+format STATUS_TOP =
+PID   Started             UID   IF       Name
+----------------------------------------------------------------------------
+.
+
+format STATUS =
+@<<<< @<<<<<<<<<<<<<<<<<< @<<<  @<<<<<<< ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$_pid,$started,           $uid, $ifn,    $name,
+                                           ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                                           $name
+                                           ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                                           $name
+                                           ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                                           $name
+.
+

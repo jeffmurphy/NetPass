@@ -1,0 +1,48 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+</%args>
+
+<script><!--
+setWhereAmI('Reports');
+--></script>
+
+<%perl>
+
+
+if ( $m->comp('/Admin/Login', %ARGS) ) {
+
+	my $sql = "select count(*) as number_clients, substring(ipAddress, 1, 11) as network from register group by network";
+	my $a   = $dbh->selectall_arrayref($sql);
+	print "<PRE>";
+	printf("%20.20s %10.10s %10.10s\n",  "", "Registered", "Active");
+	printf("%20.20s %10.10s %10.10s\n",  "Network", "Clients", "In-Quar");
+	my $total = 0;
+	foreach my $row (@$a) {
+		my ($rc, $nw) = ($row->[0], $row->[1]);
+		$nw = join('.', (split(/\./, $nw))[0,1,2]);
+		my $_nw = $nw;
+		$_nw =~ s/\./\\\./g;
+		print "$_nw\\..*\n";
+
+		my $minq = NetPass::searchArpCache("${_nw}\\..*");
+		my $aq = 0; 
+		if (ref($minq) eq "HASH") {
+			$aq = keys %$minq;
+		} else {
+			$aq = 1 if defined($minq) && ($minq ne "");
+		}
+		printf("%20.20s %10.10s %10.10s\n", $nw, $rc, $aq);
+		$total += $row->[0];
+	}
+	printf("\n\ntotal registered = $total\n");
+	printf("</PRE>\n");
+}
+
+</%perl>

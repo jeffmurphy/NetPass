@@ -1,0 +1,33 @@
+
+nortel mib notes
+
+.iso.org.dod.internet.private.enterprises.rapidCity.rcMgmt.rcVlan.rcVlanNumVlans
+
+
+.1.3.6.1.4.1.2272.1.3.1
+
+
+
+RAPID-CITY::rcVlanPortVlanIds.23 = Hex-STRING: 03 2C
+RAPID-CITY::rcVlanPortVlanIds.24 = Hex-STRING: 00 0C
+
+032c = 812 untagged
+000c =  12 untagged
+
+
+RAPID-CITY::rcVlanActiveMembers.12 = Hex-STRING: 7F F8
+RAPID-CITY::rcVlanActiveMembers.812 = Hex-STRING: 00 07 FF 40
+RAPID-CITY::rcVlanStaticMembers.12 = Hex-STRING: 7F F8
+RAPID-CITY::rcVlanStaticMembers.812 = Hex-STRING: 00 07 FF 40
+
+bitfield port 1 = msb
+
+
+
+TODO
+
+
+script to set all VLANs to bad  (initialize)
+script to turn on traps on all switches
+
+

@@ -1,0 +1,104 @@
+
+
+Netpass Overview
+=========================================
+
+Definitions
+-----------
+
+** common defs **
+ 
+
+
+Netpass Phase Diagram
+---------------------
+
+
+LOGIN ----> SCAN ----> REMEDIATE ----> COMPLETE
+             ^           |   ^        (MULTI_MAC)
+             |           |   |             | 
+             +-----------+   +-------------+                           
+
+
+Netpass End-user Phases 
+-----------------------
+
+LOGIN         - The end-user is shown the welcome page and is instructed to login.
+
+SCAN          - The end-user has passed the login phase, and is being scanned by netpass.
+
+REMEDIATE     - An end-user is put into the remediate stage for the following reasons:
+
+		* They have failed the scan and have one or more vulnerabilities.
+		* They have been quarantined for another reason. In this case, there
+		  will be a detailed message waiting for them.
+
+
+COMPLETE      - An end-user is allowed to enter the COMPLETE phase if they have passed the
+	   	scan. The machine is registered and they are checked for compliance with 
+		our MULTIPLE MACHINES ON ONE PORT policy. 
+
+		If another machine is found on their port that has not been through 
+		Netpass successfully, the current machine will be quarantined and
+		sent back to the REMEDIATE phase. At the REMEDIATE stage. they will be 
+		displayed a message about our policy.
+
+		*Note* - During the testing of Netpass, a survey will be displayed at this
+		         phase once for all users. Users cannot pass this phase without
+			 filling out the survey.
+
+
+Netpass Machine States
+----------------------
+
+Unregistered  - A machine has never been through netpass.
+
+Quarantined   - A machine has been through netpass, however was quarantined for some reason.
+                A Permanently quarantined machine has been set that way for a reason, either manually or via a script.
+
+Unquarantined - A machine has been through netpass, and was clean and allowed on the network.
+                A Permanently Unquarantined machine has been set that way manually through the admin tool.
+
+
+Netpass Troubleshooting Guide
+=========================================
+
+
+Netpass Client Requirements
+---------------------------
+
+1. A web browser that adheres to W3C web standards.
+2. The web browser must accept cookies from the buffalo.edu domain.
+
+
+
+Netpass Reset ("ALT-CTRL-DELETE")
+---------------------------------
+
+Use these steps if you are having severe issues with a client,
+such as being stuck at one phase for an unknown reason.
+
+1. Make sure that the client matches the above requirements.
+
+2. Take a screenshot. Log the OS version, browser version, etc.
+   If the problem cannot be resolved or you see unexpected output,
+   mail this information to the netpass mailing list so that we
+   can fix any bugs with the best possible information.
+
+3. Erase all buffalo.edu cookies from the browser. Restart the
+   browser.
+
+4. Re-visit Netpass and try to walk through the steps again.
+
+5. Check the Quarantine Control and make sure the machine hasn't
+   been quarantined for disciplinary reasons.
+
+6. Check the Audit logs and see if anything useful is being
+   logged for the client.
+
+7. If all else fails, contact the Netpass team for
+   troubleshooting help.
+
+
+
+

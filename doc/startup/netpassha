@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# netpassha        This shell script takes care of starting and stopping
+#                  NetPass High Availability.
+#
+# chkconfig: - 89 11
+# description: netpassha provides high-availability functionality to the netpass system
+
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+[ -f /etc/sysconfig/netpass ] && . /etc/sysconfig/netpass
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+B=/opt/netpass
+
+
+RETVAL=0
+prog="netpassha"
+
+start() {
+	# Start daemons.
+	if [ -f ${B}/bin/${HASCRIPT} ] ; then
+		echo -n $"Starting netpass-ha: "
+		daemon ${B}/bin/${HASCRIPT}
+		echo
+		#[ $RETVAL -eq 0 ] && exit $RETVAL
+	fi
+
+	return 0	
+}
+
+stop() {
+        # at this time, there's no way to shutdown HA
+
+	return 0
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	stop
+	start
+	RETVAL=$?
+	;;
+  status)
+        /sbin/ipvsadm
+	RETVAL=$?
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|restart|status}"
+	exit 1
+esac
+
+exit $RETVAL

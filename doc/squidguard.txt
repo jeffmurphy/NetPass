@@ -1,0 +1,6 @@
+1. install berkleydb-2.7.7
+2. unpack squidguard
+3. export LDFLAGS=-static
+4. configure squidguard like so
+	./configure --with-db=/usr/local/BerkeleyDB-2.7.7 --with-db-lib=/usr/local/BerkeleyDB-2.7.7/lib --with-db-inc=/usr/local/BerkeleyDB-2.7.7/include --prefix=/opt/squidguard
+5. make && make install squidguard

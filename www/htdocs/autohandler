@@ -1,0 +1,50 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+
+<%args>
+</%args>
+
+<%init>
+
+use NetPass;
+use NetPass::Config;
+use NetPass::DB;
+use NetPass::LOG qw (_log _cont);
+use OSS::Template;
+
+NetPass::LOG::init [ 'web', 'local0' ];
+
+# these 3 are globals
+
+$np = new NetPass(-config => "/opt/netpass/etc/netpass.conf");
+
+$npdbh = new NetPass::DB( $np->cfg->dbSource,
+			  $np->cfg->dbUsername,
+			  $np->cfg->dbPassword  );
+
+if (!defined($npdbh)) {
+	_log("ERROR", "NetPass::DB failed to connect to db: ",
+		DBI->errstr, "\n");
+}
+
+$dbh = $npdbh->dbh();
+
+$q = new OSS::Template(\%ARGS);
+
+$m->comp('/style/front/header', %ARGS);
+$m->call_next(%ARGS);
+$m->comp('/style/front/footer', %ARGS);
+
+</%init>
+
+<%cleanup>
+	$npdbh->DESTROY();
+	$np->DESTROY();
+</%cleanup>
+

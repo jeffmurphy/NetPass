@@ -1,0 +1,117 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+</%doc>
+
+<%args>
+$name     => '';
+$content  => '';
+$nameForm => '';
+</%args>
+
+<script><!--
+setWhereAmI('Message Editor &gt; <%$name%>');
+--></script>
+
+<%perl>
+
+if($name) {
+	my ($sth, $count) = getContent($dbh,$name);
+
+	if($count!=1) {
+        	print $q->error("Sorry, there was an error while processing your request!");
+		return;
+	}
+
+	my $row = $sth->fetchrow_arrayref;
+	$content = $row->[0];
+	$nameForm = $q->b($name) . "<input type=\"hidden\" name=\"name\" value=\"$name\">";
+} else {
+	$nameForm = $q->b("Name: ") . $q->textfield( 	-name     => "name",
+							-value	  => "msg:",
+							-required => 1
+					);
+}
+
+sub getContent {
+        my $dbh    = shift;
+        my $name   = shift;
+
+        my $query = "SELECT content FROM pages WHERE name=?";
+
+        my $sth = $dbh->prepare($query);
+
+	$sth->execute($name);
+
+        my $count = $sth->rows;
+
+        return ($sth, $count);
+
+}
+
+</%perl>
+
+<script type="text/javascript">
+  _editor_url = "/Admin/Editor/";
+  _editor_lang = "en";
+</script>
+
+<script type="text/javascript" src="htmlarea.js"></script>
+
+<script type="text/javascript">
+      HTMLArea.loadPlugin("TableOperations");
+      HTMLArea.loadPlugin("FullPage");
+      HTMLArea.loadPlugin("ContextMenu");
+</script>
+
+<style type="text/css">
+textarea { background-color: #fff; border: 1px solid 00f; }
+</style>
+
+<script type="text/javascript">
+var editor = null;
+function initEditor() {
+  // create an editor for the "ta" textbox
+  editor = new HTMLArea("ta");
+
+//  editor.config.hideSomeButtons(" fontname fontsize textindicator showhelp about popupeditor ");
+  editor.config.hideSomeButtons(" showhelp about popupeditor ");
+
+  // register the FullPage plugin
+  editor.registerPlugin(FullPage);
+
+  // register the SpellChecker plugin
+  editor.registerPlugin(TableOperations);
+
+  // add a contextual menu
+  editor.registerPlugin("ContextMenu");
+
+  setTimeout(function() {
+    editor.generate();
+  }, 10);
+  return false;
+}
+
+</script>
+
+<body onload="initEditor()">
+
+<form action="index.mhtml" method="post" id="edit" name="edit">
+
+<% $nameForm %>
+
+<textarea id="ta" name="ta" style="width:100%" rows="24" cols="80">
+<% $content %>
+</textarea>
+
+<p />
+
+<input type="submit" name="submit" value=" Save Changes " />
+<input type="button" name="cancel" value=" Cancel " onClick="top.location='index.mhtml'"/>
+
+</form>
+

@@ -1,0 +1,71 @@
+#!/bin/sh
+#
+# nessus        This shell script takes care of starting and stopping
+#               nessus.
+#
+# chkconfig: - 90 10
+# description: nessus provides host scanning for the netpass service
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+[ -f /etc/sysconfig/nessusd ] && . /etc/sysconfig/nessusd
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+BASE=/opt/nessus
+PID_FILE=${BASE}/var/run/nessusd.pid
+
+
+[ -f ${BASE}/sbin/nessusd ] || exit 0
+
+RETVAL=0
+prog="nessusd"
+
+start() {
+	# Start daemons.
+	echo -n $"Starting $prog: "
+	daemon ${BASE}/sbin/nessusd -D ${OPTIONS}
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/nessusd
+	return $RETVAL
+}
+
+stop() {
+	# Stop daemons.
+	echo -n $"Shutting down $prog: "
+	killproc nessusd
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/nessusd
+	return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	stop
+	start
+	RETVAL=$?
+	;;
+  status)
+	status nessusd
+	RETVAL=$?
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+	exit 1
+esac
+
+exit $RETVAL

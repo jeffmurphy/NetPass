@@ -1,0 +1,34 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Admin/MemberOf,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+	$m->comp(..., 'group' => 'SomeGroupName')
+	$m->comp(..., 'group' => [ 'SomeGroupName', 'AnotherGroupName' ])
+
+	returns 1 if you are a member of any of the given groups. otherwise
+	returns 0.
+</%doc>
+
+<%args>
+	$group => undef
+</%args>
+
+<%perl>
+	#foreach my $g (keys %{$m->session->{'my_groups'}}) {
+	#	print "g=$g<P>\n";
+	#}
+	if ((exists $m->session->{'logged_in'}) && 
+	    (exists $m->session->{'my_groups'}) ) {
+		if (ref($group) eq "ARRAY") {
+			foreach my $gn (@$group) {
+				return 1 if (exists $m->session->{'my_groups'}->{$gn});
+			}
+		} else {
+			return 1 if (exists $m->session->{'my_groups'}->{$group});
+		}
+	}
+	return 0;
+</%perl>

@@ -1,0 +1,43 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/CookieDetect,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%once>
+        use Apache::Cookie;
+</%once>
+
+<%args>
+        $url  => ""
+        $test => ""
+</%args>
+
+<%perl>
+     
+my $cn = $np->policy('COOKIE_NAME');
+
+if($m->session->{'phase'} eq 'SCAN') {
+
+        my %c = Apache::Cookie->fetch;
+        return 1 if (exists $c{$cn});
+
+        my $ncfu = $npdbh->getPage('msg:no_cookies', 1);
+        if (defined($ncfu) && ($ncfu ne "")) {
+              print $ncfu;
+        } else {
+              print "<h1>No Cookies For You!</h1><P>Sorry, but this website requires that you enable cookies and accept any that this website tries to set.<P>Enable cookies and hit RELOAD. You might need to exit your browser and re-start it as well.\n";
+        }
+
+	print $q->p($q->a({-href=>'/'}, '[ Back ]'));
+
+	return 0;
+
+}
+
+return 1;
+
+</%perl>
+

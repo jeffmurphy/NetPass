@@ -1,0 +1,86 @@
+2004-08-03
+	jcm 0.90 released
+
+2004-08-09
+	jcm 0.91 released
+
+2004-08-12
+	jcm 0.92 released
+
+2004-08-20
+	jcm 0.93 released
+
+2004-08-27
+	jcm defaulted snmp version to 2 for performance
+	rgc installed updated snmp modules, ported netpass routines to
+	    new module format
+	cwm implemented a topology-mib based search for client macs
+
+2004-08-28
+	jcm worked out bugs in topo search. did some snmp traces to 
+            examine latency issues. changed def timeout to 15,
+	    def maxrepetitions to 10.
+	jcm added PORT_SEARCH_ALGO to conf file
+	jcm added UNQUAR_ON_LINKUP to conf file
+
+2004-08-30
+        rgc modified Apache::Session to use filesystem instead of db
+            so we can save on the dbh.
+	rgc modified eula.mhtml to not connect to the database directly.
+	    modified WelcomePage component to pass printable=1 in
+            when loading the eula (to suppress the /header).
+        jcm modified netpass init script to mkdir /dev/shm/sessions/...
+            for Apache::Session
+        jcm got rid of extra DBI->connect in autoloaded and just
+            use the one from $npdbh
+	rgc moved cookie detect to between the login page and the 
+	    scan page. added COOKIE_NAME to conf file
+	jcm changed register table. new col "uqlinkup". when upgrading
+            from 0.92 execute the follow SQL statement:
+
+alter table register add uqlinkup        ENUM('yes', 'no') NOT NULL DEFAULT 'no';
+
+2004-08-31
+	jcm fixed PQUAR bug (bug was in dbh->getMessage)
+
+2004-09-01
+	jcm 0.94 released
+
+2004-09-03
+	jcm added option to <network> and <policy> to control
+	    whether resetport.pl runs. this allows us to turn it on
+	    (or off) for specific networks. 
+
+2004-09-07
+	jcm fixed QUAR bug (mason doesnt delete session, so host
+            goes directly to the COMPLETE phase)
+
+2004-09-08
+	jcm fixed QUAR bug for real this time. i think.
+	jcm fixed bug causing web code to not store the client's
+	    'os' in the database
+	jcm fixes to get_next_switch in Baystack.pm Baystack3.pm
+
+2004-09-09
+	jcm fixes to BayStack.pm BayStack3.pm (get_ifDesc) to handle
+            unstacked units properly.
+	jcm lib/NetPass/WWW/Session.pm cookies directories changed to
+	    /cookies. recommend using reiserfs on that. 
+	jcm 0.95 released
+
+2004-09-14
+	jcm added functionality to searchArpCache so we could produce
+	    a report of # of machines live in quarantine
+	jcm added bynet.mhtml report, created Admin/reports dir
+
+2004-09-21
+	jcm cp'd ScanLite.pm to NetPass/Nessus.pm
+	    modified it to have a showSTATUS routine. modified new() so
+	    we can pass in a callback and params. we use the callback
+	    to implement the web progress bar. this allows to not have
+	    to nessus->login for every plugin/every client, which we
+	    this was causing problems.
+	jcm modified Client/BeginScan to do the right thing if
+	    nessus not available. also modified it to use callback
+	    to implement progress bar.
+	jcm modified nessus timeout (in BeginScan) from 1s to 20s.

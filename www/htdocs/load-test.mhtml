@@ -1,0 +1,105 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/load-test.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+Model script:
+cookbook:/opt/netpass/www/htdocs/Admin/Scan/info.mhtml
+</%doc>
+
+<%args>
+$id      => '';
+</%args>
+
+Begin<P>
+
+<%once>
+use strict;
+use Apache::DBI;
+use DBI;
+use English;
+use NetPass;
+
+my $username = 'root';
+my $password = '';
+my $database = 'netpass';
+
+# $SIG{CHLD} = 'IGNORE';
+$SIG{ALRM} = sub { die "timeout" }; # set SIGALRM's return value.
+$SIG{CHLD} = sub { wait };
+</%once>
+
+<%perl>
+
+Apache::DBI->connect_on_init('dbi:mysql:netpass', $username, $password);
+Apache::DBI->setPingTimeOut('dbi:mysql:netpass', 0);
+
+test_npdbh (%ARGS);
+
+sub test_npdbh {
+
+  my %ARGS = shift;
+  my $n = 12;
+
+  my $username = 'root';
+  my $password = '';
+
+  $m->session->{'username'}  = $username;
+  my $aok = $np->authenticateUser($username, $password);
+
+        if (!defined($aok) || ($aok != 1)) {
+                print $q->p({-class=>'error'}, "Authentication failed.");
+                $m->session->{'phase'} = 'LOGIN';
+                # return;
+        }
+
+
+  for (my $i = 1; $i < $n; $i++) {
+
+    print $q->h2("Iteration $i");
+
+    $m->comp('/CookieDetect');
+    $m->comp('/Client/GetInfo', %ARGS);
+    $m->comp('/Client/Login', %ARGS);
+    $m->comp("/Client/Validate", %ARGS);
+
+    $m->comp('/Client/BeginScan', %ARGS);
+    $m->comp('/Client/Remediate', %ARGS);
+                                                                                                                        
+    print "phase is: " . $m->session->{'phase'} . "<BR>";
+    print "mac   is: " . $m->session->{'remote_mac'} . "<BR>";
+    print "ip    is: " . $m->session->{'remote_addr'} . "<BR>";
+
+    $npdbh->registerHost($m->session->{'remote_mac'},
+                         $m->session->{'remote_addr'},
+                         $m->session->{'remote_os'},
+                         $m->session->{'username'});
+
+    my $sw = $m->session->{'switch'};
+    my $po = $m->session->{'port'};
+   print "switch is $sw<BR>";
+
+    my $msg = $npdbh->getPage('msg:remote_you_passed', 1);
+    print "$msg<BR>";
+
+    print $npdbh->getMessage() . "<BR>";
+    $m->session->{'my_groups'} = $npdbh->getUserGroups('jcmurphy') . "<BR>";
+                                                                                                                        
+    print "groups are: " . $m->session->{'my_groups'} . "<BR>";
+                                                                                                                        
+    my $pids = $npdbh->getNessusPluginList('enabled');
+    foreach my $pid (@{$pids}) {
+      print "$pids, ";
+    }
+    print "<BR>";
+                                                                                                                        
+    # my ($results, $rv) = getInfo ($dbh, $id);
+    # my $row = $results->fetchrow_hashref();
+    # my @rows = ();
+    # print "Queried $rv rows<P>";
+  }
+}
+
+</%perl>

@@ -1,0 +1,111 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+</%args>
+
+% if ( $m->comp('/Admin/Login', %ARGS) ) {
+
+<script><!--
+setWhereAmI('Global Reset');
+
+	function getObj(name) {
+		if (document.getElementById) {
+			this.obj = document.getElementById(name);
+			this.style = document.getElementById(name).style;
+		} else if (document.all) {
+			this.obj = document.all[name];
+			this.style = document.all[name].style;
+		} else if (document.layers) {
+			this.obj = document.layers[name];
+			this.style = document.layers[name];
+		}
+	}
+
+	function display(obj1, obj2) {
+		var x = new getObj(obj1);
+		var y = new getObj(obj2);
+
+		x.style.display = ""
+		y.style.display = "none"
+	}
+-->
+</script>
+
+<%perl>
+
+if (! $m->comp('/Admin/MemberOf', 'group' => [ 'Admin' ]) ) {
+        print $q->p({-class=>'error'}, "Sorry, permission denied.<BR>(You must be an Admin)");
+        return;
+}
+
+if ($ARGS{'quarantineall'}) {
+	$npdbh->reqAppAction('quarall', 'start', '');
+        $npdbh->audit(  -user     => $m->session->{'logged_in'},
+                        -severity => "ALERT",
+                        -msg      => [ "Activated Quarantine All Global Reset" ]);
+
+} elsif ($ARGS{'unquarantineall'}) {
+	$npdbh->reqAppAction('unquarall', 'start', '');
+        $npdbh->audit(  -user     => $m->session->{'logged_in'},
+                        -severity => "ALERT",
+                        -msg      => [ "Activated Unquarantine All Global Reset" ]);
+}
+
+print $q->start_form(-name => 'form', -method => "POST");
+print "<h2>Global Reset</h2>";
+print "<FONT CLASS='error'>WARNING:</FONT>The following will cause a system wide reset.<BR>Make sure a global reset is exactly what you want to do.<P>"; 
+print "<TABLE CLASS='gray' CELLSPACING=2 CELLPADDING=2 BORDER=0 HEIGHT=200>";
+print "<TR><TH HEIGHT=25 WIDTH=200 COLSPAN=2>Global Reset</TH></TR><TR>";
+print "<TD ALIGN='center'>";
+print $q->button (
+			-name	=> 'quarall',	
+			-value	=> 'Quarantine All',
+			-style	=> "width:150px;",
+			-onClick => "display('qall', 'unqall');",
+		 );
+print "<P><BR>";
+print $q->button (
+                        -name   => 'unquarall',
+                        -value  => 'Unquarantine All',
+			-style	=> "width:150px;",
+			-onClick => "display('unqall', 'qall');",
+                 );
+print "</TD>";
+
+print "<TD id=\"qall\" WIDTH=200 HEIGHT=200 ALIGN=center VALIGN=center STYLE=\"display:none;\">";
+print $q->submit (
+                        -name   => 'quarantineall',
+                        -value  => "Click Here\nto Really\nQuarantine\nAll Ports",
+                        -style  => "width:175px;height:175px;
+				    color:white;
+				    -moz-border-radius:87px;
+				    background-color:#FF0000;
+				    font:bold 14pt Verdana;
+				    border-color:#8b0000;",
+                 );
+print "</TD>";
+
+print "<TD id=\"unqall\" WIDTH=200 HEIGHT=200 ALIGN=center VALIGN=center STYLE=\"display:none;\">";
+print $q->submit (
+                        -name   => 'unquarantineall',
+                        -value  => "Click Here\nto Really\nUnquarantine\nAll Ports",
+                        -style  => "width:175px;height:175px;
+				    color:white;
+				    -moz-border-radius:87px;
+				    background-color:#FF0000;
+				    font:bold 14pt Verdana;
+				    border-color:#8b0000;",
+                 );
+print "</TD>";
+print "</TR></TABLE>";
+
+</%perl>
+
+% }
+

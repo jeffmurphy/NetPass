@@ -1,0 +1,145 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/components/Client/Survey,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%once>
+   use Mail::Sendmail;
+#   use Apache::Cookie;
+</%once>
+<%args>
+
+	$submit   		=> ''
+	$valuableservice 	=> ''
+	$waittime 		=> ''
+	$selfremedy 		=> ''
+	$instructions_helpful 	=> ''
+	$userquestions		=> ''
+	$comments		=> ''
+	$email			=> ''
+	$error			=> ''
+</%args>
+
+<%perl>
+
+#my %c = Apache::Cookie->fetch;
+#my $survey_completed_already = exists $c{netpass_survey} ? $c{netpass_survey}->value : 'no';
+
+#return 1 if($survey_completed_already eq 'yes');
+   
+if($submit) {
+	if(!$valuableservice || !$waittime || !$selfremedy || !$instructions_helpful) {
+		$error = "Questions 1-4 are required. Please answer them to the best of your abilities.";
+	} else {
+
+		# submit form stuff
+		my $mail_content = "
+		1. $valuableservice
+		2. $waittime
+		3. $selfremedy
+		4. $instructions_helpful
+		5. $userquestions
+		6. $comments
+		7. $email
+
+		UID =".$m->session->{'username'}."
+		IP  =".$ENV{'REMOTE_ADDR'}."\n\n";
+                my %mail = (
+                                smtp            => 'mail.oss.buffalo.edu',
+                                To              =>  $np->policy('SURVEY_EMAIL'),
+                                From            => 'netpass_feedback@rgc.oss.buffalo.edu',
+                                Subject         => '[Netpass Feedback]',
+                                Message         => $mail_content
+                           );
+
+                sendmail(%mail) or die $Mail::Sendmail::error;
+
+#   		Apache::Cookie->new( 	$r,
+#                        		name => 'netpass_survey',
+#                        		value => 'yes',
+#                        		path => '/',
+#                        		expires => '+1y',
+#                      		    )->bake;
+#
+
+
+		return 1;
+	}
+}
+
+</%perl>
+
+<h2>UB NetPass Feedback</h2>
+
+<p>
+We want to know what you think about UB NetPass.<br>
+Your feedback is valuable to us; we use it to improve the quality of the services receive.<br>
+<b>Please do not use this form to request assistance; contact the CIT Help Desk directly.</b><br>
+</p>
+<p class="error"><% $error %></p>
+<%perl>
+
+print $q->start_form();
+
+print $q->ol(
+		$q->li(
+			"Do you think UB NetPass is a valuable service? " .
+			$q->radio_group( -name 	  => 'valuableservice',
+			     		 -values  => ['Yes','No'],
+					 -default => '-'
+					)
+			).
+		$q->li(
+			"Did you find the time required to scan your computer was " .
+			$q->radio_group( -name 	  => 'waittime',
+			     		 -values  => ['acceptable','too long'],
+					 -default => '-'
+					)
+			).
+		$q->li(
+			"If NetPass identified vulnerabilities, were you able to remedy them yourself? " .
+			$q->radio_group( -name 	  => 'selfremedy',
+			     		 -values  => ['Yes','No', 'N/A'],
+					 -default => '-'
+					)
+			).
+		$q->li(
+			"If NetPass identified vulnerabilities, did you find our instructions for self-remediation helpful? " .
+			$q->radio_group( -name 	  => 'instructions_helpful',
+			     		 -values  => ['Yes','No', 'N/A'],
+					 -default => '-'
+					)
+			).
+		$q->li(
+			"Did you have questions not addressed by our instructions? " . $q->br .
+			$q->textarea(    -name 	  => 'userquestions',
+			     		 -value   => $userquestions,
+					 -rows	  => 6,
+					 -cols	  => 50
+					)
+			).
+		$q->li(
+			"Did you have any other comments or suggestions about how we can improve our service? " . $q->br .
+			$q->textarea(    -name 	  => 'comments',
+			     		 -value   => $comments,
+					 -rows	  => 6,
+					 -cols	  => 50
+					)
+			).
+		$q->li(
+			"If you'd like us to contact you about UB NetPass, provide your email address below. " . $q->br .
+			$q->textfield(   -name 	  => 'email',
+			     		 -value   => $email
+					)
+			)
+);
+
+print $q->submit( -name=>'submit', -value=>'Submit' );
+print $q->end_form();
+return 0;
+
+</%perl>
+

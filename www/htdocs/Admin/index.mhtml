@@ -1,0 +1,17 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<script><!--
+setWhereAmI('Home');
+--></script>
+
+
+% if ( $m->comp('/Admin/Login', %ARGS) ) {
+	Logged in as <%$m->session->{'username'}%> <P>
+	Member of <%join (',', keys %{$m->session->{'my_groups'}})%><P>
+% }

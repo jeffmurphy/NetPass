@@ -1,0 +1,156 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+$mac     => '';
+$uid    => '';
+$ip      => '';
+$status  => '';
+$register => '';
+</%args>
+
+
+
+
+<script><!--
+setWhereAmI('Manual Registration');
+--></script>
+
+<h2>Manual Registration</h2>
+
+Fill in <B>all</B> of the fields.
+
+
+In the event that someone is <code>multi_mac</code> quarantined (e.g. due to linksys) or
+for any other reasonable circumstances, you can:
+
+<ol>
+<li> determine the mac/ip that needs to be registered
+<LI> enter those (along with the end users username) into the manual
+registration page
+<LI> click 'register'. the record will be entered with a default status of
+quarantined.
+<LI> click 'quar control' (left side)
+<LI> search for the record you just made and change its status to
+something reasonable (e.g. unquar or punquar)
+</ol>
+
+
+<%perl>
+
+if (! $m->comp('/Admin/MemberOf', 'group' => [ 'Admin', 'QuarAdmin' ]) ) {
+        print $q->p({-class=>'error'}, "Sorry, permission denied.<BR>(You must be an Admin or in the QuarAdmin group)");
+        return;
+}
+
+
+my $statuses = ['QUAR','PQUAR','UNQUAR','PUNQUAR'];
+
+
+print $q->start_form(-method => "POST");
+
+print $q->table({-border=>0, -width=>600},
+                $q->TR(
+                        $q->th({-colspan=>2}, "Search")
+                ).
+                $q->TR(
+                        $q->td({-class=>"gray"}, "IP Address:") .
+                        $q->td({-class=>"gray"},
+                                $q->textfield(
+                                                -name   => "ip",
+                                                -value  => $ip,
+                                                -filter => '/^\d+\.\d+\.\d+\.\d+$/',
+                                                -error  => 'Please format the IP Address in the format
+ specified.'
+                                ).
+                                $q->small(' e.g. 128.205.10.10')
+                        )
+                ).
+                $q->TR(
+                        $q->td({-class=>"gray"}, "MAC Address:") .
+                        $q->td({-class=>"gray"},
+                                $q->textfield(
+                                                -name   => "mac",
+                                                -value  => $mac,
+                                                -filter => '/^\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{
+0,1}\w{2}:{0,1}\w{2}$/',
+                                                -error  => 'Please format the MAC Address in the forma
+t specified.'
+                                ).
+                                $q->small(' e.g. AABBCCDDEEFF')
+                        )
+                ).
+                $q->TR(
+                        $q->td({-class=>"gray"}, "UBIT Name:") .
+                        $q->td({-class=>"gray"},
+                                $q->textfield(
+                                                -name   => "uid",
+                                                -value  => $uid,
+                                )
+                        )
+                ).
+		$q->TR(
+                        $q->td({-class=>"gray"}, '&nbsp;') .
+                        $q->td({-class=>"gray"},
+                                $q->submit(
+                                                -name   => "register",
+                                                -value  => "Register"
+                                )
+                        )
+                )
+
+	);
+
+print $q->p();
+print $q->end_form();
+
+
+return if(!$register);
+
+if ($register) {
+	my $err = saveReg($dbh, $mac, $ip, $uid);
+	if ($err ne "") {
+		print $q->p({-class => "error"}, $err);
+		print "Anything that mentions 'duplicate entry' means that this mac address is already registered.<P>\n";
+	} else {
+</%perl>
+Registration successful for <PRE><%$uid%> <%$mac%> <%$ip%></PRE>
+Registered as quarantined. Use the 
+<a href="/Admin/qc.mhtml">Quarantine Control</a> page to change the status if 
+needed.
+<%perl>
+	}
+}
+
+return;
+
+sub saveReg {
+	my $dbh = shift;
+	my ($mac, $ip, $user) = (shift, shift, shift);
+
+	return "All fields are required.\n" if (!$user || !$ip || !$mac);
+
+	my $sql = qq{INSERT INTO register (macAddress, ipAddress, firstSeen, registeredOn, status, username) VALUES (0x$mac, '$ip', NOW(), NOW(), 'QUAR', '$user')};
+
+	_log("DEBUG", "$mac $ip $user manually registered\n");
+	if (!$dbh->do($sql)) {
+		_log("ERROR", "$mac $ip $user Failed to manually register: ".
+			$dbh->errstr."\n");
+		return "Failed to insert into database: ".$dbh->errstr;
+	}
+
+	$npdbh->audit(  -user => $user,
+			-mac  => $mac,
+			-ip   => $ip,
+			-msg  => [ "manually registered by ".$m->session->{'logged_in'} ]
+		);
+
+	return "";
+}
+
+</%perl>

@@ -1,0 +1,57 @@
+
+the NetPass suite gets installed on all participating machines. not all parts of the
+suite are active, however. 
+
+
+/etc/init.d/netpass
+	starts resetport, portmover and macscan
+
+/etc/init.d/garp
+	calls /opt/netpass/bin/garpctl
+
+/etc/init.d/netpass-ha
+	calls /opt/netpass/bin/hactl
+
+
+
+
+netpass servers
+
+	/etc/init.d/netpass   active
+	/etc/init.d/npgarp    inactive
+	/etc/init.d/netpassha active
+	/etc/init.d/npsnortd  inactive
+	/etc/init.d/npstatusd active
+	/etc/init.d/npcfgd    active
+
+redirectors
+
+	/etc/init.d/netpass   inactive
+	/etc/init.d/npgarp    active
+	/etc/init.d/netpassha active
+	/etc/init.d/npsnortd  inactive
+	/etc/init.d/npstatusd active
+	/etc/init.d/npcfgd    inactive
+
+snort probes
+
+	/etc/init.d/netpass   inactive
+	/etc/init.d/npgarp    inactive
+	/etc/init.d/netpassha inactive
+	/etc/init.d/npsnortd  active
+	/etc/init.d/npstatusd active
+	/etc/init.d/npcfgd    inactive
+
+dhcp servers
+
+	/etc/init.d/netpass   inactive
+	/etc/init.d/npgarp    inactive
+	/etc/init.d/netpassha inactive
+	/etc/init.d/npsnortd  inactive
+	/etc/init.d/npstatusd active
+	/etc/init.d/npcfgd    inactive
+
+
+In addition to the above suite components, httpd, nessusd, mysql and squid are installed
+and active on the netpass servers.
+

@@ -1,0 +1,114 @@
+diff -ruN /tmp/dhcp-3.0.1rc13/includes/dhcpd.h dhcp-3.0.1rc13/includes/dhcpd.h
+--- /tmp/dhcp-3.0.1rc13/includes/dhcpd.h	2003-02-09 20:22:46.000000000 -0500
++++ dhcp-3.0.1rc13/includes/dhcpd.h	2004-06-01 14:55:49.000000000 -0400
+@@ -420,7 +420,8 @@
+ #define SV_UPDATE_STATIC_LEASES		43
+ #define SV_LOG_FACILITY			44
+ #define SV_DO_FORWARD_UPDATES		45
+-#define SV_PING_TIMEOUT         46
++#define SV_PING_TIMEOUT			46
++#define SV_RELAY_TO_GIADDR		47
+ 
+ #if !defined (DEFAULT_PING_TIMEOUT)
+ # define DEFAULT_PING_TIMEOUT 1
+diff -ruN /tmp/dhcp-3.0.1rc13/server/dhcp.c dhcp-3.0.1rc13/server/dhcp.c
+--- /tmp/dhcp-3.0.1rc13/server/dhcp.c	2004-01-08 19:41:00.000000000 -0500
++++ dhcp-3.0.1rc13/server/dhcp.c	2004-06-01 14:57:32.000000000 -0400
+@@ -1270,6 +1270,7 @@
+ 	struct expression *expr;
+ 	struct option_cache *oc = (struct option_cache *)0;
+ 	struct iaddr myfrom;
++	int ignorep;
+ 
+ 	option_state_allocate (&options, MDL);
+ 	memset (&outgoing, 0, sizeof outgoing);
+@@ -1429,7 +1430,21 @@
+ 	/* If this was gatewayed, send it back to the gateway.
+ 	   Otherwise, broadcast it on the local network. */
+ 	if (raw.giaddr.s_addr) {
+-		to.sin_addr = raw.giaddr;
++
++		/* determine whether to send the packet back to giaddr
++	   	   or to the src IP... */
++		oc = lookup_option (&server_universe, options, SV_RELAY_TO_GIADDR);
++		if (!oc || evaluate_boolean_option_cache (&ignorep, packet, 
++						           (struct lease *)0,
++							   (struct client_state *)0,
++							   packet->options, options,
++							   &global_scope, oc, MDL)) {
++
++			to.sin_addr = raw.giaddr;
++		} else {
++			to.sin_addr = *(struct in_addr *)packet->client_addr.iabuf;
++		}
++
+ 		if (raw.giaddr.s_addr != htonl (INADDR_LOOPBACK))
+ 			to.sin_port = local_port;
+ 		else
+@@ -2675,6 +2690,7 @@
+ 	struct data_string d1;
+ 	struct option_cache *oc;
+ 	char *s;
++	int ignorep;
+ 
+ 	if (!state)
+ 		log_fatal ("dhcp_reply was supplied lease with no state!");
+@@ -2792,7 +2808,22 @@
+ 
+ 	/* If this was gatewayed, send it back to the gateway... */
+ 	if (raw.giaddr.s_addr) {
+-		to.sin_addr = raw.giaddr;
++
++		/* determine whether to send the packet back to giaddr
++	   	   or to the src IP... */ 
++                oc = lookup_option (&server_universe, state->options, SV_RELAY_TO_GIADDR);
++                if (!oc || evaluate_boolean_option_cache (&ignorep, state->packet,
++                                                          lease, (struct client_state *)0,
++							  state->packet->options,
++							  state->options,
++                                                          &global_scope, oc, MDL)) {
++
++                        to.sin_addr = raw.giaddr;
++                } else {
++                	to.sin_addr = *(struct in_addr *)state->packet->client_addr.iabuf;
++                }
++
++
+ 		if (raw.giaddr.s_addr != htonl (INADDR_LOOPBACK))
+ 			to.sin_port = local_port;
+ 		else
+diff -ruN /tmp/dhcp-3.0.1rc13/server/dhcpd.conf.5 dhcp-3.0.1rc13/server/dhcpd.conf.5
+--- /tmp/dhcp-3.0.1rc13/server/dhcpd.conf.5	2003-02-22 22:27:48.000000000 -0500
++++ dhcp-3.0.1rc13/server/dhcpd.conf.5	2004-06-01 14:49:53.000000000 -0400
+@@ -2216,6 +2216,19 @@
+ .RE
+ .PP
+ The
++.I relay-to-giaddr
++statement
++.RS 0.25i
++.PP
++.B relay-to-giaddr \fIflag\fB;\fR
++.PP
++The \fIrelay-to-giaddr\fR parameter controls whether or not to respond
++to the giaddr or the src IP when recieving a packet from a dhcp relay.
++Set this to \fIoff\fR if the server should respond to the src IP of the
++packet. The \fIrelay-to-giaddr\fR parameter is on by default. 
++.RE
++.PP
++The
+ .I stash-agent-options
+ statement
+ .RS 0.25i
+diff -ruN /tmp/dhcp-3.0.1rc13/server/stables.c dhcp-3.0.1rc13/server/stables.c
+--- /tmp/dhcp-3.0.1rc13/server/stables.c	2003-02-09 20:22:54.000000000 -0500
++++ dhcp-3.0.1rc13/server/stables.c	2004-06-01 14:07:01.000000000 -0400
+@@ -492,7 +492,7 @@
+ 	{ "log-facility", "Nsyslog-facilities.",	&server_universe, 44 },
+ 	{ "do-forward-updates", "f",			&server_universe, 45 },
+ 	{ "ping-timeout", "T",				&server_universe, 46 },
+-	{ "unknown-47", "X",				&server_universe, 47 },
++	{ "relay-to-giaddr", "f",			&server_universe, 47 },
+ 	{ "unknown-48", "X",				&server_universe, 48 },
+ 	{ "unknown-49", "X",				&server_universe, 49 },
+ 	{ "unknown-50", "X",				&server_universe, 50 },

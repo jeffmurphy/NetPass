@@ -1,0 +1,24 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/view.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+
+<%args>
+	$name => undef
+</%args>
+<%perl>
+	if (defined($name)) {
+		my $msg = $npdbh->getPage($name);
+		if (defined($msg) && ($msg ne "")) {
+			print "Message <B>$name</B> contains:<HR>\n";
+			print $msg;
+			print "<HR>\n";
+		} else {
+			print "Sorry, a problem occurred while retrieving $name from the database.\n";
+		}
+	}
+</%perl>

@@ -1,0 +1,64 @@
+
+
+
+changes
+
+	when user comes back update sw/po and ip fields based on mac
+	stash sw/po in ssession so we dont have to re-search when
+	we re-validate
+
+	Admin/Scan/index.mhtml
+		http://
+
+
+	tie QC into dhcp so that we can verify that the given IP
+	is really currently associated with the corresponding MAC
+
+	search by time range with calendar button on various forms
+
+	per-message/scantype quarantine/unquarantine?
+
+
+stats
+	arp table
+	iptables entries
+	portmoves pending
+	OS
+	port resets
+
+
+
+nessusScans table -> convert timestamps to DATETIMEs
+
+
+
+
+tree search
+	if no bsw, pick on at random
+
+
+if state is PQUAR and no message (shouldnt occur, but just in case...) then
+make sure we dont unquar. throw some canned message instead
+
+if state is PQUAR we dont tear down the session. so if you set the reg to
+QUAR, instead of a login page, they get the "ready to rescan" page.
+
+BUG
+	reg two hosts on the same port. set them both to quarantined
+	and they both get the multi_mac message and neither can rescan
+	to get out! 
+
+BUG
+	OS field not recording in table....
+
+
+
+multi-root networsk (spauld/wilk/rich)
+
+
+
+
+Thu Sep  9 14:40:23 2004 sleeping...
+DBI connect('database=netpass','root',...) failed: Can't connect to local MySQLserver through socket '/var/lib/mysql/mysql.sock' (2) at /opt/netpass/lib/NetPass/DB.pm line 536
+Thu Sep  9 14:40:39 2004 sleeping...
+Thu Sep  9 14:40:50 2004 sleeping...

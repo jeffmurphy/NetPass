@@ -1,0 +1,179 @@
+Config::General::Extended
+ Digest::HMAC
+ Crypt::DES
+ Crypt::CBC
+ Digest::SHA1
+ Digest::HMAC_MD5
+Net::DNS
+Net::SNMP
+Error
+Class::ParmList
+Pod::Usage
+Bit::Vector
+Time::HiRes
+File::Tail
+Sys::Syslog
+Apache        (mod_perl RPM)
+Apache::DBI
+DBD           (perl-DBD-MySQL RPM)
+DBD::Mysql    (perl-DBD-MySQL RPM)
+DBI           (perl-DBI)
+	Net::SSLeay -> force
+	Net::Nessus::Client -> force
+Net::Nessus::ScanLite
+Authen::Radius
+HTML::Mason
+Set::Scalar
+
+Module::Build
+YAML
+ExtUtils::ParseXS
+Archive::Tar
+MasonX::Request::WithApache2Session
+
+IPTables::IPv4
+
+mod_perl 1.29
+   LWP::UserAgent
+   HTML::HeadParser
+
+CGI (MP2)
+ Apache::Response;
+ Apache::RequestRec;
+ Apache::RequestUtil;
+ APR::Pool;
+
+perl -MCPAN -I/opt/netpass/lib -e 'install Bundle::NetPass'
+
+system modifications:
+	mkdir /var/run/netpass
+	chown netpass:netpass /var/run/netpass
+	yum install vconfig mysql-server httpd mod_perl dhcp mysql-devel perl-DBD-MySQL
+	sudo modprobe 8021q
+	ifconfig eth1 up
+	vconfig eth1 12 
+	vconfig eth1 812
+ 
+	/etc/init.d/snmptrapd OPTIONS
+            OPTIONS="-n -Lf /opt/netpass/log/snmptraps.log -p /var/run/snmptrapd.pid -F '%#04.4y-%#02.2m-%02.2l %#02.2h:%#02.2j:%#02.2k TRAP %N;%w;%q;%A;%v\n' "
+
+	syslog.conf
+		local0.* /opt/netpass/log/netpass.log
+	httpd.conf
+		/opt/netpass/www
+		startup.pl
+	dhcpd.conf
+		custom per server (failover config)
+	/etc/sysconfig/dhcpd
+
+	chkconfig --level 2345 snmptrapd on
+	chkconfig --level 2345 httpd on
+	chkconfig --level 2345 mysqld on
+
+	/etc/sysctl.conf
+
+	kernel.sysrq = 1
+	kernel.panic = 1
+
+	# to increase the MAC table
+
+	net.ipv4.neigh.default.gc_thresh3 = 16384  # cant exceed this
+	net.ipv4.neigh.default.gc_thresh2 = 8192   # gc will run 5 secs after exceeded
+	net.ipv4.neigh.default.gc_thresh1 = 4096   # gc wont run below those thresh
+
+	# more eth arp probe tuning
+	#http://linux.about.com/library/cmd/blcmdl7_arp.htm
+
+	gc_stale_time = 300  # def 60
+	delay_first_probe_time = 180 # def 5
+	base_reachable_time = 180 # def 30
+
+	# to handle more iptables connections
+	# http://www.wallfire.org/misc/netfilter_conntrack_perf.txt
+
+	# 65k is default for 512M ram and is the ceiling for the
+	# equation. for npw, 2G ram ... 256K is better.
+
+	# modprobe ip_conntrack hashsize=$HASHSIZE
+	# hashsize can be any number as if 2.4.21, but power of 2 is best
+	# article suggests 1048576 for both. MAX*288 + HASH*8 = MEMUSED
+
+	net.ipv4.ip_conntrack_max = 65536 (default)
+	net.ipv4.netfilter.ip_conntrack_buckets = 8192 (default)
+
+	cat /proc/net/ip_conntrack
+
+	/etc/services
+		portmover       20000/tcp
+		resetport       20001/tcp
+
+
+	insert into user values ('localhost.localdomain', 'root', '', 'y','y','y','y','y','y','y','y','y','y','y','y','y','y');
+
+
+
+startup
+	daemon resetport.pl logs/snmptraps.log
+        daemon garp-loop.sh
+
+
+todo
+	logrotate netpass.log
+	logrotate snmptraps.log
+
+
+	move OSS::Template to /opt/netpass/lib
+	convert Template::Site.pm to use a file containing the HTML
+
+stats
+	/proc/net/ip_conntrack good stuff
+
+
+
+The default value is set to 2 minutes and can be changed by performing the following:
+
+   1. Start the registry editor.
+   2. Move to HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters
+   3. From the Edit menu select New - DWord value and enter a name of ArpCacheLife. Click OK.
+   4. Double click the new value and set to the new value in seconds and click OK
+   5. Close the registry editor
+   6. Reboot 
+
+
+
+mac/bsd
+
+sysctl -w net.link.ether.inet.max_age=60
+
+
+
+
+
+
+
+
+*** You are using a perl configured with threading enabled.
+*** You should be aware that using multiple threads is
+*** not recommended for production environments.
+
+*** Note:
+    The optional PlRPC-modules (RPC::PlServer etc) are not installed.
+    If you want to use the DBD::Proxy driver and DBI::ProxyServer
+    modules, then you'll need to install the RPC::PlServer, RPC::PlClient,
+    Storable and Net::Daemon modules. The CPAN Bundle::DBI may help you.
+    You can install them any time after installing the DBI.
+    You do *not* need these modules for typical DBI usage.
+
+Optional modules are available from any CPAN mirror, in particular
+    http://search.cpan.org/
+    http://www.perl.com/CPAN/modules/by-module
+    http://www.perl.org/CPAN/modules/by-module
+    ftp://ftp.funet.fi/pub/languages/perl/CPAN/modules/by-module
+
+
+
+
+#################
+
+bin/install issues:
+
