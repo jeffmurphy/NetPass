@@ -110,6 +110,28 @@ CREATE TABLE `nessusScans` (
   KEY `status` (`status`)
 ) TYPE=INNODB;
 
+CREATE TABLE `snortScans` (
+  `pluginID` int(10) unsigned NOT NULL default '0',
+  `name` varchar(255) default NULL,
+  `family` varchar(255) default NULL,
+  `category` varchar(255) default NULL,
+  `short_desc` varchar(255) default NULL,
+  `description` text,
+  `addedBy` varchar(32) NOT NULL default '',
+  `addedOn` timestamp(14) NOT NULL,
+  `lastModifiedBy` varchar(32) NOT NULL default '',
+  `lastModifiedOn` timestamp(14) NOT NULL,
+  `status` enum('enabled','disabled') default 'disabled',
+  `info` varchar(255) NOT NULL default 'snort:',
+  `revision` varchar(255) default NULL,
+  `copyright` varchar(255) default NULL,
+  `cve` varchar(255) default NULL,
+  `bugtraq` varchar(255) default NULL,
+  `other_refs` varchar(255) default NULL,
+  PRIMARY KEY  (`pluginID`),
+  KEY `status` (`status`)
+) TYPE=INNODB;
+
 #		ENUM('httpd', 'nessusd', 'garp', 'squid', 'resetport', 
 #				'portmover', 'macscan', 'netpass', 'npcfgd', 
 #				'npstatusd', 'npsnortctl', 'npsnortd', 'unquar-all',
