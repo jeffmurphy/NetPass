@@ -1,6 +1,6 @@
 #!/usr/bin/env perl 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.2 2004/09/24 04:07:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -48,7 +48,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+$Id: install,v 1.2 2004/09/24 04:07:02 jeffmurphy Exp $
 
 =cut
 
@@ -64,11 +64,9 @@ my $STAGE = $opts{'s'} || 0;
 
 my $PKGDIR = $0;
 $PKGDIR =~ s/\/[^\/]+//;
-my $cwd; chomp($cwd = `pwd`);
+my $cwd = cwd(); 
 $PKGDIR = $cwd if ($PKGDIR  =~ /^\.{0,1}$/);
 chdir $PKGDIR;
-
-print "0 $0 $PKGDIR\n";
 
 checkKit($PKGDIR);
 my $VERSION = getVersion($PKGDIR);
@@ -95,9 +93,56 @@ touch("$TARGET/log/netpass.log");
 touch("$TARGET/log/snmptraps.log");
 
 copyTree($PKGDIR, $TARGET);
+print "\n";
 
+installHTMLArea($PKGDIR, $TARGET);
 
 exit 0;
+
+sub cwd {
+	my $x = `/bin/pwd`;
+	chomp($x);
+	return $x;
+}
+
+sub installHTMLArea {
+	my $version = "HTMLArea-3.0-rc1";
+	my $pkgd = shift;
+	my $dst = shift;
+
+	if (-f "../${version}.zip") {
+		reallyInstallHTMLArea($pkgd, $dst, $version);
+	} else {
+		print "$version not found in parent directory. downloading.\n";
+		system("wget -P ../ -q http://unc.dl.sourceforge.net/sourceforge/itools-htmlarea/${version}.zip");
+		die "couldnt download ${version}.zip" 
+		  unless (-f "../${version}.zip");
+		print "Download finished.\n";
+		reallyInstallHTMLArea($pkgd, $dst, $version);
+	}
+}
+
+sub reallyInstallHTMLArea {
+	my $pkgd = shift;
+	my $dst = shift;
+
+	my $filebase = shift;
+
+	my $newd = $TARGET."/www/htdocs/Admin/Editor";
+
+	print "Installing $filebase into $newd ..\n";
+
+	my $cwd = cwd();
+	chdir ($newd);
+	my $cwd2 = cwd();
+	die "chdir failed? $newd != $cwd2\n" unless ($newd eq $cwd2);
+	system("/usr/bin/unzip -q $pkgd/../${filebase}.zip");
+	system("mv ${filebase}/* .");
+	unlink("index.html");
+	system("find $filebase -type f -exec chmod 644 {} \\;");
+	system("find $filebase -type d -exec chmod 755 {} \\;");
+	print "Done\n";
+}
 
 sub copyTree {
 	my ($src, $dst) = (shift, shift);
@@ -106,12 +151,16 @@ sub copyTree {
 	while(my $f = readdir($DH)) {
 		next if ($f =~ /^\.{1,2}$/);
 		next if ($f eq "install.d");
+		next if ($f eq "CVS");
 		if (-d "$src/$f") {
 			mkdir "$dst/$f" || die "cant mkdir $dst/$f";
 			copyTree("$src/$f", "$dst/$f");
 		} else {
-			print "$src/$f\n";
+			print lt80("$src/$f"), "\r";
+			unlink ("$dst/$f");
 			system(qq{/bin/cp -p "$src/$f" "$dst/$f"});
+			print " " x 80, "\r";
+
 			die "cp $src/$f $dst/$f  failed $!"
 			  unless (-f "$dst/$f")
 		}
@@ -119,6 +168,11 @@ sub copyTree {
 	closedir($DH);
 }
 
+sub lt80 {
+	my $s = shift;
+	return "... ".substr($s, -75) if length($s) > 79;
+	return $s;
+}
 
 sub touch {
 	my $file = shift;
@@ -128,7 +182,7 @@ sub touch {
 sub checkKit {
 	my $d = shift;
 
-	print "Checking kit ($d) .. ";
+	print "Checking kit ($d) ..  ";
 
 	my $fh = new FileHandle $d."/MANIFEST", "r";
 	while(my $l = <$fh>) {
