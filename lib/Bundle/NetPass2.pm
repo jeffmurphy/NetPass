@@ -38,6 +38,12 @@ Net::Ping
 
 Net::Ping::External
 
+GD
+
+GD::Graph
+
+GD::Text
+
 =head1 DESCRIPTION
 
 NetPass required perl modules.
