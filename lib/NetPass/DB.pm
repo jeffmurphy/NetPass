@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.8 2005/03/17 17:38:39 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.9 2005/04/04 15:16:21 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -651,6 +651,31 @@ sub getNessusPluginList {
     return undef;
 }
 
+=head2 $aref = getSnortRules($type = <enabled | disabled | all>)
+
+Retrieve snort rules registered in the NetPass database. Returns
+an C<array reference> on success, C<undef> on failure.
+
+=cut
+
+sub getSnortRules {
+    my $self = shift;
+    my $type = shift;
+
+    return undef unless ($type =~ /^(enabled|disabled|all)$/);
+    my $sql =  qq{SELECT rule FROM snortRules };
+
+    $self->reconnect() || return undef;
+
+    if ($type ne "all") {
+        $sql .= qq{where status = '$type'};
+    }
+
+    my $rules = $self->{'dbh'}->selectcol_arrayref($sql);
+    return $rules if (defined($rules) && (ref($rules) eq "ARRAY"));
+    return undef;
+}
+
 =head2 $rv = registerHost($mac, $ip, $os, $username)
 
 Insert a new record into the registry or update an existing one. 
@@ -1131,6 +1156,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.8 2005/03/17 17:38:39 jeffmurphy Exp $
+$Id: DB.pm,v 1.9 2005/04/04 15:16:21 mtbell Exp $
 
 1;
