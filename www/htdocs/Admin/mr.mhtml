@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.3 2004/10/25 17:48:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.4 2005/03/17 17:38:40 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -135,7 +135,7 @@ sub saveReg {
 
 	return "All fields are required.\n" if (!$user || !$ip || !$mac);
 
-	my $sql = qq{INSERT INTO register (macAddress, ipAddress, firstSeen, registeredOn, status, username, uqlinkup) VALUES ('$mac', '$ip', NOW(), NOW(), 'QUAR', '$user', 'no')};
+	my $sql = qq{INSERT INTO register (macAddress, ipAddress, lastSeen, registeredOn, status, username, uqlinkup) VALUES ('$mac', '$ip', NOW(), NOW(), 'QUAR', '$user', 'no')};
 
 	_log("DEBUG", "$mac $ip $user manually registered\n");
 	if (!$dbh->do($sql)) {

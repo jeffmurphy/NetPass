@@ -7,9 +7,9 @@
 */
 
 CREATE TABLE register (
-	macAddress	TINYTEXT     NOT NULL,
+	macAddress	VARCHAR(32)  NOT NULL,
 	ipAddress       VARCHAR(64)  NOT NULL,
-	firstSeen	DATETIME     NOT NULL,
+	lastSeen	DATETIME     NOT NULL,
 	registeredOn	DATETIME,
 	status          ENUM('QUAR', 'PQUAR', 'UNQUAR', 'PUNQUAR') NOT NULL,
 	uqlinkup        ENUM('yes', 'no') NOT NULL DEFAULT 'no',
@@ -19,11 +19,11 @@ CREATE TABLE register (
 	switchIP	VARCHAR(128),
 	switchPort	SMALLINT,
 
-	PRIMARY KEY(macAddress(12))
-) TYPE=MyISAM;
+	PRIMARY KEY(macAddress)
+) TYPE=NDBCLUSTER;
 
 CREATE TABLE results (
-	macAddress	BIGINT		NOT NULL,
+	macAddress	VARCHAR(32)	NOT NULL,
 	dt		DATETIME	NOT NULL,
 	testType	enum('nessus', 'snort', 'manual')  NOT NULL default 'nessus',
 	nessusID	INTEGER UNSIGNED,
@@ -31,25 +31,25 @@ CREATE TABLE results (
 	messageID	VARCHAR(128),
 	status		enum('pending', 'user-fixed', 'fixed') NOT NULL default 'pending',
 	PRIMARY KEY (macAddress)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 CREATE TABLE policy (
 	name		VARCHAR(128) NOT NULL,
 	val		VARCHAR(128) NOT NULL,
 	PRIMARY KEY(name)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 CREATE TABLE users (
 	username	VARCHAR(128) NOT NULL,
 	groups          VARCHAR(128) NOT NULL,
 	PRIMARY KEY(username)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 CREATE TABLE passwd (
 	username	VARCHAR(128) NOT NULL,
 	password	VARCHAR(128),
 	PRIMARY KEY(username)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 INSERT INTO users VALUES ('netpass', 'Admin');
 INSERT INTO passwd VALUES ('netpass', ENCRYPT('netpass', 'xx'));
@@ -58,7 +58,7 @@ CREATE TABLE pages (
 	name		VARCHAR(128) NOT NULL,
 	content		TEXT,
 	PRIMARY KEY(name)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 
 CREATE TABLE portMoves (
@@ -75,14 +75,14 @@ CREATE TABLE portMoves (
 	INDEX (status),            /* we often query on status    */
         INDEX (requested),
         INDEX (switchIP, switchPort)
-) TYPE=MyISAM;
+) TYPE=NDBCLUSTER;
 
 CREATE TABLE audit (
 	ts		DATETIME           NOT NULL,
 	server          VARCHAR(128),
 	username	VARCHAR(32),
 	ipAddress	VARCHAR(64),
-	macAddress	TINYTEXT,
+	macAddress	VARCHAR(32),
 	severity	ENUM('DEBUG', 'ALERT', 'CRITICAL', 'ERROR',
 			     'WARNING', 'NOTICE', 'INFO') 
                                             NOT NULL,
@@ -92,9 +92,8 @@ CREATE TABLE audit (
 	INDEX (username(8)),
 	INDEX (ipAddress),
 	INDEX (macAddress(12)),
-	INDEX (ts),
-	FULLTEXT(message)
-) TYPE=MyISAM;
+	INDEX (ts)
+) TYPE=NDBCLUSTER;
 
 
 CREATE TABLE `nessusScans` (
@@ -117,7 +116,7 @@ CREATE TABLE `nessusScans` (
   `other_refs` varchar(255) default NULL,
   PRIMARY KEY  (`pluginID`),
   KEY `status` (`status`)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 CREATE TABLE `snortRules` (
   `snortID` int(10) unsigned NOT NULL default '0',
@@ -134,7 +133,7 @@ CREATE TABLE `snortRules` (
   `other_refs` varchar(255) default NULL,
   PRIMARY KEY  (`snortID`),
   KEY `status` (`status`)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 #		ENUM('httpd', 'nessusd', 'garp', 'squid', 'resetport', 
 #				'portmover', 'macscan', 'netpass', 'npcfgd', 
@@ -150,7 +149,7 @@ CREATE TABLE appStarter (
 	status		ENUM('pending', 'completed'),
 	PRIMARY KEY (rowid),
 	INDEX (status)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 CREATE TABLE stats_procs (
   `serverid` varchar(128) NOT NULL,
@@ -159,7 +158,7 @@ CREATE TABLE stats_procs (
   `count` integer NOT NULL,
   INDEX(dt),
   INDEX(proc)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 
 # for Apache::Session
 
@@ -170,5 +169,5 @@ CREATE TABLE `sessions` (
   `length` int(11) default NULL,
   `a_session` text,
 	PRIMARY KEY (id)
-) TYPE=INNODB;
+) TYPE=NDBCLUSTER;
 

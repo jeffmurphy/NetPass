@@ -87,13 +87,21 @@ iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 3128
 #MGT for i in %MGTDEVS% ; do
 #MGT    iptables -t nat -A PREROUTING -j ACCEPT -s $i -p tcp --dport 22
 #MGT    iptables -t nat -A PREROUTING -j ACCEPT -s $i -p udp --dport 161
-#MGT    iptables -t nat -A PREROUTING -j ACCEPT -s $i -p udp --dport 162
 #MGT done
+
+#TRAP for i in %TRAPDEVS% ; do
+#TRAP   iptables -t nat -A PREROUTING -j ACCEPT -s $i -p udp --dport 162
+#TRAP done
 
 
 # allow the netpass servers to talk to each other via mysql
+# 1186 = mysql cluster manager
+# 2202 = mysql ndb
+# 3306 = mysql server
 
 #NPS for i in %NETPASSSERVERS% ; do 
+#NPS     iptables -t nat -A PREROUTING -j ACCEPT -s $i -p tcp --dport 1186
+#NPS     iptables -t nat -A PREROUTING -j ACCEPT -s $i -p tcp --dport 2202
 #NPS     iptables -t nat -A PREROUTING -j ACCEPT -s $i -p tcp --dport 3306
 #NPS done
 
@@ -152,7 +160,9 @@ iptables -A INPUT -i eth0 -p udp --dport 162  -j ACCEPT
 iptables -A INPUT         -p icmp             -j ACCEPT
 iptables -A INPUT         -p tcp --dport 22   -j ACCEPT
 iptables -A INPUT         -p tcp --dport 123 --sport 123  -j ACCEPT
-iptables -A INPUT -p tcp         --dport 3306 -j ACCEPT
+iptables -A INPUT -p tcp         --dport 1186 -j ACCEPT  # MYSQL MGT
+iptables -A INPUT -p tcp         --dport 2202 -j ACCEPT  # MYSQL NDB
+iptables -A INPUT -p tcp         --dport 3306 -j ACCEPT  # MYSQL SRV
 
 #iptables -A INPUT -d 224.0.0.0/4 -j ACCEPT
 

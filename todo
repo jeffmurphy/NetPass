@@ -56,9 +56,4 @@ BUG
 multi-root networsk (spauld/wilk/rich)
 
 
-
-
-Thu Sep  9 14:40:23 2004 sleeping...
-DBI connect('database=netpass','root',...) failed: Can't connect to local MySQLserver through socket '/var/lib/mysql/mysql.sock' (2) at /opt/netpass/lib/NetPass/DB.pm line 536
-Thu Sep  9 14:40:39 2004 sleeping...
-Thu Sep  9 14:40:50 2004 sleeping...
+reporting server -> fulltext index

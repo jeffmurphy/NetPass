@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/install.d/lvs,v 1.2 2005/03/15 19:52:47 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install.d/lvs,v 1.3 2005/03/17 17:38:38 jeffmurphy Exp $
 #
 # installation script for redirectors
 
@@ -72,7 +72,8 @@ if ($fh) {
 	system("/etc/init.d/syslog restart");
 }
 
-print "XXX IPTABLES CONFIG HERE\n\n";
+print "XXX IPTABLES, perl, /var/run/netpass, startup scripts (netpassha, garp) CONFIG HERE\n\n";
+
 
 print "\nHA configuration complete. Use the netpass/bin/interfacecfg.pl script
 to generate your HA interface configuration script.\n";

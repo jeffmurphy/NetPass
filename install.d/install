@@ -9,6 +9,9 @@ PB=$1
 MD=`dirname $0`
 BD=`dirname $MD`
 
+PATH=${PATH}:/usr/local/mysql/bin
+export PATH
+
 if [ "$BD" = "." ] ; then
     BD=`pwd`
 fi
@@ -31,31 +34,41 @@ cat <<EOF
 Installing required PERL modules .. 
 
 NOTES: (READ!)
+  0. You should be root when you run this script.
   1. You might need to configure CPAN first (follow the instructions)"
   2. You might need to insmod ip_conntrack_ftp to make CPAN work"
-  3. If CPAN asks whether or not it should install prereqs that it"
+
+  3. STOP. Install Bundle::CPAN, LWP::UserAgent and then do mod_perl. 
+
+  4. If CPAN asks whether or not it should install prereqs that it"
      finds, answer YES in all cases."
-  4. If CPAN asks any other questions, accept the default answer"
+  5. If CPAN asks any other questions, accept the default answer"
      or the answer that seems sensible to you."
-  5. When asked to configure GD, say /usr/lib, Y to jpeg and png and
+  6. When asked to configure GD, say /usr/lib, Y to jpeg and png and
      N to GIF, FreeType and XPM.
-  6. When asked to enter test params for Authen::Radius you must
+  7. When asked to enter test params for Authen::Radius you must
      enter them or the module won't install.
-  7. mysql_config must be in your path for DBD::Mysql to build
-  8. MySQL must be running for tests to complete.
-  9. When Apache::Test asks for an HTTPD to test with enter
+  8. mysql_config must be in your path for DBD::Mysql to build
+  9. MySQL must be running for tests to complete.
+ 10. When Apache::Test asks for an HTTPD to test with enter
      "skip" and "Yes"
+ 11. This script will check that all of the packages installed 
+     successfully and give you a report at the end. FIX anything
+     that did not install successfully.
 
 [using -I$BD/lib]
 
+Hit ENTER when you've read the above.
+
 EOF
+
+read JUNK
 
 if [ ! -e /tmp/mysql.sock ] ; then 
     ln -s /var/lib/mysql/mysql.sock /tmp/mysql.sock
 fi
 
 
-sleep 5
 
 $PB/bin/perl -MCPAN -I${BD}/lib -e 'install Bundle::NetPass1'
 

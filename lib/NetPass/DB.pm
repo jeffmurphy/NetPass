@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.7 2005/03/15 19:52:48 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.8 2005/03/17 17:38:39 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -374,7 +374,7 @@ This routine will get the registered info on an already registered MAC. Returns:
 =over 4
 
 =item C<HASHREF> containing keys that correspond to the macAddresses given.
-values of C<HASHREF> are C<HASHREF>s containing keys: ipAddress, firstSeen,
+values of C<HASHREF> are C<HASHREF>s containing keys: ipAddress, lastSeen,
 registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup.
 
 If the Mac is not registered, it won't be in the HASHREF returned.  
@@ -398,7 +398,7 @@ sub getRegisterInfo {
 	    push @crit, "macAddress = '$ma'";
     }
 
-    my $sql = "SELECT macAddress, ipAddress, firstSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE " .
+    my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE " .
       join (" OR " , @crit) ;
 
     my $a    = $self->{'dbh'}->selectall_hashref($sql, 'macAddress');
@@ -668,7 +668,7 @@ sub registerHost {
     
     $mac = NetPass::padMac($mac); # ensure specific format
 
-    my $sql = qq{insert into register (macAddress, ipAddress, firstSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup) values ('$mac', '$ip', NOW(), NOW(), 'unquar', NULL, '$username', '$os', NULL, NULL, 'no')};
+    my $sql = qq{insert into register (macAddress, ipAddress, lastSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup) values ('$mac', '$ip', NOW(), NOW(), 'unquar', NULL, '$username', '$os', NULL, NULL, 'no')};
 
     _log("DEBUG", "$mac $ip sql=$sql\n") if $self->D;
 
@@ -1131,6 +1131,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.7 2005/03/15 19:52:48 jeffmurphy Exp $
+$Id: DB.pm,v 1.8 2005/03/17 17:38:39 jeffmurphy Exp $
 
 1;

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.9 2004/10/25 17:48:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.10 2005/03/17 17:38:40 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -218,7 +218,7 @@ push(@rows, $q->TR(
 
 while (my $row = $results->fetchrow_hashref() ) {
 	push( @rows,	$q->TR( 
-				$q->td({-align=>'center'}, $row->{firstSeen})    .
+				$q->td({-align=>'center'}, $row->{lastSeen})    .
 				$q->td({-align=>'center'}, $row->{registeredOn}) .
 				$q->td({-align=>'center'}, $row->{username})     .
 				$q->td({-align=>'center'}, $row->{ipAddress})   .
@@ -350,7 +350,7 @@ sub getQuars {
 		push(@params, $uqlinkup);
 	}
 
-	my $query = "SELECT DATE_FORMAT(firstSeen, '%Y-%m-%d %H:%i:%s') as firstSeen, DATE_FORMAT(registeredOn, '%Y-%m-%d %H:%i:%s') as registeredOn, username, macAddress, ipAddress, OS, status, message, uqlinkup FROM register";
+	my $query = "SELECT DATE_FORMAT(lastSeen, '%Y-%m-%d %H:%i:%s') as lastSeen, DATE_FORMAT(registeredOn, '%Y-%m-%d %H:%i:%s') as registeredOn, username, macAddress, ipAddress, OS, status, message, uqlinkup FROM register";
 	
 	if($#clause>-1) {
 		$query .= " WHERE " . join(" $type ", @clause)

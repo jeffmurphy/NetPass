@@ -66,9 +66,11 @@ HTML::Mason
 
 Apache::Cookie
 
-Apache::Session
+Apache::Session::Flex
 
 Apache::Session::Wrapper
+
+Apache::Session
 
 MasonX::Request::WithApacheSession
 
