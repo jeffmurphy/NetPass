@@ -44,22 +44,16 @@ use Pod::Usage;
 use FileHandle;
 use DBI;
 
-#use lib '/opt/netpass/lib';
-#use NetPass;
-#use NetPass::DB;
-#
-#my $np = new NetPass(-config => "/opt/netpass/etc/netpass.conf");
-#my $netpass = new NetPass::DB($np->cfg->dbSource,
-#                              $np->cfg->dbUsername,
-#                              $np->cfg->dbPassword);
-#
-#my $dbh = $netpass->{dbh};
+use lib '/opt/netpass/lib';
+use NetPass;
+use NetPass::DB;
 
-my $USER	= "root";
-my $PASSWORD	= "";
-my $HOST	= "localhost";
-my $cstr        = "DBI:mysql:database=netpass;host=$HOST";
-my $dbh         = DBI->connect($cstr, $USER, $PASSWORD);
+my $np = new NetPass(-config => "/opt/netpass/etc/netpass.conf");
+my $netpass = new NetPass::DB($np->cfg->dbSource,
+                              $np->cfg->dbUsername,
+                              $np->cfg->dbPassword);
+
+my $dbh = $netpass->{dbh};
 
 my %opts;
 my $data = {};
