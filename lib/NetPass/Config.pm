@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.6 2005/03/15 17:18:31 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.7 2005/03/16 14:13:02 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -338,6 +338,37 @@ sub primary_redirector {
     }
     return undef;
 }
+
+=head2 $bool = $cfg-E<gt>secondary_redirector(network)
+
+If HA is enabled, returns the secondary redirector's hostname assigned to this network. Else undef.
+
+=cut
+
+sub secondary_redirector {
+    my $self = shift;
+    my $nw   = shift;
+
+    $self->reloadIfChanged();
+
+    if( ! $self->{'cfg'}->obj('network')->exists($nw) ) {
+        _log ("ERROR", "no such network $nw\n");
+        return undef;
+    }
+
+    if( $self->{'cfg'}->obj('network')->obj($nw)->exists('ha') &&
+        $self->{'cfg'}->obj('network')->obj($nw)->obj('ha')->exists('status') ) {
+
+        my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('ha')->value('status');
+        return undef unless $s =~ /^enabled$/i;
+
+        if ( $self->{'cfg'}->obj('network')->obj($nw)->obj('ha')->exists('secondary-redirector') ) {
+            return $self->{'cfg'}->obj('network')->obj($nw)->obj('ha')->value('secondary-redirector');
+        }
+    }
+    return undef;
+}
+
 
 =head2 $bool = $cfg-E<gt>ha_servers(network)
 
@@ -1123,7 +1154,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.6 2005/03/15 17:18:31 jeffmurphy Exp $
+$Id: Config.pm,v 1.7 2005/03/16 14:13:02 mtbell Exp $
 
 =cut
 
