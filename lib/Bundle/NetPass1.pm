@@ -18,6 +18,8 @@ C<perl -MCPAN -e 'install Bundle::NetPass'>
 
 Bundle::CPAN
 
+DBI
+
 Mysql - skipcheck
 
 Config::General::Extended

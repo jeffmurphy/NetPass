@@ -45,6 +45,28 @@ CREATE TABLE users (
 	PRIMARY KEY(username)
 ) TYPE=NDBCLUSTER;
 
+create table networkAdmins (
+	username 	varchar(128) not null,
+	netId		integer not null,
+	index (username, netid)
+) TYPE=NDBCLUSTER;
+
+create table networks (
+	id      integer unsigned not null auto_increment,
+	network integer not null,
+	netmask integer not null,
+	name	varchar(128) not null,
+	index unique (name)
+) TYPE=NDBCLUSTER;
+
+create table config (
+	rev	integer unsigned not null auto_increment,
+	dt	datetime not null,
+	user	varchar(128) not null,
+	config	text,
+	primary key(dt)
+) type=ndbcluster;
+
 CREATE TABLE passwd (
 	username	VARCHAR(128) NOT NULL,
 	password	VARCHAR(128),
@@ -55,6 +77,7 @@ INSERT INTO users VALUES ('netpass', 'Admin');
 INSERT INTO passwd VALUES ('netpass', ENCRYPT('netpass', 'xx'));
 	
 CREATE TABLE pages (
+	networkId       integer not null default '0',
 	name		VARCHAR(128) NOT NULL,
 	content		TEXT,
 	PRIMARY KEY(name)
