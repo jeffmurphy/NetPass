@@ -81,6 +81,7 @@ foreach my $p (@{$t->table}) {
 	foreach my $s (keys %$proc) {
 		if ($p->cmndline =~ /$s/) {
 			$proc->{$s}++;
+			last;
 		}
 	}
 }
