@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.7 2005/03/16 14:13:02 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.8 2005/03/31 15:02:44 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -401,70 +401,36 @@ sub ha_servers {
     return undef;
 }
 
-=head2 $port = $cfg-E<gt>npcfgdPort()
+=head2 $port = $cfg-E<gt>npapiPort()
 
-Returns the port npcfgd will listen on. Else undef.
+Returns the port npapid will listen on. Else undef.
 
 =cut
 
-sub npcfgdPort {
+sub npapiPort {
     my $self = shift;
 
     $self->reloadIfChanged();
 
-    if ($self->{'cfg'}->obj('npcfgd')->exists('port')) {
-    	return $self->{'cfg'}->obj('npcfgd')->value('port');
+    if ($self->{'cfg'}->obj('npapi')->exists('port')) {
+    	return $self->{'cfg'}->obj('npapi')->value('port');
     }
     return undef;
 }
 
-=head2 $secret = $cfg-E<gt>npcfgdSecret()
+=head2 $secret = $cfg-E<gt>npapiSecret()
 
-Returns the secret used by npcfgd. Else undef.
+Returns the secret used by npapid. Else undef.
 
 =cut
 
-sub npcfgdSecret {
+sub npapiSecret {
     my $self = shift;
 
     $self->reloadIfChanged();
 
-    if ($self->{'cfg'}->obj('npcfgd')->exists('secret')) {
-        return $self->{'cfg'}->obj('npcfgd')->value('secret');
-    }
-    return undef;
-}
-
-=head2 $port = $cfg-E<gt>npstatdPort()
-
-Returns the port npstatd will listen on. Else undef.
-
-=cut
-
-sub npstatdPort {
-    my $self = shift;
-
-    $self->reloadIfChanged();
-
-    if ($self->{'cfg'}->obj('npstatd')->exists('port')) {
-        return $self->{'cfg'}->obj('npstatd')->value('port');
-    }
-    return undef;
-}
-
-=head2 $secret = $cfg-E<gt>npstatdSecret()
-
-Returns the secret used by npstatd. Else undef.
-
-=cut
-
-sub npstatdSecret {
-    my $self = shift;
-
-    $self->reloadIfChanged();
-
-    if ($self->{'cfg'}->obj('npstatd')->exists('secret')) {
-        return $self->{'cfg'}->obj('npstatd')->value('secret');
+    if ($self->{'cfg'}->obj('npapi')->exists('secret')) {
+        return $self->{'cfg'}->obj('npapi')->value('secret');
     }
     return undef;
 }
@@ -1154,7 +1120,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.7 2005/03/16 14:13:02 mtbell Exp $
+$Id: Config.pm,v 1.8 2005/03/31 15:02:44 mtbell Exp $
 
 =cut
 
