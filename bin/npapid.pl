@@ -1,7 +1,7 @@
 #!/opt/perl-5.8.6/bin/perl -w
 
 use strict;
-use vars qw($np $remote_ip);
+use vars qw($dbh $np $remote_ip);
 
 use Getopt::Std;
 use Pod::Usage;
@@ -38,11 +38,18 @@ if (exists $opts{'D'}) {
     daemonize("npapid", "/var/run/netpass");
 }
 
-$np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
+$np     = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
 			     "/opt/netpass/etc/netpass.conf");
 
 die ("Unable to access netpass object") if (!$np);
 my $cfg = $np->cfg();
+
+$dbh = new NetPass::DB($cfg->dbSource,
+                       $cfg->dbUsername,
+                       $cfg->dbPassword,
+                       1);
+
+die ("Unable to access NetPass::DB object") if (!$dbh);
 
 my $daemon = SOAP::Transport::TCP::Server->new(
 						LocalPort       => $cfg->npapiPort(),
