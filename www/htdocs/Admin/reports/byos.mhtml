@@ -14,21 +14,30 @@ my @argstring = ();
 if ( $m->comp('/Admin/Login', %ARGS) ) {
 	my $data = get_OS_data($dbh);
 
-	print "<script><!--\nsetWhereAmI('Reports');\n--></script>";
-
-	print "<TABLE CELLPADDING=2 CELLSPACING=2 BORDER=0 WIDTH=200>";
-	print "<TR><TH>OS</TH><TH>Registrant</TH></TR>";
-	
+	my $total = 0;
 	foreach my $os (sort keys %$data) {
-		print "<TR><TD TD CLASS='gray'>$os</TD>";
-		print "<TD TD CLASS='gray'>".$data->{$os}."</TD></TR>";
 		push(@argstring, $os . '=' . $data->{$os});
-	}	
-	print "</TABLE><P>";	
+		$total += $data->{$os};
+	}
+
+	print "<script><!--\nsetWhereAmI('Reports &gt; By Operating System');\n--></script>";
 
 	my $imgurl = "graph.cgi?type=pie&" . join('&', @argstring);
 
-	print $q->img({-src=>$imgurl});
+	print '<center>', $q->img({-src=>$imgurl}), '</center><P>';
+
+	print "<TABLE ALIGN=CENTER CELLPADDING=2 CELLSPACING=2 BORDER=0 WIDTH=200>";
+	print "<TR><TH>OS</TH><TH colspan=2>Registrants</TH></TR>";
+	
+	foreach my $os (sort keys %$data) {
+		print "<TR><TD CLASS='gray'>$os</TD>";
+		print "<TD align='right' CLASS='gray'>".$data->{$os}."</TD>";
+		printf "<td align='right' class='gray'>%2.2f%%</td>",
+			100*($data->{$os} / $total);
+		print "</tr>\n";
+	}	
+	print "</TABLE><P>";	
+
 }
 
 sub get_OS_data {

@@ -21,6 +21,7 @@ bin/portmover.pl
 bin/resetport-restart.sh
 bin/resetport.pl
 bin/rm_stale_cookies.pl
+bin/dbcopy
 doc/cron.monthly/mysql_binlog_rotate
 doc/Netpass_Overview.txt
 doc/add_new_network
@@ -60,6 +61,7 @@ install.d/install-test
 install.d/spinner.pm
 install.d/services
 install.d/syslog.conf
+install.d/convertdb
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
 lib/NetPass.pm
@@ -76,6 +78,7 @@ lib/NetPass/Stats/Network.pm
 lib/NetPass/WWW/Session.pm.file
 lib/NetPass/WWW/Session.pm.mysql
 lib/NetPass/Network.pm
+lib/NetPass/.#DB.pm.1.3
 lib/OSS/Template/BoxArea.pm
 lib/OSS/Template/Box.pm
 lib/OSS/Template/Templates/Site.pm
@@ -83,6 +86,7 @@ lib/OSS/Template/Menu.pm
 lib/OSS/Template/SideLinks.pm
 lib/OSS/Template/TabArea.pm
 lib/OSS/Template.pm
+lib/SNMP/Device/Cisco.pm
 lib/SNMP/Device/Asante.pm
 lib/SNMP/Device/BayStack.pm
 lib/SNMP/Device/BayStack3.pm
@@ -129,6 +133,8 @@ www/htdocs/Admin/Scan/index.mhtml
 www/htdocs/Admin/Scan/info.mhtml
 www/htdocs/Admin/reports/byclient.mhtml
 www/htdocs/Admin/reports/bynet.mhtml
+www/htdocs/Admin/reports/byos.mhtml
+www/htdocs/Admin/reports/graph.cgi
 www/htdocs/autohandler
 www/htdocs/clrpxl.gif
 www/htdocs/eula.mhtml

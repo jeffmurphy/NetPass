@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.4 2004/10/01 15:40:51 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -92,6 +92,13 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 
 		my $minq = NetPass::Network::searchArpCache($dottedNetwork);
 
+
+		my $allMacs = join(' ', (values %$minq));
+		$allMacs =~ s/\://g;
+		$allMacs =~ tr [A-Z] [a-z];
+		my $byClient = "byclient.mhtml?macs=$allMacs";
+                         
+
 		my $aq = 0;  my $aq2 = 0;
 		if (ref($minq) eq "HASH") {
 			$aq2 = keys %$minq;
@@ -108,9 +115,14 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 		$totalInQuar   += $aq2;
 		$totalPingable += $aq;
 
-		printf("%20.20s %20.20s %10.10s %10.10s\n", $cmt, 
+		my $byClientsHREF = "$aq/$aq2";
+		$byClientsHREF = qq{<a href="$byClient">$aq/$aq2</a>} if ($allMacs ne "");
+
+		printf("%20.20s %20.20s %10.10s %s\n", $cmt, 
 			$dottedNetwork, 
-			$netStats{$network}, "$aq/$aq2");
+			$netStats{$network}, 
+			$byClientsHREF
+		);
 	  	$m->flush_buffer();
 	}
 
@@ -120,7 +132,21 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 
 	#print "printing took ", tv_interval($t0), "secs\n";
 
-	printf("</PRE>\n");
+</%perl>
+</PRE>
+"Active in Quarantine" isn't necessarily true. We calculate this column based
+on the population of the ARP cache on the NetPass server. A client may have
+already left the quarantine, but will live on for a while longer in the ARP
+cache, leading to potentially more quarantine occupants than there really are.<P>
+
+The first component of "Active in Quarantine" is the number of hosts that actually
+replied to a "ping". This number might be a little low if hosts are running firewalls
+that block ICMP. The second component is the number of hosts in the ARP cache. This
+number might be a little high if a host has been unquarantined, but has not yet
+aged out of the ARP cache. The actual number of hosts in quarantine is somewhere
+between those two numbers.
+<%perl>
+
 }
 
 sub checkAlive {
@@ -143,17 +169,5 @@ sub checkAlive {
 }
 
 </%perl>
-
-"Active in Quarantine" isn't necessarily true. We calculate this column based
-on the population of the ARP cache on the NetPass server. A client may have
-already left the quarantine, but will live on for a while longer in the ARP
-cache, leading to potentially more quarantine occupants than there really are.<P>
-
-The first component of "Active in Quarantine" is the number of hosts that actually
-replied to a "ping". This number might be a little low if hosts are running firewalls
-that block ICMP. The second component is the number of hosts in the ARP cache. This
-number might be a little high if a host has been unquarantined, but has not yet
-aged out of the ARP cache. The actual number of hosts in quarantine is somewhere
-between those two numbers.
 
 

@@ -1,13 +1,21 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.1 2004/10/01 15:40:51 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.2 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+give a mac, or macs (space separated):
+
+a) lookup their IPs, show mac + ip
+b) find switch port and show it
+c) find all macs on that port, show their status
+d) show history of portMoves for past 2 days
+
 </%doc>
 
 <%args>
-$macs = '';
+$macs => '';
 </%args>
 
 <script><!--
@@ -20,3 +28,244 @@ use Time::HiRes qw(gettimeofday tv_interval);
 use NetPass::Network qw (cidr2int searchArpCache int2cidr ip2int int2ip);
 
 if ( $m->comp('/Admin/Login', %ARGS) ) {
+
+	# print "macs=--- $macs ---\n<P>";
+	$macs =~ s/\n/\ /g;
+	$macs =~ s/\s\s/\ /g;
+
+	my @macs = split(/\s/, $macs);
+	# print "macs=", join(',', @macs), "<P>";
+
+	if ($#macs > -1) {
+		# lookup IPs
+
+		my $ri = $npdbh->getRegisterInfo(@macs);
+
+		printMacInfo($ri);
+
+		# foreach mac, find switch port and print the table
+
+		foreach my $m (@macs) {
+			my $m2 = NetPass::padMac($m);
+			my ($sw, $po, $mp, $pm) = $np->findOurSwitchPort($m2, 
+							$ri->{$m2}->{'ipAddress'});
+
+
+			# if !def, then this mac isnt on the network right now
+
+			if (defined($sw)) {
+				$ri->{$m}->{'notonnet'} = 0;
+
+				# if sw/po is diff from what DB said.. update
+
+				if ( ($sw != $ri->{$m2}->{'switchIP'}) ||
+				     ($po != $ri->{$m2}->{'switchPort'}) ) {
+
+					$ri->{$m2}->{'switchIP'}   = $sw;
+					$ri->{$m2}->{'switchPort'} = $po;
+				} 
+				printNeighborTable($m2, $pm->{$po});
+			} else { 
+				$ri->{$m}->{'notonnet'} = 1;
+			}
+		}
+
+		# show history of portMoves
+
+		my %alreadyDone;
+
+		foreach my $m (keys %$ri) {
+			next if exists $alreadyDone{$ri->{$m}->{'switchIP'}."/".
+						$ri->{$m}->{'switchPort'}};
+			$alreadyDone{$ri->{$m}->{'switchIP'}."/".
+				     $ri->{$m}->{'switchPort'}} = 1;
+			printPortHistory($ri->{$m});
+		}
+
+	} else {
+		print $q->start_form(-method => "POST");
+		print $q->table({-border=>0, -width=>600},
+			$q->TR(
+				$q->th({-colspan=>2}, "Search")
+			).
+			$q->TR(
+				$q->td({-class=>"gray"}, "MAC Address:") .
+				$q->td({-class=>"gray"},
+					$q->textarea(
+							-name 	=> "macs",
+							-value 	=> $macs,
+							-id     => 'macs',
+							-cols   => 18, -rows => 1, 
+					).
+					qq{<a href="javascript:clearField('macs');"><img 
+						src="/resources/images/trashcan_full.png"
+						alt="Clear Field" border='0' width=32 height=32></a>  },
+				$q->small('one per line')
+				)
+			).
+			$q->TR(
+				$q->td({-class=>"gray"}, '&nbsp;') .
+				$q->td({-class=>"gray"},
+					$q->submit(
+							-name 	=> "search",
+							-value 	=> "Search"
+					)
+				)
+			)
+
+		);
+	}
+}
+
+# NeighborTable contains
+#    (title)origin mac (one we are examining)
+#    cols:
+#       neighbor
+#       status
+#       OS       (if reg'd)
+#       IP       (if reg'd)
+#       user     (if reg'd)
+
+sub printNeighborTable {
+	my $mac   = shift;
+	my $neis  = shift;
+
+	my $ri  = $npdbh->getRegisterInfo(@$neis);
+
+	my @rows = ();
+	my @rl = ('even', 'odd');
+	my $rn = 0;
+
+	push @rows, 
+		$q->TR($q->th({-align=>'center', -colspan=>5}, "Neighbors of ".$mac)),
+		$q->TR(
+			$q->th("Neighbor")   .
+			$q->th("Status")     .
+		   	$q->th("UBIT Name")  .
+			$q->th("IP Address") .
+			$q->th("OS")
+		);
+
+	if ($#{$neis} < 1) {
+		push @rows, $q->td({-align=>'center', -colspan=>5}, "<I>none</I>");
+	}
+
+	foreach my $m (sort @$neis) {
+		next if ($m eq $mac);
+
+		my $row = "";
+		if (exists $ri->{$m}) {
+			$row .= 
+				$q->td($ri->{$m}->{'status'})     .
+				$q->td($ri->{$m}->{'username'})   .
+				$q->td($ri->{$m}->{'ipAddress'})  .
+				$q->td($ri->{$m}->{'OS'});
+		} else {
+			$row .= $q->td("UNREG") .
+				    $q->td({-align=>'center'}, "-")  .
+				    $q->td({-align=>'center'},"-")  .
+				    $q->td({-align=>'center'},"-");
+		}
+
+		push @rows, $q->TR(
+			{ -id => $rl[$rn % 2].$rn, -class => $rl[$rn % 2] } ,
+			$q->td({-class => 'mono', -id => "nei-$mac-Cell-$rn"}, 
+				NetPass::padMac($m)),
+			$row);
+
+		$rn++;
+	}
+
+	print $q->table({-border=>0, -id => 'nei_'.$mac}, 
+			@rows);
+
+
+}
+
+sub printMacInfo {
+	my $mi = shift;
+	my $nk = keys %$mi;
+
+
+	if ($nk > -1) {
+		my @rows = ();
+
+		push @rows, $q->TR(
+			$q->th("Mac Address") .
+			$q->th("Status"),
+		   	$q->th("UBIT Name") .
+			$q->th("IP Address") .
+			$q->th("OS") .
+			$q->th("Switch"),
+			$q->th("Port")
+		);
+
+		my @rl = ('even', 'odd');
+		my $rn = 0;
+
+		foreach my $ma (keys %$mi) {
+			push @rows, $q->TR(
+				{ -id => $rl[$rn % 2].$rn, -class => $rl[$rn % 2] },
+				$q->td({-class => 'mono', -id => 'macCell'.$rn}, 
+					NetPass::padMac($ma)),
+				$q->td($mi->{$ma}->{'status'}),
+				$q->td($mi->{$ma}->{'username'}),
+				$q->td($mi->{$ma}->{'ipAddress'}),
+				$q->td($mi->{$ma}->{'OS'}),
+				$q->td($mi->{$ma}->{'switchIP'}),
+				$q->td($mi->{$ma}->{'switchPort'})
+				);
+			$rn++;
+		}
+
+		print $q->table({-border=>0, -id => 'tbl_main', -class=>'selectable'}, 
+				@rows);
+
+#		print qq{<P><a href="javascript:showHideObj('tbl_main');">foo</a>};
+	} 
+
+}
+
+sub printPortHistory {
+	my $ri  = shift;
+
+	my ($d, $m, $y) = (localtime(time()-86400*5))[3,4,5];
+	$m++; $y+=1900;
+
+	my $sql = qq{SELECT requested, vlanId, status, requestedBy from portMoves where requested >= '$y-$m-$d' AND switchIP = '$ri->{"switchIP"}' AND switchPort = '$ri->{"switchPort"}'} ;
+
+
+	my $a = $npdbh->dbh->selectall_arrayref($sql);
+	if (defined($a)) {
+		my @rows = ();
+
+		push @rows, $q->TR(
+			$q->th("Requested On")  .
+			$q->th("Change To")     .
+			$q->th("Change Status") .
+		   	$q->th("Requested By") 
+		);
+		
+		my @rl = ('even', 'odd');
+		my $rn = 0;
+
+		foreach my $row (@$a) {
+			push @rows, $q->TR(
+				{ -id => $rl[$rn % 2].$rn, -class => $rl[$rn % 2] },
+				$q->td({-class => 'mono', -id => 'portHistCell'.$rn}, 
+					$row->[0]),
+				$q->td($row->[1]),
+				$q->td($row->[2]),
+				$q->td($row->[3])
+				);
+			$rn++;
+		}
+
+		print $q->table({-border=>0, -id => 'tbl_portHist'}, 
+				@rows);
+
+	}
+}
+
+
+</%perl>

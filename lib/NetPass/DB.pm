@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.4 2004/10/05 17:02:34 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -105,9 +105,7 @@ sub macStatus {
     my $self = shift;
     my $ma   = shift;
 
-    $ma = "0x".$ma;
-
-    my $sql  = qq{SELECT status FROM register WHERE macAddress = $ma};
+    my $sql  = qq{SELECT status FROM register WHERE macAddress = '$ma'};
 
     $self->reconnect() || return undef;
 
@@ -130,8 +128,8 @@ Returns C<undef> if the mac is not registered.
 sub UQLinkUp {
 	my $self = shift;
 	my $ma   = shift;
-	$ma      = "0x".$ma;
-	my $sql  = qq{SELECT uqlinkup FROM register where macAddress = $ma};
+
+	my $sql  = qq{SELECT uqlinkup FROM register where macAddress = '$ma'};
 	$self->reconnect() || return undef;
 	my $a    = $self->{'dbh'}->selectrow_arrayref($sql);
 	return undef if (!defined($a) || (ref($a) ne "ARRAY"));
@@ -159,16 +157,16 @@ sub UQLinkUp_itDependsCheck {
 
 	# M1 M2
 	# select count(*) from register where
-	#    (macAddress = 0xM1 AND uqlinkup = 'yes' AND (status = 'UNQUAR' OR status = 'PUNQUAR'))
+	#    (macAddress = 'M1' AND uqlinkup = 'yes' AND (status = 'UNQUAR' OR status = 'PUNQUAR'))
 	#    AND
-	#    (macAddress = 0xM2 AND uqlinkup = 'yes' AND (status = 'UNQUAR' OR status = 'PUNQUAR'))
+	#    (macAddress = 'M2' AND uqlinkup = 'yes' AND (status = 'UNQUAR' OR status = 'PUNQUAR'))
 	#
 	# should return "2" if everything is OK.
 
 	my $sql = "SELECT count(*) FROM register WHERE ";
 	for (my $i = 0 ; $i <= $#$ml ; $i++) {
 		my $m = $ml->[$i];
-		$sql .= qq{ (macAddress = 0x$m AND uqlinkup = 'yes' AND (status = 'UNQUAR' OR status = 'PUNQUAR')) };
+		$sql .= qq{ (macAddress = '$m' AND uqlinkup = 'yes' AND (status = 'UNQUAR' OR status = 'PUNQUAR')) };
 		$sql .= " OR " if ($i < $#$ml);
 	}
 	#_log("DEBUG", "sql=$sql\n");
@@ -209,12 +207,7 @@ sub macIsRegistered {
     return 0 if ($ma eq "REMOTE");
     return 0 if ($ma !~ /^[0-9a-fA-F]+$/); # must be a hex number
 
-    # we dont want to do HEX(macAddress) = '$ma' here because
-    # unless we strip the leading zeros. comparing against the
-    # integer should be faster anyway. wrapping the column in a
-    # function should result in a full table scan.
-
-    my $sql = "SELECT count(*) FROM register WHERE macAddress = 0x$ma";
+    my $sql = "SELECT count(*) FROM register WHERE macAddress = '$ma'";
     my $row = $self->{'dbh'}->selectrow_arrayref($sql);
 
     #use Data::Dumper;
@@ -257,8 +250,7 @@ sub lookupSwitchPort {
 
     $self->reconnect() || return undef;
 
-    $ma = "0x".$ma;
-    my $sth = $self->{'dbh'}->prepare("SELECT switchIP,switchPort FROM register WHERE macAddress = $ma");
+    my $sth = $self->{'dbh'}->prepare("SELECT switchIP,switchPort FROM register WHERE macAddress = '$ma'");
     if(!defined($sth)) {
 	_log "ERROR", "prepare failed: ".$self->{'dbh'}->errstr;
 	$self->error("prepare failed: ".$self->{'dbh'}->errstr);
@@ -288,8 +280,7 @@ sub setSwitchPort {
 
     $self->reconnect() || return 0;
 
-    $ma = "0x".$ma;
-    my $sql = qq{UPDATE register SET switchIP = '$sw', switchPort = $po WHERE macAddress = $ma};
+    my $sql = qq{UPDATE register SET switchIP = '$sw', switchPort = $po WHERE macAddress = '$ma'};
 
     return 1 if ( $self->{'dbh'}->do($sql) );
     _log "ERROR", $self->{'dbh'}->errstr."\n";
@@ -325,15 +316,13 @@ sub setMessage {
     my $rv = $self->macIsRegistered($ma);
     return 0 if ($rv < 1);
 
-    $ma = "0x$ma";
-
     if (defined($msg) && ($msg !~ /^null$/i)) {
 	$msg = $self->{'dbh'}->quote($msg);
     } else {
 	$msg = 'NULL';
     }
-	
-    my $sql = "UPDATE register SET message = $msg WHERE macAddress = $ma";
+
+    my $sql = "UPDATE register SET message = $msg WHERE macAddress = '$ma'";
 
     _log ("DEBUG", "$ma setMessage to $msg (sql=$sql)\n");
 
@@ -346,10 +335,7 @@ sub setMessage {
 
 =head2 $msg = getMessage(mac)
 
-This routine will get the message on an already registered MAC. It will over-write
-any existing message. If the message begins with "http:" then the web front end
-will assume it's a URL. Otherwise, the web frontend will assume it's text or HTML
-code and display it appropriately. Returns:
+This routine will get the message on an already registered MAC. Returns:
 
 =over 4
 
@@ -365,22 +351,62 @@ on failure or no message set
 
 sub getMessage {
     my $self = shift;
-    my ($ma, $msg) = (shift, shift);
+    my $ma = shift;
 
     #called by macIsReg .. $self->reconnect() || return undef;
 
     my $rv = $self->macIsRegistered($ma);
-    return $rv if ($rv ==  0);
-    return $rv if ($rv == -1);
-	
-    $ma = "0x$ma";
-
-    my $sql = "SELECT message FROM register WHERE macAddress = $ma";
+    return undef if ($rv ==  0);
+    return undef if ($rv == -1);
+	  
+    my $sql = "SELECT message FROM register WHERE macAddress = '$ma'";
 
     my $a    = $self->{'dbh'}->selectrow_arrayref($sql);
     _log "ERROR", "select failed: ".$self->{'dbh'}->errstr."\n" 
       unless (defined($a) && (ref($a) eq "ARRAY"));
     return $a->[0];
+}
+
+=head2 $msg = getRegisteredIP(mac[, mac, ...])
+
+This routine will get the registered info on an already registered MAC. Returns:
+
+=over 4
+
+=item C<HASHREF> containing keys that correspond to the macAddresses given.
+values of C<HASHREF> are C<HASHREF>s containing keys: ipAddress, firstSeen,
+registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup.
+
+If the Mac is not registered, it won't be in the HASHREF returned.  
+
+on success
+
+=item undef
+
+SQL failure
+
+=cut
+
+sub getRegisterInfo {
+    my $self = shift;
+
+    $self->reconnect() || return undef;
+
+    my @crit = ();
+
+    foreach my $ma (@_) {
+	    push @crit, "macAddress = '$ma'";
+    }
+
+    my $sql = "SELECT macAddress, ipAddress, firstSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE " .
+      join (" OR " , @crit) ;
+
+    my $a    = $self->{'dbh'}->selectall_hashref($sql, 'macAddress');
+
+    return $a if (defined($a) && (ref($a) eq "HASH"));
+
+    _log "ERROR", "select failed: ".$self->{'dbh'}->errstr."\n";
+    return undef;
 }
 
 =head2 $msg = getPage($name, $massage)
@@ -444,7 +470,7 @@ sub requestMovePort {
 
     my $serverid = hostname;
 
-    my $sql = qq{INSERT INTO portMoves (serverid, rowid, requested, requestBy, switchIP, switchPort, vlanId, status) VALUES ('$serverid', NULL, NOW(), '$by', '$hn', $port, '$vlan', 'pending')};
+    my $sql = qq{INSERT INTO portMoves (serverid, rowid, requested, requestedBy, switchIP, switchPort, vlanId, status) VALUES ('$serverid', NULL, NOW(), '$by', '$hn', $port, '$vlan', 'pending')};
 
     $self->reconnect() || return 0;
 
@@ -640,7 +666,9 @@ sub registerHost {
     my $self = shift;
     my ($mac, $ip, $os, $username) = (shift, shift, shift, shift);
     
-    my $sql = qq{insert into register (macAddress, ipAddress, firstSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup) values (0x$mac, '$ip', NOW(), NOW(), 'unquar', NULL, '$username', '$os', NULL, NULL, 'no')};
+    $mac = NetPass::padMac($mac); # ensure specific format
+
+    my $sql = qq{insert into register (macAddress, ipAddress, firstSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup) values ('$mac', '$ip', NOW(), NOW(), 'unquar', NULL, '$username', '$os', NULL, NULL, 'no')};
 
     _log("DEBUG", "$mac $ip sql=$sql\n") if $self->D;
 
@@ -662,7 +690,7 @@ sub registerHost {
 	    $osC = qq{OS='$os', } if defined($os) && ($os ne "") &&  ($os ne "Unknown");
 	    $unC = qq{username='$username', } if defined($username) && ($username ne "");
 
-	    $sql = qq{UPDATE register SET ipAddress='$ip', registeredOn=NOW(), status='unquar', message=NULL, $unC $osC switchIP=NULL, switchPort=NULL WHERE macAddress = 0x$mac};
+	    $sql = qq{UPDATE register SET ipAddress='$ip', registeredOn=NOW(), status='unquar', message=NULL, $unC $osC switchIP=NULL, switchPort=NULL WHERE macAddress = '$mac'};
 	    _log("DEBUG", "$mac $ip sql=$sql\n");
 	    $rv = $self->{'dbh'}->do($sql);
 	    if (!defined($rv)) {
@@ -1014,7 +1042,7 @@ sub audit {
     $sql .= "message ) VALUES ( NOW(), ".$self->{'dbh'}->quote(hostname).", ";
     $sql .= "'$u', " if defined($u);
     $sql .= "'$i', " if defined($i);
-    $sql .= "0x$m, " if defined($m);
+    $sql .= "'$m', " if defined($m);
     $sql .= "'$s', " if defined($s);
     $sql .= "'$loc', " if defined($loc);
     $sql .= "'$msg2' )";
@@ -1050,6 +1078,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.4 2004/10/05 17:02:34 mtbell Exp $
+$Id: DB.pm,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
 
 1;

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.4 2004/09/30 01:19:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -506,7 +506,8 @@ sub search_topology {
 	$loopctl->{$switch} = 1;
 
 	my $snmp = new SNMP::Device('hostname'       => $switch,
-				    'snmp_community' => $community);
+				    'snmp_community' => $community,
+				    'debug' => 0);
 
 	if (!defined($snmp)) {
 		_log("ERROR", "$mac failed to create SNMP::Device for ".$self->ip."\n");
@@ -750,9 +751,16 @@ sub validateMac {
 		goto long_way; #XXX ugly
 	}
 
+	$self->cfg->debug(1);
+
+	_log ("DEBUG", "$mac $ip cnct to $sw with ",
+				    ($self->cfg->getCommunities($sw))[1]);
+
 	my $snmp = new SNMP::Device('hostname'  => $sw,
 				    'snmp_community'  =>
 				    ($self->cfg->getCommunities($sw))[1]);
+
+	$self->cfg->debug(0);
 
 
 	if ( defined($snmp->err) ) {
@@ -891,7 +899,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.4 2004/09/30 01:19:38 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.5 2004/10/15 15:49:35 jeffmurphy Exp $
 
 =cut
 

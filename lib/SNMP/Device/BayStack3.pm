@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack3.pm,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack3.pm,v 1.3 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -35,9 +35,13 @@ This object allows us to interface with the Nortel BayStack 350 switch
 
 =head2 B<init()>
 
-        init is called immediately after the discovery of device type.
-        this is an optional function and in this module, is used to set the
-        snmp version to '2'
+=over 8
+
+init is called immediately after the discovery of device type.
+this is an optional function and in this module, is used to set the
+snmp version to '2'
+
+=back
 
 =cut
 
@@ -58,7 +62,11 @@ sub init {
 
 =head2 B<restore()>
 
-	not implemented
+=over 8
+
+not implemented
+
+=back
 
 =cut
 
@@ -69,7 +77,12 @@ sub restore {
 
 =head2 B<backup()>
 
-	not implemented
+=over 8
+
+not implemented
+
+=back
+
 
 =cut
 
@@ -80,8 +93,12 @@ sub backup {
 
 =head2 B<get_unit_info()>
 
-	This will return a hash with the serial, description, and type of
-	each unit in a stack.
+=over 8
+
+This will return a hash with the serial, description, and type of
+each unit in a stack.
+
+=back
 
 =cut
 
@@ -108,9 +125,13 @@ sub get_unit_info {
 
 =head2 B<get_if_info()>
 
-	This will return a hash with all interfaces and their information,
-	including unit, port, admin status, operational status, autonegotiation,
-	duplex, speed, fcs errors, vlan tagged/untagged, PVID, and member VLANS.
+=over 8
+
+This will return a hash with all interfaces and their information,
+including unit, port, admin status, operational status, autonegotiation,
+duplex, speed, fcs errors, vlan tagged/untagged, PVID, and member VLANS.
+
+=back
 
 =cut
 
@@ -156,9 +177,13 @@ sub get_if_info {
 
 =head2 B<set_default_vlan_id(port, vlan)>
 
-	Set the default VLAN that untagged packets will be placed into. If you want to
-	I<add> a port to a VLAN, so that already tagged packets will be delivered to that port,
-	use L<add_vlan_membership>. Returns 1 on success, 0 on failure.
+=over 8
+
+Set the default VLAN that untagged packets will be placed into. If you want to
+I<add> a port to a VLAN, so that already tagged packets will be delivered to that port,
+use L<add_vlan_membership>. Returns 1 on success, 0 on failure.
+
+=back
 
 =cut
 
@@ -200,8 +225,12 @@ sub set_default_vlan_id {
 
 =head2 B<del_vlan_membership(port, id)>
 
-	Remove the port from the specified VLAN. Preserve membership in other
-	VLANs, if any. Returns: 0 on failure, 1 on success.
+=over 8
+
+Remove the port from the specified VLAN. Preserve membership in other
+VLANs, if any. Returns: 0 on failure, 1 on success.
+
+=back
 
 =cut
 
@@ -261,8 +290,12 @@ sub del_vlan_membership {
 
 =head2 B<add_vlan_membership(port, id)>
 
-	Add the port to the specified VLAN. Preserve membership in other VLANs,
-	if any. Returns: 0 on failure, 1 on success.
+=over 8
+
+Add the port to the specified VLAN. Preserve membership in other VLANs,
+if any. Returns: 0 on failure, 1 on success.
+
+=back
 
 =cut
 
@@ -312,8 +345,12 @@ sub add_vlan_membership {
 
 =head2 B<check_if_tagged(port)>
 
-	Check if port is a tagged trunk. Returns 1 if the port is tagged, 0 if
-	untagged.
+=over 8
+
+Check if port is a tagged trunk. Returns 1 if the port is tagged, 0 if
+untagged.
+
+=back
 
 =cut
 
@@ -329,8 +366,12 @@ sub check_if_tagged {
 
 =head2 B<get_all_ports()>
 
-	Retrieve the list of ports on this device. Return array reference on success
-	or C<undef> on failure.
+=over 8
+
+Retrieve the list of ports on this device. Return array reference on success
+or C<undef> on failure.
+
+=back
 
 =cut
 
@@ -356,8 +397,12 @@ sub get_all_ports {
 
 =head2 B<get_vlan_membership(port)>
 
-	Retrieve the list of VLANs that this port is a member of. Return them via
-	an array reference. Return array reference on success or C<undef> on failure.
+=over 8
+
+Retrieve the list of VLANs that this port is a member of. Return them via
+an array reference. Return array reference on success or C<undef> on failure.
+
+=back
 
 =cut
 
@@ -387,9 +432,13 @@ sub get_vlan_membership {
 
 =head2 B<get_default_vlan_id(port)>
 
-	For trunked ports, this is the vlan that incoming untagged packets are
-	tagged into. Nortel calls this "PVID". Returns: the PVID (positive integer)
-	on success, B<0 on failure>.
+=over 8
+
+For trunked ports, this is the vlan that incoming untagged packets are
+tagged into. Nortel calls this "PVID". Returns: the PVID (positive integer)
+on success, B<0 on failure>.
+
+=back
 
 =cut
 
@@ -413,8 +462,13 @@ sub get_default_vlan_id {
 
 =head2 B<($mp, $pm) = get_mac_port_table()>
 
-	Fetch the MAC-to-Port mapping using the bridge mib (rfc1493). Returns two HASH REFs
-	(\%mac_to_port, \%port_to_mac) on success, C<undef> on failure.
+=over 8
+
+Fetch the MAC-to-Port mapping using the bridge mib (rfc1493). Returns two HASH REFs
+(\%mac_to_port, \%port_to_mac) on success, C<undef> on failure. The MAC addresses in
+the returned hashes will be zero padded and lower case.
+
+=back
 
 =cut
 
@@ -455,6 +509,8 @@ sub get_mac_port_table {
           			sprintf("%2.2x", $m4) .
           			sprintf("%2.2x", $m5) .
           			sprintf("%2.2x", $m6);
+
+		$mac =~ tr [A-Z] [a-z];
 
         	my $ifIndex = $res->{$key};
 
@@ -533,8 +589,12 @@ sub _loadSwFw {
 
 =head2 B<$port = get_mac_port($mac)>
 
- Given a MAC address, determine if it's on the current switch. If it is,
- return the port number, otherwise return C<undef>
+=over 8
+
+Given a MAC address, determine if it's on the current switch. If it is,
+return the port number, otherwise return C<undef>
+
+=back
 
 =cut
 
@@ -556,8 +616,12 @@ sub get_mac_port {
 
 =head2 B<($module, $port) = get_ifDesc($ifIndex)>
 
- Given an ifIndex, return the module and port that it corresponds too. This is
- used by the topology search routine (get_next_switch).
+=over 8
+
+Given an ifIndex, return the module and port that it corresponds too. This is
+used by the topology search routine (get_next_switch).
+
+=back
 
 =cut
 
@@ -604,15 +668,19 @@ sub get_ifDesc {
 
 =head2 B<$ip = get_next_switch($ifIndex)>
 
- Given a port, determine if there's a switch attached to it. 
+=over 8
+
+Given a port, determine if there's a switch attached to it. 
 
  ON SUCCESS RETURNS
        Either and IP address of the next switch or ""
  ON FAILURE RETURNS
        C<undef>
 
- Pay attention to the return value. "" means there is no 
- downstream switch. C<undef> means there was an SNMP failure.
+Pay attention to the return value. "" means there is no 
+downstream switch. C<undef> means there was an SNMP failure.
+
+=back
 
 =cut
 
@@ -653,9 +721,13 @@ sub get_next_switch {
 
 =head2 $dm = HexMac2DecMac($hm)
 
+=over 8
+
 This routine takes a mac address in hex format (e.g. 00FF00FF00FF) and
 returns it in decimal format (0.255.0.255.0.255). This is useful when certain
 OIDs contain mac address... .1.3.6.4.9999.2.1.0.255.0.255.0.255 = ...
+
+=back
 
 =cut
 
@@ -678,9 +750,9 @@ sub HexMac2DecMac {
 
 =head1 AUTHOR
 
- Rob Colantuoni <rgc@buffalo.edu>
- Jeff Murphy <jcmurphy@buffalo.edu>
- Chris Miller <cwmiller@buffalo.edu>
+   Rob Colantuoni <rgc@buffalo.edu>
+   Jeff Murphy <jcmurphy@buffalo.edu>
+   Chris Miller <cwmiller@buffalo.edu>
 
 =head1 LICENSE
 
@@ -690,7 +762,7 @@ sub HexMac2DecMac {
 
 =head1 REVISION
 
-$Id: BayStack3.pm,v 1.2 2004/09/30 01:19:38 jeffmurphy Exp $
+$Id: BayStack3.pm,v 1.3 2004/10/15 15:49:35 jeffmurphy Exp $
 
 =cut
 

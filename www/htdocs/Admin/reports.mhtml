@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports.mhtml,v 1.2 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -10,6 +10,8 @@
 <%args>
 </%args>
 
-<a href="reports/bynet.mhtml">By Network</a>
+<a href="reports/bynet.mhtml">By Network</a><BR>
+<a href="reports/byclient.mhtml">By Client</a><BR>
+<a href="reports/byos.mhtml">By OS</a><BR>
 
 

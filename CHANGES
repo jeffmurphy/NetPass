@@ -119,8 +119,25 @@ alter table register add uqlinkup        ENUM('yes', 'no') NOT NULL DEFAULT 'no'
 
 sudo perl -MCPAN -e 'install Net::Ping::External'
 
-	jcm added 'requestedBy' column to portMoves table. before installing
-	    this release, execute the following SQL statement:
+	jcm added 'requestedBy' column to portMoves table. 
+	    use install.d/convertdb to upgrade your DB
 
-alter table portMoves add requestedBy varchar(128) DEFAULT '';
+2004-10-05
+	mtb added reports/byos.mhtml, added reports/graph.cgi supporting script
+            for byos. modified DB.pm to fix issue where OS register value would
+            potentially be over-written by apps like weatherbug, etc.
+	jcm added url to bynet.mhtml to reference byclient.mhtml when clients
+            column was clicked on.
+	jcm added byclient.mhtml to give client specific information
+	jcm modified DB.pm to have a getRegisterInfo() routine for efficiently
+	    and uniformly fetching info from register
 
+2004-10-06
+	jcm changed audit and register table so that the macAddress column is
+	    type TINYTEXT instead of INTEGER. this should correct an occasional
+            problem we had we searching on macAddresses. TINYTEXT is also case
+            insensitive, which makes things a little easier. changed various pieces
+            of supporting code, mostly to ensure zero-padding of macaddress.
+
+2004-10-12
+	jcm added install.d/convertdb to upgrade a 0.95 DB to a 0.96 DB

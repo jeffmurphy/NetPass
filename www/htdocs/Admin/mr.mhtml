@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.2 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -113,7 +113,7 @@ print $q->end_form();
 return if(!$register);
 
 if ($register) {
-	my $err = saveReg($dbh, $mac, $ip, $uid);
+	my $err = saveReg($dbh, NetPass::padMac($mac), $ip, $uid);
 	if ($err ne "") {
 		print $q->p({-class => "error"}, $err);
 		print "Anything that mentions 'duplicate entry' means that this mac address is already registered.<P>\n";
@@ -135,7 +135,7 @@ sub saveReg {
 
 	return "All fields are required.\n" if (!$user || !$ip || !$mac);
 
-	my $sql = qq{INSERT INTO register (macAddress, ipAddress, firstSeen, registeredOn, status, username) VALUES (0x$mac, '$ip', NOW(), NOW(), 'QUAR', '$user')};
+	my $sql = qq{INSERT INTO register (macAddress, ipAddress, firstSeen, registeredOn, status, username, uqlinkup) VALUES ('$mac', '$ip', NOW(), NOW(), 'QUAR', '$user', 'no')};
 
 	_log("DEBUG", "$mac $ip $user manually registered\n");
 	if (!$dbh->do($sql)) {

@@ -1,5 +1,5 @@
 /* 
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.2 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -30,9 +30,26 @@ TH {
 
 }
 
+TR.even { 
+	background: #FFFFFF;
+}
+
+TR.odd { 
+	background: #EFEFEF;
+}
+
+TABLE.selectable TD { 
+        cursor:pointer;
+        cursor:hand;
+}
+
 SMALL {
 	font-family: arial, helvetica, verdana, sans-serif;
 	font-size: 10px;
+}
+
+.mono {
+	font-family: mono, sans-serif;
 }
 
 .error {

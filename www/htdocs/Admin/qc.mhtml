@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.7 2004/10/01 15:40:50 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.8 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -217,12 +217,12 @@ push(@rows, $q->TR(
 );
 
 while (my $row = $results->fetchrow_hashref() ) {
-	push( @rows,	$q->TR( {-class=> $row->{severity} },
+	push( @rows,	$q->TR( 
 				$q->td({-align=>'center'}, $row->{firstSeen})    .
 				$q->td({-align=>'center'}, $row->{registeredOn}) .
 				$q->td({-align=>'center'}, $row->{username})     .
 				$q->td({-align=>'center'}, $row->{ipAddress})   .
-				$q->td({-align=>'center'}, "<code>", padMac($row->{macAddress})), "</code>"   .
+				$q->td({-align=>'center'}, "<code>", NetPass::padMac($row->{macAddress})), "</code>"   .
                                 $q->td({-align=>'center'},
                                         $q->popup_menu(
                                                         -name    => "uqlinkup:" . $row->{macAddress},
@@ -314,7 +314,7 @@ sub getQuars {
 			my @_clause;
 			for(my $ml = 0; $ml <= $#macList ; $ml++) {
 				$macList[$ml] =~ s/://g;
-				$macList[$ml] = hex("0x" . uc($macList[$ml]));
+				$macList[$ml] = lc($macList[$ml]);
 				push @_clause, "macAddress=?";
 			}
 			push(@clause, 
@@ -324,7 +324,7 @@ sub getQuars {
 			push(@params, @macList);
 		} else {
 			$mac =~ s/://g;
-			$mac = hex("0x" . uc($mac));
+			$mac = lc($mac);
 			push(@clause, "macAddress=?");
 			push(@params, $mac);
 		}
@@ -350,7 +350,7 @@ sub getQuars {
 		push(@params, $uqlinkup);
 	}
 
-	my $query = "SELECT DATE_FORMAT(firstSeen, '%Y-%m-%d %H:%i:%s') as firstSeen, DATE_FORMAT(registeredOn, '%Y-%m-%d %H:%i:%s') as registeredOn, username, HEX(macAddress) as macAddress, ipAddress, OS, status, message, uqlinkup FROM register";
+	my $query = "SELECT DATE_FORMAT(firstSeen, '%Y-%m-%d %H:%i:%s') as firstSeen, DATE_FORMAT(registeredOn, '%Y-%m-%d %H:%i:%s') as registeredOn, username, macAddress, ipAddress, OS, status, message, uqlinkup FROM register";
 	
 	if($#clause>-1) {
 		$query .= " WHERE " . join(" $type ", @clause)
@@ -436,7 +436,7 @@ sub saveQuarChanges {
 	my $rv = "";
 	my @rv;
 
-	my $sql = "UPDATE register SET status=?, message=?, uqlinkup=? WHERE HEX(macAddress) = ?";
+	my $sql = "UPDATE register SET status=?, message=?, uqlinkup=? WHERE macAddress = ?";
         my $sth   = $dbh->prepare($sql);
 	if (!defined($sth)) {
 		return "Failed to prepare sql: ".$dbh->errstr;
@@ -648,10 +648,6 @@ sub saveQuarChanges {
 	return join("<BR>", @rv);
 }
 
-sub padMac {
-	my $m = shift;
-	return "0" x (12-length($m)) . $m;
-}
 
 </%perl>
 

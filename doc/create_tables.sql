@@ -7,7 +7,7 @@
 */
 
 CREATE TABLE register (
-	macAddress	BIGINT       NOT NULL,
+	macAddress	CHAR(12)     NOT NULL,
 	ipAddress       VARCHAR(64)  NOT NULL,
 	firstSeen	DATETIME     NOT NULL,
 	registeredOn	DATETIME,
@@ -63,7 +63,9 @@ CREATE TABLE portMoves (
 	status		ENUM('pending', 'completed', 'unmanaged') NOT NULL DEFAULT 'pending',
 
 	UNIQUE (serverid, rowid), /* the order is important here */
-	INDEX (status)            /* we often query on status    */
+	INDEX (status),            /* we often query on status    */
+        INDEX (requested),
+        INDEX (switchIP, switchPort)
 ) TYPE=MyISAM;
 
 CREATE TABLE audit (
@@ -71,7 +73,7 @@ CREATE TABLE audit (
 	server          VARCHAR(128),
 	username	VARCHAR(32),
 	ipAddress	VARCHAR(64),
-	macAddress	BIGINT,
+	macAddress	VARCHAR(12),
 	severity	ENUM('DEBUG', 'ALERT', 'CRITICAL', 'ERROR',
 			     'WARNING', 'NOTICE', 'INFO') 
                                             NOT NULL,

@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.2 2004/10/15 15:49:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -195,7 +195,7 @@ while (my $row = $results->fetchrow_hashref() ) {
 				$q->td({-align=>'center'}, $row->{dt})         .
 				$q->td({-align=>'center'}, $row->{username})   .
 				$q->td({-align=>'center'}, $row->{ipAddress})  .
-				$q->td({-align=>'center'}, padMac($row->{macAddress})) .
+				$q->td({-align=>'center'}, NetPass::padMac($row->{macAddress})) .
 				#$q->td({-align=>'center'}, $row->{severity})   .
 				#$q->td({-align=>'center'}, $row->{location})   . 
 				$q->td({-align=>'center'}, $row->{message}) 
@@ -209,11 +209,6 @@ print $q->table({-width=>'80%'}, @rows);
 print $q->p();
 
 #######################
-
-sub padMac {
-	my $m = shift;
-	return "0" x (12-length($m)) . $m;
-}
 
 sub getAudits {
 	my $dbh	 = shift;
@@ -248,7 +243,7 @@ sub getAudits {
 		$mac =~ s/://g;
 
 		push(@clause, "macAddress=?");
-		push(@params, hex("0x" . uc($mac)));
+		push(@params, lc($mac));
 	}
 	
 	if($uid) {
@@ -261,7 +256,7 @@ sub getAudits {
 		push(@params, $sev);
 	}
 
-	my $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d %H:%i:%s') as dt, username, ipAddress, HEX(macAddress) as macAddress, severity, location, message FROM audit ";
+	my $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d %H:%i:%s') as dt, username, ipAddress, macAddress, severity, location, message FROM audit ";
 	
 	if($#clause>-1) {
 		$query .= " WHERE " . join(" $type ", @clause)
