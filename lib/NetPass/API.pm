@@ -39,7 +39,7 @@ sub getSnortRuleFile {
 
 	# get vlanids for quarantined networks
 
-	# call DB::Config::getSnortRules	
+	# call NetPass::DB::getSnortRules	
 
 }
 
