@@ -82,7 +82,7 @@ CREATE TABLE audit (
 	INDEX (ipAddress),
 	INDEX (macAddress),
 	INDEX (ts),
-	FULLTEXT(message),
+	FULLTEXT(message)
 ) TYPE=MyISAM;
 
 
@@ -133,4 +133,13 @@ CREATE TABLE `sessions` (
   `length` int(11) default NULL,
   `a_session` text,
 	PRIMARY KEY (id)
+) TYPE=INNODB;
+
+CREATE TABLE stats_procs (
+  `serverid` varchar(128) NOT NULL,
+  `dt` datetime NOT NULL,
+  `proc` varchar(128) NOT NULL,
+  `count` integer NOT NULL,
+  INDEX(dt),
+  INDEX(proc)
 ) TYPE=INNODB;
