@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.4 2005/03/16 16:05:07 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.5 2005/03/16 16:14:04 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.4 2005/03/16 16:05:07 mtbell Exp $
+$Id: interfacecfg.pl,v 1.5 2005/03/16 16:14:04 mtbell Exp $
 
 =cut
 
@@ -147,12 +147,18 @@ sub realserver ($) {
 	print "# Setup Realserver Loopback interfaces and routes\n\n";
 
 	foreach (keys %$ifaces) {
-		print "# $_ network\n";
+		printf("# %s network\n", $_);
 		my($s, $n) = (split(/\./, $ifaces->{$_}{'vip'}))[2,3];
-		print "$IFCONFIG lo:$s.$n ".$ifaces->{$_}{'vip'}.' broadcast '.
-		$ifaces->{$_}{'bcast'}." netmask 0xffffffff up\n";
+
+		printf("%s lo:%s.%s %s broadcast %s netmask 0xffffffff up\n",
+							   $IFCONFIG,
+							   $s, $n,
+							   $ifaces->{$_}{'vip'},
+							   $ifaces->{$_}{'bcast'});
 		
-		print "$ROUTE add -host ".$ifaces->{$_}{'vip'}." dev lo:$s.$n\n\n";
+		printf("%s add -host %s dev lo:%s.%s\n\n", $ROUTE,
+							   $ifaces->{$_}{'vip'},
+							   $s, $n);
 	}
 	print <<END
 # hiding interface lo, will not arp
