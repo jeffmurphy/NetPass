@@ -119,6 +119,23 @@ CREATE TABLE `nessusScans` (
   KEY `status` (`status`)
 ) TYPE=INNODB;
 
+CREATE TABLE `snortRules` (
+  `snortID` int(10) unsigned NOT NULL default '0',
+  `category` varchar(255) default NULL,
+  `classtype` varchar(64) default NULL,
+  `short_desc` varchar(255) default NULL,
+  `rule` text,
+  `addedBy` varchar(32) NOT NULL default '',
+  `addedOn` timestamp(14) NOT NULL,
+  `lastModifiedBy` varchar(32) NOT NULL default '',
+  `lastModifiedOn` timestamp(14) NOT NULL,
+  `status` enum('enabled','disabled') default 'disabled',
+  `revision` varchar(255) default NULL,
+  `other_refs` varchar(255) default NULL,
+  PRIMARY KEY  (`snortID`),
+  KEY `status` (`status`)
+) TYPE=INNODB;
+
 #		ENUM('httpd', 'nessusd', 'garp', 'squid', 'resetport', 
 #				'portmover', 'macscan', 'netpass', 'npcfgd', 
 #				'npstatusd', 'npsnortctl', 'npsnortd', 'unquar-all',
