@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.4 2004/10/15 14:44:33 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -72,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.3 2004/10/01 15:40:50 jeffmurphy Exp $
+$Id: resetport.pl,v 1.4 2004/10/15 14:44:33 mtbell Exp $
 
 =cut
 
@@ -83,6 +83,8 @@ use FileHandle;
 use Pod::Usage;
 use IO::Seekable;
 use File::Tail;
+use threads;
+use threads::shared;
 
 use RUNONCE;
 
@@ -165,20 +167,31 @@ my $unq_on_linkup = $np->cfg->policy('UNQUAR_ON_LINKUP') || "0";
 # "in 10 seconds". we'll keep trying every 10 seconds until we see
 # a mac on the port. 
 
-my $unq = {};
+my $unq     = {};
+my $threads = {};
+my $myself  = threads->self;
 
 while (1) {
 	my @lines = ();
 	while ($fh->predict == 0) {
 		push @lines, $fh->read;
 	}
-	RUNONCE::handleConnection();
-	processLines($np, $dbh, $unq, 
-		     $np->cfg->policy('UNQUAR_ON_LINKUP') || "0", 
-		     \@lines);
-	procUQ($np, $dbh, $unq, 
-	       $np->cfg->policy('UNQUAR_ON_LINKUP') || "0");
 
+        RUNONCE::handleConnection();
+        processLines($np, $dbh, $unq,
+                     $unq_on_linkup, \@lines);
+
+	foreach my $switch (keys %$unq) {
+		if (!defined($threads->{$switch}) ||
+		    !$myself->object($threads->{$switch}->tid)) {
+			# a thread doesnt exist for this switch 
+			$threads->{$switch} = threads->create(\&procUQ, $switch, $np,
+							      $unq_on_linkup);	
+			_log("INFO", "spawning thread to handle $switch\n");
+		}
+	}
+
+	$myself->yield;
 	sleep(10);
 }
 
@@ -249,10 +262,17 @@ sub processLines {
 				# if the link is down, and this port is on our linkup worklist, 
 				# remove it.
 
-				if (exists $unq->{$switch}) {
-					my @pl = grep {!/^$port$/} @{$unq->{$switch}};
-					$unq->{$switch} = [ @pl ];
-				}
+                                if (exists $unq->{$switch}) {
+					{
+						my @pl;
+						lock($unq->{$switch});
+						while (my $p = shift @{$unq->{$switch}}) {
+							next if ($p =~ /^$port$/);
+							push @pl, $p; 	
+						}	
+                                        	push @{$unq->{$switch}}, @pl;
+					}
+                                }
 
 				if (exists $opts{'n'}) {
 					_log("DEBUG", " not really!\n") if exists $opts{'D'};
@@ -272,12 +292,21 @@ sub processLines {
 
 				# just record the switch, port. we process quar-on-linkup in a separate
 				# routine
-				
-				if ( exists($unq->{$switch}) && (!grep {/^$port/} @{$unq->{$switch}}) ) {
-					push @{$unq->{$switch}}, $port;
-				} else {
-					$unq->{$switch} = [ $port ];
-				}
+
+                                if (exists($unq->{$switch})) {
+					{	
+						lock($unq->{$switch});
+						if (!grep {/^$port/} @{$unq->{$switch}}) {
+                                        		push @{$unq->{$switch}}, $port;
+						}
+					}
+                                } else {
+                                        $unq->{$switch} = &share([]);
+					{
+						lock($unq->{$switch});
+						push @{$unq->{$switch}}, $port;
+					}
+                                }
 			}
 		}
 	}
@@ -296,24 +325,47 @@ again the next time we are called.
 =cut
 
 sub procUQ {
-	my $np = shift;
-	my $dbh = shift;
-	my $uq = shift;
+	my $switch = shift;
+	my $np     = shift;
 	my $unq_on_linkup = shift;
 
-	my $numSwitches = keys %{$unq};
+	print "thread connecting to DB\n" if $opts{'D'};
 
-	foreach my $switch (keys %{$unq}) {
+	my $dbh = new NetPass::DB($np->cfg->dbSource,
+                          	  $np->cfg->dbUsername,
+                          	  $np->cfg->dbPassword,
+                          	  1
+			         );
+
+	if (!defined($dbh)) {
+		my $e = "failed to create NP:DB ".DBI->errstr."\n";
+    		_log "ERROR", $e;
+    		print $e;
+    		threads->join;
+		return 1;
+	}
+
+	my $cn = ($np->cfg->getCommunities($switch))[1];
+
+	while (1) {
 		my @failed = ();
-		_log("DEBUG", $numSwitches, " / ",
-		     ($#{$unq->{$switch}}+1)." ports on this switch to process\n");
+
+		{ # start lock  
+		lock($unq->{$switch});
+
+		goto endlock if ($#{$unq->{$switch}} < 0);
+
+                my $snmp = new SNMP::Device('hostname'       => $switch,
+                                            'snmp_community' => $cn);
+                my ($mp, $pm) = $snmp->get_mac_port_table();
+
 		foreach my $port (@{$unq->{$switch}}) {
 			# figure out what macs are on this port
 			
 			_log("DEBUG", "link up $switch $port and unq_lu is $unq_on_linkup\n");
 			
 			print "fetch maclist ($unq_on_linkup)\n" if exists $opts{'D'};
-			my $macList = getMacList($np, $switch, $port);
+			my $macList = $pm->{$port};
 			if (!defined($macList)) {
 				_log ("ERROR", "we want to unquar on linkup, but $switch doesnt have mac information available for port $port yet!\n");
 				push @failed, $port;
@@ -390,7 +442,7 @@ sub procUQ {
 				# else
 				# XXX we're not going to implement the other MULTI_MAC cases yet
 				# endif
-				
+			
 				my $numOK   = $dbh->UQLinkUp_itDependsCheck($macList);
 				my $mmpol   = $np->cfg->policy('MULTI_MAC');
 				
@@ -414,13 +466,24 @@ sub procUQ {
 				}
 			}
 		}
-		if ($#failed == -1) {
-			delete $unq->{$switch};
-		} else {
-			# save them for the next run
-			$unq->{$switch} = [ @failed ];
-		}
-	}
+
+		# shift off all the ports we have worked on
+		while (shift @{$unq->{$switch}}) {}
+		# push on the ones that have failed so we can take care of 
+		# them next time around.
+		push @{$unq->{$switch}}, @failed;
+
+endlock:
+	} # end lock
+		threads->yield;
+		sleep(5);
+	} # end while
+
+	# we shouldn't be leaving the while loop but if we are 
+	# make sure we join up with the parent thread
+
+	threads->join;
+	return 1;
 }
 
 
@@ -483,19 +546,6 @@ sub resetPortEnabled {
 	# is RESETPORT enabled on this network?
 
 	return $np->cfg->resetportSetting($_nw);
-}
-
-sub getMacList {
-	my ($np, $sw, $po) = (shift, shift, shift);
-	my $cn = ($np->cfg->getCommunities($sw))[1];
-	if (!defined($cn)) {
-		_log ("ERROR", "failed to get community name for $sw\n");
-		return undef;
-	}
-	my $snmp = new SNMP::Device('hostname'       => $sw, 
-				    'snmp_community' => $cn);
-	my ($mp, $pm) = $snmp->get_mac_port_table();
-	return $pm->{$po};
 }
 
 sub findRegMac {
