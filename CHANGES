@@ -93,3 +93,15 @@ alter table register add uqlinkup        ENUM('yes', 'no') NOT NULL DEFAULT 'no'
 	jcm removed calendar/menu css and js refs. they were unused. fixed
 	    some logged_in refs so admin site login meshed with client 
             login
+
+2004-09-29
+	jcm modifications to qc.mhtml to allow searching by status,
+	    linkup setting. also mods to permit searching by multiple
+	    macs (bulk search). 
+	jcm refactored some code into NetPass::Network module
+	jcm enhanced bynet.mhtml so it's prettier and smarter.
+	jcm adjusted timeout/retry in SNMP code
+	jcm added time tracking to get_mac_port_table to help determine
+	    when we've hit a slow switch
+
+
