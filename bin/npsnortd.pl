@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/opt/perl/bin/perl -w
 
 use strict;
 use vars qw($cfg $remote_ip);
