@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/Radius.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/Radius.pm,v 1.2 2004/12/31 19:36:16 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -43,7 +43,7 @@ sub authenticateUser {
     my $np = shift;
     my ($u, $p) = (shift, shift);
 
-    for my $rs ($np->cfg()->{'cfg'}->keys('radius')) {
+    foreach my $rs ($np->cfg()->{'cfg'}->keys('radius')) {
 	_log("DEBUG", "trying radius server $rs\n");
 	
 	my $sec = $np->{'cfg'}->{'cfg'}->obj('radius')->obj($rs)->value('secret');
@@ -78,7 +78,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Radius.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
+$Id: Radius.pm,v 1.2 2004/12/31 19:36:16 jeffmurphy Exp $
 
 =cut
 

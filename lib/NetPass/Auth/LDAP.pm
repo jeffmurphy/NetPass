@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/LDAP.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/LDAP.pm,v 1.2 2004/12/31 19:36:16 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -41,7 +41,7 @@ sub authenticateUser {
     my $np = shift;
     my ($u, $p) = (shift, shift);
 
-    for my $rs ($np->cfg()->{'cfg'}->keys('ldap')) {
+    foreach my $rs ($np->cfg()->{'cfg'}->keys('ldap')) {
 	_log "DEBUG", "trying ldap server $rs\n";
 	
 	my $base = $np->{'cfg'}->{'cfg'}->obj('ldap')->obj($rs)->value('base');
@@ -90,7 +90,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: LDAP.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
+$Id: LDAP.pm,v 1.2 2004/12/31 19:36:16 jeffmurphy Exp $
 
 =cut
 

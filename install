@@ -1,6 +1,6 @@
 #!/usr/bin/env perl 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.7 2004/12/31 19:09:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.8 2004/12/31 19:33:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -53,7 +53,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.7 2004/12/31 19:09:07 jeffmurphy Exp $
+$Id: install,v 1.8 2004/12/31 19:33:09 jeffmurphy Exp $
 
 =cut
 
@@ -109,6 +109,7 @@ if (exists $opts{'u'}) {
 	}
 	depatchConf("/etc/squid", "squid.conf");
 	removeTree($TARGET);
+	lsystem("crontab -u netpass -d");
 	lsystem("/usr/bin/userdel netpass") && lprint("userdel netpass failed $!\n");
 	lsystem("/usr/bin/groupdel netpass") && lprint("groupdel netpass failed $!\n");
 	lsystem("rm /opt/apache /opt/perl");
@@ -190,6 +191,7 @@ foreach my $etcf ('services', 'syslog.conf') {
 patchSquidConf($PKGDIR, "install.d/squid.conf");
 
 loadTables($PKGDIR, "install.d/tables.sql");
+installCrontab($PKGDIR, "install.d/crontab.netpass");
 
 lprint("Installation finished.\n");
 $LOG->close;
@@ -874,6 +876,12 @@ sub dropDatabase {
 	lsystem("mysql -u $u $p drop sessions");
 }
 
+sub installCrontab {
+	my ($b, $f) = (shift, shift);
+	if (-f "$b/$f") {
+		lsystem("crontab -u netpass $b/$f");
+	}
+}
 
 package spinner;
 use strict;
