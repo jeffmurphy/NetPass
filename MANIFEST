@@ -89,8 +89,6 @@ lib/SNMP/Device/HP_AS_SWITCH.pm
 lib/SNMP/Device.pm
 lib/SNMP/driver2.pl
 lib/SNMP/driver3.pl
-log/netpass.log
-log/snmptraps.log
 www/components/OSDetect
 www/components/Audit
 www/components/Admin/MemberOf

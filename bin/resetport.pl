@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.2 2004/09/24 19:56:47 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -72,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+$Id: resetport.pl,v 1.2 2004/09/24 19:56:47 jeffmurphy Exp $
 
 =cut
 
@@ -401,7 +401,9 @@ sub procUQ {
 					}
 				} else {
 					_log ("DEBUG", "$switch $port 'itdepends' set. somethings not right. quar port. ",
-					      "numOK=$numOK numMacs=".($#$macList+1)." mmpol=$mmpol\n");
+					      "numOK=$numOK numMacs=".($#$macList+1)." mmpol=$mmpol maclist=(",
+					      join(',', @$macList),
+					      ")\n");
 				}
 			}
 		}
