@@ -31,7 +31,7 @@ EOF
 
 myecho "Upgrading register table.."
 
-mysql -s -f -u root netpass 2>&1 >& /dev/null <<EOF
+mysql -s -f -u root netpass > /dev/null 2>&1  <<EOF
 
 DROP TABLE register2;
 
@@ -84,7 +84,7 @@ EOF
 
 myecho "Upgrading audit table.."
 
-mysql -s -f -u root netpass 2>&1 >& /dev/null <<EOF
+mysql -s -f -u root netpass > /dev/null 2>&1 <<EOF
 
 DROP TABLE audit2;
 
