@@ -9,6 +9,7 @@ use IO::SessionSet;
 use Socket;
 use Config::General;
 use FileHandle;
+use File::Tail;
 use threads;
 require SOAP::Transport::TCP;
 require SOAP::Lite;
@@ -24,14 +25,6 @@ if (exists $opts{'D'}) {
     daemonize("npsoapd", "/var/run");
 }
 
-my $MKNOD  = "/bin/mknod";
-umask(0000);
-
-$SIG{'INT'}	= sub {unlink $cfg->obj('npsnortd')->value('snortpipe'); exit 0;};
-$SIG{'ABRT'}	= sub {unlink $cfg->obj('npsnortd')->value('snortpipe'); exit 0;};
-$SIG{'QUIT'}	= sub {unlink $cfg->obj('npsnortd')->value('snortpipe'); exit 0;};
-$SIG{'TERM'}	= sub {unlink $cfg->obj('npsnortd')->value('snortpipe'); exit 0;};
-
 $cfg = new Config::General(-ConfigFile        => $opts{'c'} ? $opts{'c'} :
 	           				 "/opt/netpass/etc/npsnortd.conf" ,
                            -AutoTrue          => 1,
@@ -46,17 +39,25 @@ my $tid = threads->create(\&soapServer, $cfg);
 die "Unable to spawn soap server thread." unless $tid;
 
 # process snort logs from here on in
-my $pipe = $cfg->obj('npsnortd')->value('snortpipe');
+my $logfile = $cfg->obj('npsnortd')->value('snortlog');
+die "Unable to open $logfile" unless -e $logfile;
 
-die "a pipe $pipe already exists." if (-p $pipe);
-system($MKNOD, $pipe, 'p');
+my $fh = new File::Tail (
+				name        => $logfile,
+                         	interval    => 3,
+                         	maxinterval => 5
+			);
 
-my $fh = new FileHandle();
+die "Cannot open file $logfile" unless defined ($fh);
 
 while (1) {
-        $fh->open($pipe);
-        print <$fh>;
-        $fh->close;
+	my @lines = ();
+
+        while ($fh->predict == 0) {
+                push @lines, $fh->read;
+        }
+
+	print @lines;
 }
 
 exit 0;
