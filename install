@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.12 2005/03/15 17:18:29 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.13 2005/03/15 19:52:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,7 +57,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.12 2005/03/15 17:18:29 jeffmurphy Exp $
+$Id: install,v 1.13 2005/03/15 19:52:45 jeffmurphy Exp $
 
 =cut
 
@@ -117,6 +117,7 @@ if (exists $opts{'u'}) {
 	foreach my $etcf ('services', 'syslog.conf') {
 		depatchConf("/etc", $etcf);
 	}
+	lsystem("/etc/init.d/syslog restart");
 	depatchConf("/etc/squid", "squid.conf");
 	removeTree($TARGET);
 	lsystem("crontab -u netpass -r");
@@ -175,6 +176,7 @@ sub lprint;
 
 if ($copyOnly) {
 	lprint "copyOnly specified. copy finished.\n";
+	lsystem ("/bin/chown -R netpass:netpass $TARGET");
 	exit 0;
 }
 
@@ -197,9 +199,6 @@ lsystem (qq{ln -s /opt/apache_1.3.33 /opt/apache}) if $APACHE_PB_INSTALLED
   && (! -l "/opt/apache");
 lsystem (qq{ln -s /opt/perl-5.8.6    /opt/perl}) if (! -l "/opt/perl");
 
-lsystem ("/bin/mv $TARGET/lib/NetPass/WWW/Session.pm.file $TARGET/lib/NetPass/WWW/Session.pm");
-lsystem ("/bin/chown -R netpass:netpass $TARGET");
-
 makeCookiesDir();
 my $apacheRV = apacheConfig("/opt/apache/conf/httpd.conf") if $APACHE_PB_INSTALLED;
 my $swatchRV = installSwatch($PKGDIR."/install.d/swatch.conf", "/etc/swatch.conf");
@@ -216,6 +215,8 @@ foreach my $etcf ('services', 'syslog.conf') {
 	lprint ("Updating $etcf ..\n");
 	patchConf("/etc", $etcf);
 }
+lsystem("/etc/init.d/syslog restart");
+
 
 my $squidRV = patchSquidConf($PKGDIR, "install.d/squid.conf");
 
@@ -228,6 +229,7 @@ installStartupScripts($PKGDIR."/install.d/init.d",
 			'apache' => $apacheRV
 		      });
 
+lsystem ("/bin/chown -R netpass:netpass $TARGET");
 
 startupProcs();
 
@@ -1007,7 +1009,7 @@ real name.\n\n");
 
 	# read in the Session.pm file and configure it
 
-	my $conf = "/opt/netpass/lib/NetPass/WWW/Session.pm";
+	my $conf = "/opt/netpass/lib/NetPass/WWW/Session.pm.file";
 	my $fh = new FileHandle $conf, "r";
 	if (!defined($fh)) {
 		ldie Carp::longmess "Failed to open $conf for reading $!\n";
@@ -1023,6 +1025,14 @@ real name.\n\n");
 	searchReplace(\@conf, '%COOKIEDATA%', '/cookies/data');
 	searchReplace(\@conf, '%COOKIELOCK%', '/cookies/lock');
 	searchReplace(\@conf, '%COOKIEDOM%',  $cookieDomain);
+
+	$conf = "/opt/netpass/lib/NetPass/WWW/Session.pm";
+	$fh = new FileHandle $conf, "w";
+	if (!defined($fh)) {
+		ldie Carp::longmess "Failed to open $conf for writing: $!\n";
+	}
+	print $fh @conf;
+	$fh->close;
 
 	# lib/NetPass/WWW/Session.pm
 	#     my $cookieName = "UB-NetPass";
@@ -1197,6 +1207,14 @@ sub loadTables {
 
 	$rv = lsystem(qq{echo "insert into users values ('$u', 'Admin')" | mysql -fu $u $p netpass});
 	ldie "failed to create '$u' netpass account" if $rv;
+
+	$rv = lsystem(qq{insert into user values ('127.0.0.1', '$u', '', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0) | mysql -fu $u $p mysql });
+	ldie "failed to add 127.0.0.1 to table mysql:user" if $rv;
+
+	$rv = lsystem(qq{insert into db values ('127.0.0.1', '%', '$u', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y') | mysql -fu $u $p mysql});
+
+	ldie "failed to add 127.0.0.1 to table mysql:user" if $rv;
+
 }
 
 sub dropDatabase {
