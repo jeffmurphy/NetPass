@@ -1,6 +1,6 @@
-#!/usr/bin/perl -w
+#!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.6 2004/10/15 18:02:10 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.7 2005/03/16 14:28:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -72,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.6 2004/10/15 18:02:10 mtbell Exp $
+$Id: resetport.pl,v 1.7 2005/03/16 14:28:42 jeffmurphy Exp $
 
 =cut
 

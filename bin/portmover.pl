@@ -1,6 +1,6 @@
-#!/usr/bin/perl -w
+#!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.2 2004/10/01 15:40:50 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.3 2005/03/16 14:28:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -70,7 +70,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: portmover.pl,v 1.2 2004/10/01 15:40:50 jeffmurphy Exp $
+$Id: portmover.pl,v 1.3 2005/03/16 14:28:42 jeffmurphy Exp $
 
 =cut
 

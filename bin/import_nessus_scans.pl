@@ -1,6 +1,6 @@
-#!/usr/bin/perl -w
+#!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -37,7 +37,7 @@ Rob Colantuoni <rgc@buffalo.edu>
 
 =head1 REVISION
 
-$Id: import_nessus_scans.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+$Id: import_nessus_scans.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
 
 =cut
 

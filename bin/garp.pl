@@ -1,6 +1,6 @@
-#!/usr/bin/perl -w
+#!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/garp.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/garp.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -96,7 +96,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: garp.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+$Id: garp.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
 
 =cut
 

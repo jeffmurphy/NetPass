@@ -1,6 +1,6 @@
-#!/usr/bin/perl -w
+#!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/npportcache.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/npportcache.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
 #
 
 
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: npportcache.pl,v 1.1 2004/09/24 01:05:19 jeffmurphy Exp $
+$Id: npportcache.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
 
 =cut
 

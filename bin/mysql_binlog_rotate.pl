@@ -1,6 +1,6 @@
-#!/usr/bin/perl
+#!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/mysql_binlog_rotate.pl,v 1.2 2004/10/12 17:28:04 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/bin/mysql_binlog_rotate.pl,v 1.3 2005/03/16 14:28:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -36,7 +36,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: mysql_binlog_rotate.pl,v 1.2 2004/10/12 17:28:04 mtbell Exp $
+$Id: mysql_binlog_rotate.pl,v 1.3 2005/03/16 14:28:42 jeffmurphy Exp $
 
 =cut
 

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/opt/perl/bin/perl -w
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
