@@ -15,7 +15,8 @@ use GD::Graph::pie;
 use FileHandle;
 use File::stat;
 
-my $REPORTSDIR = "/opt/netpass/www/htdocs/Admin/reports";
+my $NPBASE     = $np->cfg()->{'cfg'}->obj('policy')->value('BASE_DIR');
+my $REPORTSDIR = $NPBASE."/www/htdocs/Admin/reports";
 my $GRAPHIMG   = "byospiechart.png";
 
 my @cols;
