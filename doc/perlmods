@@ -219,3 +219,40 @@ install Net::LDAP
 
 heartbeat*rpm
 
+RH kernel
+
+cd /usr/src/redhat/SOURCES
+up2date --get-source kernel
+rpm -iv /var/spool/up2date/kernel*.src.rpm
+rpmbuild -bp --target=i386  ../SPECS/kernel.spec
+vi ../SOURCES/kernel-2.6.9/linux-2.6.9
+patch -p1 < hidden.patch
+cp configs/kernel-2.6.9-i686-hugemem.config .config
+vi .config
+set CONFIG_REISERFS_FS=m
+vi Makefile
+set EXTRAVERSION = -netpass
+
+make bzImage and answer:
+
+Reiserfs support (REISERFS_FS) [M/n/y/?] m
+  Enable reiserfs debug mode (REISERFS_CHECK) [N/y/?] (NEW) n
+  Stats in /proc/fs/reiserfs (REISERFS_PROC_INFO) [N/y/?] (NEW) y
+  ReiserFS extended attributes (REISERFS_FS_XATTR) [N/y/?] (NEW) n
+
+make modules
+make modules_install
+make install
+
+(if machine has IDE)
+mkinitrd -v -f --preload=sd_mod --preload=ata_piix --preload=ide-scsi \
+	/boot/initrd-2.6.9-netpass.img 2.6.9-netpass
+
+
+reboot and select new kernel ('netpass')
+
+
+reiserprogs rpm build:
+
+edit spec file and trim any comments that contain "%" 
+change all occurances of rpm-filelist to /tmp/rpm-filelist

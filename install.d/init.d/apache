@@ -17,7 +17,7 @@ case "$1" in
 'start')
         echo "web daemon starting."
 	rm -fr /opt/apache/mason/*
-        $SROOT/bin/httpd -DSSL -f $SROOT/conf/httpd.conf
+        $SROOT/bin/httpd %DSSL% -f $SROOT/conf/httpd.conf
         ;;
 'stop')
         kill -TERM `/bin/cat /opt/apache/logs/httpd.pid`

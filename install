@@ -1,6 +1,10 @@
 #!/usr/bin/env perl 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.9 2005/03/05 04:14:15 jeffmurphy Exp $
+#TODO
+# iptables
+
+
+# $Header: /tmp/netpass/NetPass/install,v 1.10 2005/03/14 21:31:13 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -53,7 +57,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.9 2005/03/05 04:14:15 jeffmurphy Exp $
+$Id: install,v 1.10 2005/03/14 21:31:13 jeffmurphy Exp $
 
 =cut
 
@@ -67,9 +71,10 @@ BEGIN {
 }
 
 my %opts;
-getopts('s:Duh?', \%opts);
+getopts('s:cDuh?', \%opts);
 
-my $STAGE = $opts{'s'} || 0;
+my $STAGE    = $opts{'s'} || 0;
+my $copyOnly = exists $opts{'c'};
 
 my $PKGDIR = $0;
 $PKGDIR =~ s/\/[^\/]+$//;
@@ -85,6 +90,7 @@ if (!defined($LOG)) {
 print "Installation will be logged to /tmp/netpass-install.log\n\n";
 *STDERR = $LOG;
 
+
 checkKit($PKGDIR);
 my $VERSION = getVersion($PKGDIR);
 
@@ -98,12 +104,13 @@ my $un = "install into:";
 if (!defined($TARGET)) {
 	print "Directory to $un ";
 	$TARGET=<STDIN>;
+	chomp($TARGET);
 }
 
 my $ARCHBASE = "http://foobar.cit.buffalo.edu/netpass/ttt/";
 my $HTMLAREA = "HTMLArea-3.0-rc1";
-my $APACHE   = "apache-1.3.29.tar.bz2";
-my $PERL     = "perl-5.8.5.tar.bz2";
+my $APACHE   = "apache-1.3.33.tar.bz2";
+my $PERL     = "perl-5.8.6.tar.bz2";
 my $SQUIDG   = "sg.tar.bz2";
 
 if (exists $opts{'u'}) {
@@ -113,27 +120,33 @@ if (exists $opts{'u'}) {
 	}
 	depatchConf("/etc/squid", "squid.conf");
 	removeTree($TARGET);
-	lsystem("crontab -u netpass -d");
+	lsystem("crontab -u netpass -r");
 	lsystem("/usr/bin/userdel netpass") && lprint("userdel netpass failed $!\n");
 	lsystem("/usr/bin/groupdel netpass") && lprint("groupdel netpass failed $!\n");
 	lsystem("rm /opt/apache /opt/perl");
 
 	lsystem("rm -f /etc/logrotate.d/netpass");
-	if (-d "/opt/apache_1.3.29") {
+	if (-d "/opt/apache_1.3.33") {
 		lsystem("rm -f /etc/logrotate.d/apache");
 	}
-	foreach my $d ("/opt/apache_1.3.29", "/opt/perl-5.8.5", "/opt/squidguard") {
-		next unless (-f $d);
+	foreach my $d ("/opt/apache_1.3.33", "/opt/perl-5.8.6", "/opt/squidguard") {
+		next unless (-d $d);
 		my $a = ask ("Remove directory $d and it's contents? [Y/N] ");
 		if ($a =~ /^y/i) {
 			lsystem("rm -fr $d");
 		}
 	}
+
 	lprint("Removing /cookies from /etc/fstab\n");
 
-	lsystem("/bin/umount /cookies");
-	lsystem("rmdir /cookies");
-	lsystem("rm -f /var/cookies");
+	lsystem("/bin/umount -d /cookies");
+	lsystem("rmdir /cookies") if (-d "/cookies");
+	lsystem("rm -f /var/cookies") if (-f "/var/cookies");
+	lsystem("rpm -e reiserfsprogs");
+	lsystem("rm -fr /var/run/netpass") if (-d "/var/run/netpass" && ! -l "/var/run/netpass");
+	lsystem("rm /etc/iptables.sh");
+
+	uninstallSwatch();
 
 	depatchConf("/etc", "fstab");
 	dropDatabase();
@@ -156,29 +169,40 @@ mkdir "$TARGET/log" || die "cant mkdir $TARGET/log $!";
 touch("$TARGET/log/netpass.log");
 touch("$TARGET/log/snmptraps.log");
 
-copyTree($PKGDIR, $TARGET);
+copyTree($PKGDIR, $TARGET, $copyOnly);
 print "\n";
 
+sub lprint;
+
+if ($copyOnly) {
+	lprint "copyOnly specified. copy finished.\n";
+}
+
 installPackages($PKGDIR);
+
 
 lsystem ("/usr/sbin/groupadd netpass");
 lsystem ("/usr/sbin/useradd -d '$TARGET' -g netpass -s /bin/false netpass");
 
+mkdir "/var/run/netpass" unless (-d "/var/run/netpass");
+lsystem("chown -R netpass:netpass /var/run/netpass");
+
 installHTMLArea($PKGDIR, $TARGET) unless $UPGRADE;
 installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "sg.tar.bz2", "/opt");
-installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "perl-5.8.5.tar.bz2", "/opt");
+installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "perl-5.8.6.tar.bz2", "/opt");
 my $APACHE_PB_INSTALLED = 
-  installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "apache-1.3.29.tar.bz2", "/opt");
+  installPrebuilt("http://foobar.cit.buffalo.edu/netpass/ttt", "apache-1.3.33.tar.bz2", "/opt");
 
-lsystem (qq{ln -s /opt/apache_1.3.29 /opt/apache}) if $APACHE_PB_INSTALLED;
-lsystem (qq{ln -s /opt/perl-5.8.5    /opt/perl});
+lsystem (qq{ln -s /opt/apache_1.3.33 /opt/apache}) if $APACHE_PB_INSTALLED 
+  && (! -l "/opt/apache");
+lsystem (qq{ln -s /opt/perl-5.8.6    /opt/perl}) if (! -l "/opt/perl");
 
 lsystem ("/bin/mv $TARGET/lib/NetPass/WWW/Session.pm.file $TARGET/lib/NetPass/WWW/Session.pm");
 lsystem ("/bin/chown -R netpass:netpass $TARGET");
 
 makeCookiesDir();
-apacheConfig("/opt/apache/conf/httpd.conf") if $APACHE_PB_INSTALLED;
-swatchConfig($PKGDIR."/install.d/swatch.conf");
+my $apacheRV = apacheConfig("/opt/apache/conf/httpd.conf") if $APACHE_PB_INSTALLED;
+my $swatchRV = installSwatch($PKGDIR."/install.d/swatch.conf", "/etc/swatch.conf");
 
 if ((!-d "$TARGET/www/htdocs/resources") && (!-l "$TARGET/www/htdocs/resources")) {
 	lsystem (qq{ln -s "$TARGET/www/htdocs/OSSTemplate" "$TARGET/www/htdocs/resources"});
@@ -193,14 +217,23 @@ foreach my $etcf ('services', 'syslog.conf') {
 	patchConf("/etc", $etcf);
 }
 
-patchSquidConf($PKGDIR, "install.d/squid.conf");
+my $squidRV = patchSquidConf($PKGDIR, "install.d/squid.conf");
+
+installIPTables ($PKGDIR."/install.d", "iptables.sh", $squidRV->{'netblocks'});
 
 loadTables($PKGDIR, "install.d/tables.sql");
 installCrontab($PKGDIR, "install.d/crontab.netpass");
-installStartupScripts($PKGDIR."/install.d/init.d");
+installStartupScripts($PKGDIR."/install.d/init.d", 
+		      { 'swatch' => $swatchRV,  
+			'apache' => $apacheRV
+		      });
+
+
 startupProcs();
 
-lprint("Installation finished.\n");
+lprint("Installation finished. Connect to this host with a web browser to
+configure netpass.\n");
+
 $LOG->close;
 
 exit 0;
@@ -211,6 +244,7 @@ sub ll {
 
 sub ldie {
 	print $LOG @_;
+	print "A fatal error has occurred. Check the log file for details.\n";
 	die @_;
 }
 
@@ -220,18 +254,195 @@ sub lprint {
 }
 
 sub lsystem {
+	my $OSTDOUT = *STDOUT;
+	*STDOUT = $LOG;
 	print $LOG "SHELL: ".join(' ', @_) ."\n";
-	return system(@_);
+	my $rv =  system(@_);
+	*STDOUT = $OSTDOUT;
 }
+
+sub startupProcs {
+	lsystem("/etc/init.d/apache start");
+	lsystem("/etc/init.d/squid start");
+	lsystem("/etc/init.d/swatch start");
+}
+
+sub installIPTables {
+	my ($base, $cfg, $netblocks) = (shift, shift, shift);
+	if (! -f "$base/$cfg" ) {
+		lprint "$base/$cfg doesnt exist.\n";
+		return;
+	}
+	$netblocks = "" if (!defined($netblocks));
+
+	lprint "copy $base/$cfg to /etc/$cfg, using netblocks=$netblocks\n";
+
+	if (-f "/etc/$cfg") {
+		lprint "hmm. /etc/$cfg already exists. we wont over-write it. abort.\n";
+		return;
+	}
+
+	my $mgmt = ask("Enter netblocks (or IP addresses) from which you'll manage this
+NetPass server. We'll allow SNMP, SSH and NTP from those networks. This should 
+include your switches, which will be sending SNMP traps. Enter the netblock(s) all on 
+one line, separated with spaces:
+
+");
+
+	my $npserv = ask("Enter the IP addresses of all of you'r NetPass servers (a netblock is OK).
+We'll use this to permit MySQL traffic between those servers. Without this, MySQL cluster
+will not function. Enter the addresses on a single line, separated by spaces:
+
+");
+
+	my $npvip = ask("If you are using HA, enter the virtual IP address for this
+NetPass cluster here (otherwise just hit enter): ");
+
+	my $myip = getMyIP("eth0");
+
+	if (!defined($myip)) {
+		my $ok = 0;
+		while(!$ok) {
+			$myip = ask("I couldn't figure out the IP address of this server (eth0). What
+is it? ");
+			if ($myip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
+				$ok = 1;
+			} else {
+				lprint "That doesn't look like an IP address. Try again.\n\n";
+			}
+		}
+	}
+
+	my $fi = new FileHandle "$base/$cfg", "r";
+	ldie "cant open $base/$cfg for reading: $!" unless defined $fi;
+	my $fo = new FileHandle "/etc/$cfg", "w";
+	ldie "cant open /etc/$cfg for writing: $!" unless defined $fo;
+
+	while(my $l = <$fi>) {
+		if($netblocks ne "") {
+			$l =~ s/%NETBLOCK%/$netblocks/g;
+			$l =~ s/^#NB//;
+		}
+		if ($mgmt ne "") {
+			$l =~ s/%MGTDEVS%/$mgmt/g;
+			$l =~ s/^#MGT//;
+		}
+		if ($npserv ne "") {
+			$l =~ s/%NETPASSSERVERS%/$npserv/g;
+			$l =~ s/^#NPS//;
+		}
+		if ($npvip ne "") {
+			$l =~ s/%NPVIP%/$npvip/g;
+			$l =~ s/^#NPVIP//;
+		}
+		$l =~ s/%MYIP%/$myip/g;
+			
+		print $fo $l;
+	}
+	$fi->close;
+	$fo->close;
+
+	lsystem("/etc/iptables.sh");
+	lsystem("/etc/init.d/iptables save");
+}
+
+sub getMyIP {
+	my $d = shift;
+
+	open(FH, "/sbin/ip addr show dev $d |") || 
+	  ldie "failed to open /sbin/ip for piperead: $!";
+	while(my $l = <FH>) {
+		if ($l =~ /inet\s+([\d\.]+)\/.*$d$/) {
+			return $1;
+		}
+	}
+	close(FH);
+	return undef;
+}
+
+sub installSwatch {
+	my $cf = shift;
+	my $sf = shift;
+
+	lprint ("installSwatch: $cf doesnt exist\n") 
+	  unless (-f $cf);
+
+	print "\nWe use 'swatch' to watch some logfiles.\n";
+	my $em = ask ("Enter an email address that swatch can mail if it spots something wrong: ");
+	my $fh = new FileHandle $cf, "r";
+	ldie "failed to open $cf for reading: $!" unless defined $cf;
+	my $f2 = new FileHandle "/etc/swatch.conf", "w";
+	ldie "failed to open $sf for writing: $!" unless defined $sf;
+	while(my $line = <$fh>) {
+		$line =~ s/%ADMINEMAIL%/$em/g;
+		print $f2 $line;
+	}
+	$fh->close;
+	$f2->close;
+	lprint "Swatch configuration file installed to $sf\n";
+	
+	# there's no RPM needed. swatch is included with the perl pre-build
+
+	if (! -f "/opt/perl/bin/swatch") {
+		lprint "Warning: /opt/perl/bin/swatch not found. Did you use the pre-built perl?\n";
+		return 0;
+	}
+	return 1;
+}
+
+sub uninstallSwatch {
+	if (-f "/etc/init.d/swatch") {
+		lprint "Uninstalling Swatch ..\n";
+		lsystem("chkconfig --level 2345 swatch off");
+		lsystem("rm -f /etc/swatch.conf");
+		lsystem("rm -f /etc/init.d/swatch");
+	}
+}
+
 
 sub installStartupScripts {
 	my $ssdir = shift;
-	foreach my $script ("nessusd", "netpass", "swatch", "apache") {
+	my $skip  = shift;
+	$skip = {} if (!defined($skip) || (ref($skip) ne "HASH"));
+
+	installApacheStartupScript($ssdir, "apache", $skip->{'apache'});
+
+	foreach my $script ("nessusd", "netpass", "swatch") {
+		next if exists $skip->{$script} && $skip->{$script};
 		lsystem("/bin/cp $ssdir/$script /etc/init.d/")
 		  unless (-f "/etc/init.d/$script");
 		lsystem("chkconfig --level 2345 $script on");
 	}
+
+	# squid init script installed via RPM
+
 	lsystem ("chkconfig --level 2345 squid on");
+}
+
+sub installApacheStartupScript {
+	my $base = shift; 
+	my $scr  = shift;
+	my $ssl  = shift;
+
+	$ssl->{'ssl'} = 0 if (!defined($ssl) || (ref($ssl) ne "HASH"));
+
+	my $fi = new FileHandle "$base/$scr", "r";
+	ldie "failed to open $base/$scr for reading: $!" unless defined $fi;
+
+	my $fo = new FileHandle "/etc/init.d/$scr", "w";
+	ldie "failed to open /etc/init.d/$scr for writing: $!" unless defined $fo;
+
+	while(my $l = <$fi>) {
+		if ($ssl->{'ssl'} == 1) {
+			$l =~ s/%DSSL%/-DSSL/g;
+			print $fo $l;
+		} else {
+			$l =~ s/%DSSL%//g;
+			print $fo $l;
+		}
+	}
+	$fo->close;
+	$fi->close;
 }
 
 sub installPackages {
@@ -343,6 +554,8 @@ sub patchSquidConf {
 	}
 	print $fh @patched;
 	$fh->close;
+	return { 'netblocks' => $netblocks };
+
 }
 
 sub ask {
@@ -471,10 +684,12 @@ sub cwd {
 
 sub installPrebuilt {
 	my ($burl, $f, $dst) = (shift, shift, shift);
+	my ($dr, $dv) = whatdist();
+
 	my $yn = ask("Install pre-built binary $f into $dst? [Y/N] ");
 	return 0 unless ($yn =~ /^y/i);
-	lprint("Installing pre-built binary\n\t\tfrom $burl/$f\n\t\tinto $dst\n");
-	fetchRemoteFile($burl, $f);
+	lprint("Installing pre-built binary\n\t\tfrom $burl/$dr$dv/$f\n\t\tinto $dst\n");
+	fetchRemoteFile($burl."/$dr$dv", $f);
 	my $cwd = cwd();
 	chdir ("/opt");
 	my $cwd2 = cwd();
@@ -604,10 +819,11 @@ sub removeTree {
 }
 
 sub copyTree {
-	my ($src, $dst) = (shift, shift);
+	my ($src, $dst, $copyOnly) = (shift, shift, shift);
 	my $DH;
 	opendir($DH, $src) || ldie "cant open $src $!";
 	while(my $f = readdir($DH)) {
+		next if ($copyOnly && ($f eq "netpass.conf"));
 		next if ($f =~ /^\.{1,2}$/);
 		next if ($f eq "install.d");
 		next if ($f eq "CVS");
@@ -715,7 +931,10 @@ ENTER to keep our value: ");
 
 	# ^#ServerName
 
-	my $ServerName = ask ("Enter this server's name (e.g. netpass.your.co): ");
+	my $ServerName = ask ("Enter this server's name (e.g. netpass.your.co). If you are running 
+in HA mode, then this is the name of the virtual server. Otherwise it's this machine's 
+real name.\n\n");
+
 	ll ("ServerName=$ServerName\n");
 	apacheConfig_set(\@conf, '^ServerName', "ServerName $ServerName");
 
@@ -772,6 +991,7 @@ ENTER to keep our value: ");
 	#     session_lock_directory => '/cookies/lock',
 	#     session_cookie_domain => '.buffalo.edu',
 
+	return { 'ssl' => ($ssl =~ /^y/i ? 1 : 0) };
 }
 
 sub installLogrotate {
@@ -802,26 +1022,37 @@ sub whatdist {
 		($rel, $ver) = getDistVersion("/etc/redhat-release");
 	}
 	if (!defined($rel)) {
-		die "unsupported operating system";
+		ldie "unsupported operating system rel=$rel ver=$ver";
 	}
 	return ($rel, $ver);
 }
 
 sub getDistVersion {
 	my $relfile = shift;
+
 	my $fh = new FileHandle $relfile, "r";
 	return undef unless defined $fh;
 	my $l = <$fh>;
 	$fh->close;
-	return ("FC", $1)   if ($l =~ /Fedora Core release (\D+)/i);
-	return ("RHAS", $1) if ($l =~ /ed Hat Enterprise Linux AS release (\D+)/i);
+	ll("getDistVersion: line=<$l>\n");
+
+	if ($l =~ /Fedora Core release (\d+)/i) {
+		ll("getDistVersion: looks like FC $1\n");
+		return ("FC", $1);
+	}
+	if ($l =~ /Red Hat Enterprise Linux AS release (\d+)/i) {
+		ll("getDistVersion: looks like RHAS $1\n");
+		return ("RHAS", $1);
+	}
+	ll("getDistVersion: looks like an unsupported OS\n");
 	return undef;
 }
 
 sub installReiserprogs {
-	fetchRemoteFile("http://foobar.cit.buffalo.edu/netpass/ttt/RHAS",
-			"reiserfsprogs-3.6.8-1.i386.rpm");
-	lsystem("rpm -i /tmp/reiserfsprogs-3.6.8-1.i386.rpm");
+	my ($rel, $ver) = (shift, shift);
+	fetchRemoteFile("http://foobar.cit.buffalo.edu/netpass/ttt/RHAS".$ver,
+			"reiserfsprogs-3.6.19-1.i386.rpm");
+	lsystem("rpm -U /tmp/reiserfsprogs-3.6.19-1.i386.rpm");
 }
 
 
@@ -836,7 +1067,7 @@ sub makeCookiesDir {
 	# than ext
 
 	my ($rel, $ver) = whatdist();
-	installReiserprogs() if ($rel eq "RHAS");
+	installReiserprogs($rel, $ver) if ($rel eq "RHAS");
 
 	# dd a 1G file /var/cookies
 	# mkreiserfs
@@ -937,9 +1168,9 @@ sub dropDatabase {
 		ldie "It looks like mysql isnt running. (The 'mysqladmin -u $u $p stat' command failed with code $rv";
 	}
 
-	$rv = lsystem("mysql -u $u $p drop netpass");
+	$rv = lsystem("mysqladmin -u $u $p drop netpass");
 	ldie "failed to drop the netpass database rv=$rv" if $rv;
-	$rv = lsystem("mysql -u $u $p drop sessions");
+	$rv = lsystem("mysqladmin -u $u $p drop sessions");
 	ldie "failed to drop the sessions database rv=$rv" if $rv;
 }
 
