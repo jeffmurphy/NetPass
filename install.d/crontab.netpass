@@ -1,0 +1,8 @@
+#
+# purge old mysql binlog files
+#
+0 0 1 * *       /opt/netpass/bin/mysql_binlog_rotate.pl
+#
+# update process count
+#
+*/10 * * * *    /opt/netpass/bin/proc_counter.pl
