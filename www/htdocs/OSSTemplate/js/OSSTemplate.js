@@ -1,5 +1,5 @@
 /*
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/js/OSSTemplate.js,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/js/OSSTemplate.js,v 1.2 2004/09/30 01:50:10 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -149,3 +149,8 @@ function setCookie(cookieName,cookieValue,nDays) {
  	document.cookie = cookieName+"="+escape(cookieValue) + ";expires="+expire.toGMTString();
 }
 
+function clearField(fieldId) {
+        var obj = document.getElementById(fieldId);
+	if (obj == null) return;
+        obj.value = '';
+}
