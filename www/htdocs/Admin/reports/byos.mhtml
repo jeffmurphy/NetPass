@@ -32,7 +32,7 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 		$total += $data->{$os};
 	}
 
-	graph_data([\@cols, \@vals], $GRAPHIMG, $REPORTSDIR);
+	graph_data_os([\@cols, \@vals], $GRAPHIMG, $REPORTSDIR);
 
 	print "<script><!--\nsetWhereAmI('Reports &gt; By Operating System');\n--></script>";
 
@@ -52,7 +52,7 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 
 }
 
-sub graph_data {
+sub graph_data_os {
 	my $data       = shift;
 	my $GRAPHIMG   = shift;
 	my $REPORTSDIR = shift;
