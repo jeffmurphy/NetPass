@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.2 2004/10/26 18:48:40 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -141,6 +141,26 @@ print $q->radio_group (
 print "</TD></TR>";
 
 print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>COOKIE_DETECT</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->radio_group (
+                        -name    => 'p_COOKIE_DETECT',
+                        -values  => ['Yes', 'No'],
+                        -default => ($npcfg->{'cfg'}->obj('policy')->value('COOKIE_DETECT')) ? 'Yes' : 'No',
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>COOKIE_NAME</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+                        -name   => 'p_COOKIE_NAME',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('COOKIE_NAME'),
+                        -size   => 25,
+                    );
+print "</TD></TR>";
+
+print "<TR>";
 print "<TD CLASS='gray' WIDTH=50%>REDIR_URL_DEFAULT</TD>";
 print "<TD CLASS='gray' WIDTH=50%>";
 print $q->textfield (
@@ -189,6 +209,60 @@ print $q->textfield (
                         -size   => 25,
                     );
 print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>PORT_SEARCH_ALGO</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->popup_menu (
+                        -name     => 'p_PORT_SEARCH_ALGO',
+                        -values   => ['LINEAR', 'TREE'],
+                        -default  => $npcfg->{'cfg'}->obj('policy')->value('PORT_SEARCH_ALGO'),
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>PORT_CACHE</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->popup_menu (
+                        -name     => 'p_PORT_CACHE',
+                        -values   => ['ON', 'OFF'],
+                        -default  => ($npcfg->{'cfg'}->obj('policy')->value('PORT_CACHE')) ? 'ON' : 'OFF',
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>UNQUAR_ON_LINKUP</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->popup_menu (
+                        -name     => 'p_UNQUAR_ON_LINKUP',
+                        -values   => ['ON', 'OFF', 'ITDEPENDS'],
+                        -default  => ($npcfg->{'cfg'}->obj('policy')->value('UNQUAR_ON_LINKUP') eq
+				     'ITDEPENDS') ? 'ITDEPENDS' : 
+				     ($npcfg->{'cfg'}->obj('policy')->value('UNQUAR_ON_LINKUP')) ? 
+				     'ON' : 'OFF',
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>resetport</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->popup_menu (
+                        -name     => 'p_resetport',
+                        -values   => ['on', 'off'],
+                        -default  => ($npcfg->{'cfg'}->obj('policy')->value('resetport')) ? 'on': 'off',
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='gray' WIDTH=50%>LDAP_USER_QUERY</TD>";
+print "<TD CLASS='gray' WIDTH=50%>";
+print $q->textfield (
+                        -name   => 'p_LDAP_USER_QUERY',
+                        -value  => $npcfg->{'cfg'}->obj('policy')->value('LDAP_USER_QUERY'),
+                        -size   => 25,
+                    );
+print "</TD></TR>";
+
 print "</TABLE>";
 print "<P>";
 
