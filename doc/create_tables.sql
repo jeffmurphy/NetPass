@@ -7,7 +7,7 @@
 */
 
 CREATE TABLE register (
-	macAddress	CHAR(12)     NOT NULL,
+	macAddress	TINYTEXT     NOT NULL,
 	ipAddress       VARCHAR(64)  NOT NULL,
 	firstSeen	DATETIME     NOT NULL,
 	registeredOn	DATETIME,
@@ -19,8 +19,8 @@ CREATE TABLE register (
 	switchIP	VARCHAR(128),
 	switchPort	SMALLINT,
 
-	PRIMARY KEY(macAddress)
-) TYPE=INNODB;
+	PRIMARY KEY(macAddress(12))
+) TYPE=MyISAM;
 
 CREATE TABLE results (
 	macAddress	BIGINT		NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE audit (
 	server          VARCHAR(128),
 	username	VARCHAR(32),
 	ipAddress	VARCHAR(64),
-	macAddress	VARCHAR(12),
+	macAddress	TINYTEXT,
 	severity	ENUM('DEBUG', 'ALERT', 'CRITICAL', 'ERROR',
 			     'WARNING', 'NOTICE', 'INFO') 
                                             NOT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE audit (
 
 	INDEX (username(8)),
 	INDEX (ipAddress),
-	INDEX (macAddress),
+	INDEX (macAddress(12)),
 	INDEX (ts),
 	FULLTEXT(message)
 ) TYPE=MyISAM;
