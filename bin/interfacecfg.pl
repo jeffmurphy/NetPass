@@ -1,6 +1,6 @@
-#!/opt/perl/bin/perl
+#!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.3 2005/03/15 19:52:46 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.4 2005/03/16 16:05:07 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.3 2005/03/15 19:52:46 jeffmurphy Exp $
+$Id: interfacecfg.pl,v 1.4 2005/03/16 16:05:07 mtbell Exp $
 
 =cut
 
@@ -54,6 +54,11 @@ use Carp;
 use Getopt::Std;
 use lib qw(/opt/netpass/lib);
 use NetPass::Config;
+
+sub Usage();
+sub getIps($);
+sub director($);
+sub realserver($);
 
 my %opts;
 my %ifaces;
@@ -72,7 +77,6 @@ my $HARESOURCES	= "/etc/ha.d/haresources";
 getopts('d:r:c:h', \%opts);
 
 Usage() if ($opts{'h'});
-Usage() if (!-e $opts{'c'});
 	
 if (($opts{'r'} > 2 || $opts{'r'} < 1) &&
     ($opts{'d'} > 2 || $opts{'d'} < 1)) {
@@ -81,7 +85,8 @@ if (($opts{'r'} > 2 || $opts{'r'} < 1) &&
 
 $rord = ($opts{'r'}) ? 'r' : 'd';
 
-my $cfg = new NetPass::Config($opts{'c'});
+my $cfg = new NetPass::Config(($opts{'c'}) ? $opts{'c'} : 
+			      "/opt/netpass/etc/netpass.conf");
 my $networks = $cfg->getNetworks();
 
 foreach my $net (@$networks) {
@@ -89,13 +94,16 @@ foreach my $net (@$networks) {
 	$ifaces{$net}{'int'}     = $cfg->getInterface($net); 
 	$ifaces{$net}{'qvlan'}   = $cfg->quarantineVlan($net);
 	$ifaces{$net}{'nqvlan'}  = $cfg->nonquarantineVlan($net);
-	$ifaces{$net}{'vip'}	 = $ips[0]; 
+	$ifaces{$net}{'vip'}	 = ($cfg->virtualIP($net)) ? $cfg->virtualIP($net) : $ips[0]; 
 	$ifaces{$net}{'d1'}	 = $ips[1]; 
 	$ifaces{$net}{'d2'}	 = $ips[2]; 
 	$ifaces{$net}{'r1'}	 = $ips[3]; 
 	$ifaces{$net}{'r2'}	 = $ips[4]; 
 	$ifaces{$net}{'mask'}	 = $ips[5]; 
 	$ifaces{$net}{'bcast'}	 = $ips[6]; 
+	$ifaces{$net}{'redir'}   = ($opts{'d'} == 1) ? $cfg->primary_redirector($net) :
+						       $cfg->secondary_redirector($net);
+	$ifaces{$net}{'redir'}	 = 'unknown redirector' if !defined($ifaces{$net}{'redir'});
 }
 
 print "#!/bin/bash\n";
@@ -109,6 +117,9 @@ $IFCONFIG eth1 up
 ";
 
 foreach (keys %ifaces) {
+
+	next if (!defined($ifaces{$_}{'qvlan'}) || !defined($ifaces{$_}{'nqvlan'})); 
+
 	print "# $_ network\n";
 	print "$VCONFIG add ".$ifaces{$_}{'int'}.' '.$ifaces{$_}{'qvlan'}."\n";
 	
@@ -130,7 +141,7 @@ if ($opts{'d'}) {
 	realserver(\%ifaces);
 }
 
-sub realserver () {
+sub realserver ($) {
 	my $ifaces = shift;
 
 	print "# Setup Realserver Loopback interfaces and routes\n\n";
@@ -143,13 +154,6 @@ sub realserver () {
 		
 		print "$ROUTE add -host ".$ifaces->{$_}{'vip'}." dev lo:$s.$n\n\n";
 	}
-
-	# XXX FIX!
-
-	print "# 128.205.10.0/24 network\n";
-	print "$IFCONFIG lo:10.80 128.205.10.80 broadcast 128.205.10.255 netmask 0xffffffff up\n";
-	print "$ROUTE add -host 128.205.10.80 dev lo:10.80\n\n";
-
 	print <<END
 # hiding interface lo, will not arp
 echo "1" >/proc/sys/net/ipv4/conf/all/hidden
@@ -160,21 +164,28 @@ END
 
 }
 
-sub director () {
+sub director ($) {
 
-	my $ifaces = shift;
+	my $ifaces     = shift;
+	my $cur_redir  = "";
 
-	print "echo \"#     node              func::ip/netmask/interface/broadcast\" > $HARESOURCES\n";
-	# XXX FIX!
-	print "echo \"npr1-d.cit.buffalo.edu    IPaddr::128.205.10.80/32/eth0/128.205.10.255 \\\\\" >> $HARESOURCES\n";
+	printf("echo \"#     node                func::ip/netmask/interface/broadcast\" > %s\n", $HARESOURCES);
 
 	foreach (keys %$ifaces) {
-		my $n = $ifaces{$_}{'qvlan'};
-		print "echo \"			      IPaddr::".$ifaces->{$_}{'vip'}.
-		      "/32/eth1.$n/".$ifaces->{$_}{'bcast'}." \\\\\" >> $HARESOURCES\n";
+		my $n = ($ifaces{$_}{'qvlan'}) ? '.'.$ifaces{$_}{'qvlan'} : "";
+		if ($cur_redir ne $ifaces->{$_}{'redir'}) {
+			$cur_redir = $ifaces->{$_}{'redir'};
+			printf("echo \"%-50s    \\\\\" >> %s\n", $cur_redir, $HARESOURCES);
+		}
+		printf("echo \"\t\t\t\tIPaddr2::%s/32/%s%s/%s \\\\\" \t>> %s\n",
+								    $ifaces->{$_}{'vip'}, 
+								    $ifaces->{$_}{'int'},
+								    $n,
+								    $ifaces->{$_}{'bcast'},
+								    $HARESOURCES);
 	}
 
-	print "echo \"                        ldirectord\" >> $HARESOURCES\n\n";
+	printf("echo \"\t\t\t\tldirectord\" >> %s\n\n", $HARESOURCES);
 
 	print <<END
 # set ip_forward OFF for vs-dr director (1 on, 0 off)
@@ -202,7 +213,7 @@ sub Usage () {
 	exit 0;
 }
 
-sub ip2int {
+sub ip2int ($) {
 	my $i = shift;
 
 	if ($i !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
@@ -216,7 +227,7 @@ sub ip2int {
 		 ($o[3]      ) );
 }
 
-sub int2ip {
+sub int2ip ($) {
 	my $i = shift;
 	my @o;
 
@@ -228,7 +239,7 @@ sub int2ip {
 	return(join('.', @o));
 }
 
-sub getIps () {
+sub getIps ($) {
 
 	my($ip, $mask) = split(/\//, shift);
 	my $m;
