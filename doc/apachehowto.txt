@@ -1,0 +1,25 @@
+# apache build
+1. unpack apache
+2. unpack mod_ssl
+3. cd mod_ssl
+4. ./configure --with-apache=../apache_1.3.33
+5. cd ../apache_1.3.33
+6. setenv CFLAGS "-lpthread"
+7. ./configure --prefix=/opt/apache_1.3.33 --enable-module=so --enable-module=ssl
+5. make; make install
+
+# mod_perl build
+1. cd mod_perl
+2. /opt/perl-5.8.6/bin/perl Makefile.PL EVERYTHING=1 USE_APXS=1 WITH_APXS=/opt/apache_1.3.33/bin/apxs
+3. make; make install
+
+# mod_throttle
+1. download mod_throttle from http://www.snert.com/Software/mod_throttle/#download
+2. unpack mod_throttle
+3. edit Makfile and change this line
+APXS=apxs
+to
+APXS=/opt/apache_1.3.33/bin/apxs
+4. make; make install
+
+

@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.10 2005/03/14 21:31:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.11 2005/03/14 21:35:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,7 +57,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.10 2005/03/14 21:31:13 jeffmurphy Exp $
+$Id: install,v 1.11 2005/03/14 21:35:06 jeffmurphy Exp $
 
 =cut
 
@@ -289,6 +289,13 @@ one line, separated with spaces:
 
 ");
 
+	my $trappers = ask("Enter netblocks (or IP addresses) from which this server will
+receive traps. These are your switches. We need to see linkup/linkdown traps from them
+for some NetPass functionality to work properly. Enter the netblock(s) all on 
+one line, separated with spaces:
+
+");
+
 	my $npserv = ask("Enter the IP addresses of all of you'r NetPass servers (a netblock is OK).
 We'll use this to permit MySQL traffic between those servers. Without this, MySQL cluster
 will not function. Enter the addresses on a single line, separated by spaces:
@@ -334,6 +341,10 @@ is it? ");
 		if ($npvip ne "") {
 			$l =~ s/%NPVIP%/$npvip/g;
 			$l =~ s/^#NPVIP//;
+		}
+		if ($trappers ne "") {
+			$l =~ s/%TRAPDEVS%/$trappers/g;
+			$l =~ s/^#TRAP//;
 		}
 		$l =~ s/%MYIP%/$myip/g;
 			

@@ -1,0 +1,39 @@
+download from
+
+http://www.nessus.org/download/index.php
+
+save to /tmp
+
+as root
+
+up2date --nox -i openssl-devel bison flex gcc sharutils
+or
+yum install openssl-devel bison flex gcc sharutils
+
+then
+
+sh /tmp/nessus
+
+
+. Create a nessusd certificate using /usr/local/sbin/nessus-mkcert
+
+you will be asked for a number of days. enter a large number. only the local
+machine will attach to this instance. 10 years should be good. enter all
+the other info it asks for.
+
+. Add a nessusd user use /usr/local/sbin/nessus-adduser
+
+login: netpass
+auth: pass
+pass: netpass
+again: netpass
+ok? y
+
+
+
+. Start the Nessus daemon (nessusd) use /usr/local/sbin/nessusd -D
+. Start the Nessus client (nessus) use /usr/local/bin/nessus
+. To uninstall Nessus, use /usr/local/sbin/uninstall-nessus
+
+. Remember to invoke '/usr/local/sbin/nessus-update-plugins'
+  periodically to update your list of plugins
