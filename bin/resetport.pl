@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.8 2005/03/31 14:42:21 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.9 2005/03/31 15:00:49 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -72,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.8 2005/03/31 14:42:21 mtbell Exp $
+$Id: resetport.pl,v 1.9 2005/03/31 15:00:49 jeffmurphy Exp $
 
 =cut
 
@@ -169,27 +169,17 @@ my $unq_on_linkup = $np->cfg->policy('UNQUAR_ON_LINKUP') || "0";
 
 my $unq     = {};
 my $threads = {};
-my $deadthreads = &share([]);
 my $myself  = threads->self;
 
-while (1)) {
-        my @lines = ();
-
-        while ($fh->predict == 0) {
-                push @lines, $fh->read;
-        }
-
-	RUNONCE::handleConnection();
-	processLines($np, $dbh, $unq,
-		     $unq_on_linkup, \@lines);
-
-	{
-		lock (@$deadthreads);
-		while (my $s = shift @$deadthreads) {
-			$threads->{$s}->join;
-			delete $threads->{$s};	
-		}
+while (1) {
+	my @lines = ();
+	while ($fh->predict == 0) {
+		push @lines, $fh->read;
 	}
+
+        RUNONCE::handleConnection();
+        processLines($np, $dbh, $unq,
+                     $unq_on_linkup, \@lines);
 
 	foreach my $switch (keys %$unq) {
 		if (!defined($threads->{$switch}) ||
@@ -201,8 +191,8 @@ while (1)) {
 		}
 	}
 
-        $myself->yield;
-        mysleep(8);
+	$myself->yield;
+	sleep(10);
 }
 
 exit 0;
@@ -347,10 +337,7 @@ sub procUQ {
 
 	if (!defined($np)) {
     		_log "ERROR", "failed to create NetPass object\n";
-		{
-			lock ($deadthreads);
-			push @$deadthreads, $switch;
-		}
+		threads->join;
 		return 1;
 	}
 
@@ -364,10 +351,7 @@ sub procUQ {
 		my $e = "failed to create NP:DB ".DBI->errstr."\n";
     		_log "ERROR", $e;
     		print $e;
-                {
-                        lock ($deadthreads);
-                        push @$deadthreads, $switch;
-                }
+    		threads->join;
 		return 1;
 	}
 
@@ -502,16 +486,13 @@ sub procUQ {
 endlock:
 	} # end lock
 		threads->yield;
-		mysleep(5);
+		sleep(5);
 	} # end while
 
 	# we shouldn't be leaving the while loop but if we are 
 	# make sure we join up with the parent thread
 
-        {
-        	lock ($deadthreads);
-                push @$deadthreads, $switch;
-        }
+	threads->join;
 	return 1;
 }
 
@@ -614,8 +595,4 @@ sub daemonize
     # child
     setsid                  or die "$myname: can't start a new session: $!";
     open STDERR, '>&STDOUT' or die "$myname: can't dup stdout: $!";
-}
-
-sub mysleep {
-    select(undef,undef,undef,shift);
 }
