@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.3 2004/09/28 20:24:13 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -104,7 +104,8 @@ sub new {
      $self->{'quiet'}) = $parms->get('-debug', '-config', '-notReally', 
 				     '-quiet');
 
-    $self->{'cfg'} = new NetPass::Config($self->{'configFile'});
+    $self->{'cfg'} = new NetPass::Config($self->{'configFile'},
+					 $self->{'debug'});
 
     #print "C ", $NetPass::Config::errstr, "\n";
 
@@ -944,7 +945,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.2 2004/09/28 16:03:00 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.3 2004/09/28 20:24:13 jeffmurphy Exp $
 
 =cut
 

@@ -58,6 +58,8 @@ etc/netpass-example.conf
 install.d/install
 install.d/install-test
 install.d/spinner.pm
+install.d/services
+install.d/syslog.conf
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
 lib/NetPass.pm

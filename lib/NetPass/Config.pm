@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.2 2004/09/28 20:24:13 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -111,7 +111,8 @@ sub reloadIfChanged {
 
 sub new {
   my ($class, $self) = (shift, {});
-  my $cf = shift;
+  my $cf  = shift;
+  my $dbg = shift;
 
   die Carp::longmess("no configuration file specified") unless defined($cf);
   die Carp::longmess("configuration file doesn't exist ($cf)") unless (-f $cf && -r $cf);
@@ -123,7 +124,7 @@ sub new {
 
   die Carp::longmess("failed to load configuration from $cf") unless defined($cfg);
   $self->{'cfg'}   = $cfg;
-  $self->{'dbg'}   = 0;
+  $self->{'dbg'}   = $dbg;
   $self->{'cf'}    = $cf;
   $self->{'mtime'} = (stat($cf))[9];
 
@@ -663,51 +664,61 @@ sub getCommunities {
     
     my $a    = host2addr($hn);
     
-    # first check for a specific <host *> record
+    # first check for a specific <host *> record by name
     
     my $nw = undef;
     
-    if( exists $self->{'cfg'}->{'snmpcommunities'}->{'host'}->{$hn} ) {
-	_log "DEBUG", "found exact host match for $hn\n" if $self->{'dbg'};
-    } else {
-	_log "DEBUG", "no exact host match ($hn)\n" if $self->{'dbg'};
+    if( recur_exists($self->{'cfg'}, 'snmpcommunities', 'host', $hn) ) {
+	_log "DEBUG", "found exact host match for hn=$hn\n" if $self->{'dbg'};
+
+	return ($self->{'cfg'}->obj('snmpcommunities')->obj('host')->obj($hn)->value('read'),
+		$self->{'cfg'}->obj('snmpcommunities')->obj('host')->obj($hn)->value('write'));
+
+    } 
+
+    # next, check if there's an exact <host> match by address
+
+    elsif ( recur_exists($self->{'cfg'}, 'snmpcommunities', 'host', $a) ) {
+	_log "DEBUG", "found exact host match for a=$a\n" if $self->{'dbg'};
+
+	return ($self->{'cfg'}->obj('snmpcommunities')->obj('host')->obj($a)->value('read'),
+		$self->{'cfg'}->obj('snmpcommunities')->obj('host')->obj($a)->value('write'));
+    }
+
+    # finally, search by network
+
+    else {
+	_log "DEBUG", "no exact host match ($hn / $a). search by network\n" if $self->{'dbg'};
 	
-	# using the address, see if we have an exact host match
-	
-	if( exists $self->{'cfg'}->{'snmpcommunities'}->{'host'}->{$a} ) {
-	    _log "DEBUG", "found exact host match for $a\n" if $self->{'dbg'};
-	} else {
-	    _log "DEBUG", "no exact host match ($a)\n" if $self->{'dbg'};
+	# using the address, enumerate each network and see if our host
+	# is on one of them. stop on the first match.
 	    
-	    # using the address, enumerate each network and see if our host
-	    # is on one of them. stop on the first match.
-	    
-	    my $a_ = ip2int($a);
-	    
-	    foreach my $nw_ ( $self->{'cfg'}->obj('snmpcommunities')->keys('network') ) {
+	my $a_ = ip2int($a);
+ 
+	foreach my $nw_ ( $self->{'cfg'}->obj('snmpcommunities')->keys('network') ) {
 		_log "DEBUG", "is $a on $nw_?\n" if $self->{'dbg'};
 		my ($n, $m) = cidr2int($nw_);
 		if ( ($a_ & $m) == $n ) {
-		    _log "DEBUG", "yes.\n" if $self->{'dbg'};
-		    $nw = $nw_; #perlism
-		    last;
+			_log "DEBUG", "yes.\n" if $self->{'dbg'};
+			$nw = $nw_; #perlism
+			last;
 		} 
 		_log "DEBUG",  "no.\n" if $self->{'dbg'};
-	    }
-	    
-	    if( defined($nw) ) {
+	}
+	
+	if( defined($nw) ) {
 		_log "DEBUG", "net is $nw\n" if $self->{'dbg'};
-	    } else {
+		
+		return ($self->{'cfg'}->obj('snmpcommunities')->obj('network')->obj($nw)->value('read'),
+			$self->{'cfg'}->obj('snmpcommunities')->obj('network')->obj($nw)->value('write'));
+		
+		
+	} else {
 		_log "DEBUG", "no matching network for $a\n" if $self->{'dbg'};
 		return (undef, undef);
-	    }
-	    
-	} # exists host->addr
-	
-    } # exists host->hn
-    
-    return ($self->{'cfg'}->obj('snmpcommunities')->obj('network')->obj($nw)->read,
-	    $self->{'cfg'}->obj('snmpcommunities')->obj('network')->obj($nw)->write);
+	}
+    }
+    return (undef, undef);
 }
 
 =head2 my $ports = $cfg-E<gt>configuredPorts(host)
@@ -1178,6 +1189,22 @@ sub host2addr {
 	#notreached
 }
 
+=head2 B<recur_exists>
+
+This is a routine, not a method. Useful for checking if a deep configuration
+parameter exists in the configuration file. 
+
+=cut
+
+sub recur_exists {
+	my $cr = shift;
+	my $kn = shift;
+
+	return 0 if !$cr->exists($kn);
+	return 1 if $cr->exists($kn) && ($#_ == -1);
+	return recur_exists($cr->obj($kn), @_);
+}
+
 =head1 AUTHOR
 
 Jeff Murphy <jcmurphy@buffalo.edu>
@@ -1195,7 +1222,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+$Id: Config.pm,v 1.2 2004/09/28 20:24:13 jeffmurphy Exp $
 
 =cut
 
