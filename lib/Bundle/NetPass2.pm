@@ -74,6 +74,12 @@ Apache::Session
 
 MasonX::Request::WithApacheSession
 
+MIME::Parser
+
+SOAP::Lite
+
+SOAP::Transport::TCP
+
 =head1 DESCRIPTION
 
 NetPass required perl modules.

@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.14 2005/03/15 19:57:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.15 2005/04/06 20:50:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,7 +57,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.14 2005/03/15 19:57:17 jeffmurphy Exp $
+$Id: install,v 1.15 2005/04/06 20:50:35 jeffmurphy Exp $
 
 =cut
 
@@ -202,6 +202,7 @@ lsystem (qq{ln -s /opt/perl-5.8.6    /opt/perl}) if (! -l "/opt/perl");
 makeCookiesDir();
 my $apacheRV = apacheConfig($PKGDIR."/install.d/httpd.conf",
 			    "/opt/apache/conf/httpd.conf") if $APACHE_PB_INSTALLED;
+
 my $swatchRV = installSwatch($PKGDIR."/install.d/swatch.conf", "/etc/swatch.conf");
 
 if ((!-d "$TARGET/www/htdocs/resources") && (!-l "$TARGET/www/htdocs/resources")) {
@@ -235,7 +236,8 @@ lsystem ("/bin/chown -R netpass:netpass $TARGET");
 startupProcs();
 
 lprint("Installation finished. Connect to this host with a web browser to
-configure netpass.\n");
+configure netpass. Login as netpass/netpass. Be sure to change your 
+authentication method and/or reset the password as soon as you login.\n");
 
 $LOG->close;
 
@@ -1210,10 +1212,10 @@ sub loadTables {
 	$rv = lsystem(qq{echo "insert into users values ('$u', 'Admin')" | mysql -fu $u $p netpass});
 	ldie "failed to create '$u' netpass account" if $rv;
 
-	$rv = lsystem(qq{insert into user values ('127.0.0.1', '$u', '', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0) | mysql -fu $u $p mysql });
+	$rv = lsystem(qq{insert into user values "('127.0.0.1', '$u', '', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0)" | mysql -fu $u $p mysql });
 	ldie "failed to add 127.0.0.1 to table mysql:user" if $rv;
 
-	$rv = lsystem(qq{insert into db values ('127.0.0.1', '%', '$u', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y') | mysql -fu $u $p mysql});
+	$rv = lsystem(qq{insert into db values "('127.0.0.1', '%', '$u', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y')" | mysql -fu $u $p mysql});
 
 	ldie "failed to add 127.0.0.1 to table mysql:user" if $rv;
 

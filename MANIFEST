@@ -14,13 +14,11 @@ bin/macscan.pl
 bin/moveport.pl
 bin/npportcache.pl
 bin/nessus.pl
-bin/npcfgd.pl
 bin/portmover-restart.sh
-bin/npstatd.pl
+bin/resetport.pl
 bin/proc_counter.pl
 bin/portmover.pl
 bin/resetport-restart.sh
-bin/resetport.pl
 bin/rm_stale_cookies.pl
 bin/npsnortd.pl
 bin/import_snort_rules.pl

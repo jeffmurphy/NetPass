@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/DB.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/DB.pm,v 1.2 2005/04/06 20:50:37 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -42,6 +42,8 @@ sub authenticateUser {
     my $np = shift;
     my ($u, $p) = (shift, shift);
 
+    _log("DEBUG", "in DB::authUser\n");
+
     my $dbh = new NetPass::DB($np->cfg->dbSource,
 			      $np->cfg->dbUsername,
 			      $np->cfg->dbPassword,
@@ -55,7 +57,8 @@ sub authenticateUser {
 
     my $encryptedPassFromDB = $dbh->getPasswd($u);
     my $salt = substr($encryptedPassFromDB, 0, 2);
-    my $encryptedGivenPass = crypt($salt, $p);
+    my $encryptedGivenPass = crypt($p, $salt);
+
     return 1 if ($encryptedGivenPass eq $encryptedPassFromDB);
     return 0;
 }
@@ -72,7 +75,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.1 2004/12/31 19:09:09 jeffmurphy Exp $
+$Id: DB.pm,v 1.2 2005/04/06 20:50:37 jeffmurphy Exp $
 
 =cut
 

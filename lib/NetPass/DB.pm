@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.9 2005/04/04 15:16:21 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.10 2005/04/06 20:50:36 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -989,7 +989,7 @@ sub getPasswd {
 	my $u    = shift;
 	my $s    = "SELECT password FROM passwd WHERE username = ".$self->{'dbh'}->quote($u);
 	my $x    = $self->{'dbh'}->selectrow_arrayref($s);
-	return $x->[0] if ($#$x);
+	return $x->[0] if ($#$x > -1);
 	return undef;
 }
 
@@ -1156,6 +1156,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.9 2005/04/04 15:16:21 mtbell Exp $
+$Id: DB.pm,v 1.10 2005/04/06 20:50:36 jeffmurphy Exp $
 
 1;

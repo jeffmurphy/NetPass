@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.4 2004/10/25 17:48:26 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.5 2005/04/06 20:50:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -20,7 +20,7 @@ This component outputs a login prompt form.
 			($m->session->{'logged_in'} == 1));
 
         if (defined($username) && ($username ne "")) {
-	    	my $aok = $np->authenticateUser($username,
+	    	my $aok = $np->authenticateAdmin($username,
         		                        $password);
 
 		if (defined($aok) && ($aok == 1)) {
@@ -40,7 +40,6 @@ This component outputs a login prompt form.
         } 
 
 </%perl>
-
 
 <form method="post" name="mainForm">
  <table align=center border='0' width='300'>

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.8 2005/03/05 04:14:16 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.9 2005/04/06 20:50:36 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -344,6 +344,43 @@ sub authenticateUser {
 
     my $auth_mod = $self->{'cfg'}->policy('AUTH_METHOD');
     _log "DEBUG", "auth_meth = $auth_mod\n";
+
+    if (exists $self->{'auth_mod_loaded'}) {
+	my $auth_r = $auth_mod."::authenticateUser";
+	_log "DEBUG", "calling $auth_r with username=$u password=[suppressed]\n";
+	return &$auth_r($self, $u, $p);
+    } else {
+	_log "DEBUG", "loading $auth_mod\n";
+	eval "require $auth_mod";
+	if ($@) {
+	    _log "ERROR", "failed to load $auth_mod <$@>\n";
+	    return 0;
+	} else {
+	    $self->{'auth_mod_loaded'} = 1;
+	    _log "DEBUG", "$auth_mod loaded\n";
+	    my $auth_r = $auth_mod."::authenticateUser";
+	    _log "DEBUG", "calling $auth_r with username=$u password=[suppressed]\n";
+	    return &$auth_r($self, $u, $p);
+	}
+    }
+    return 0;
+}
+
+=head2 $bool = authenticateAdmin($username, $password)
+
+Based on the ADMIN_AUTH_METHOD setting in C<netpass.conf> authenticate the username 
+and password.
+
+=cut
+
+sub authenticateAdmin {
+    my $self = shift;
+    my ($u, $p) = (shift, shift);
+
+    no strict 'refs';
+
+    my $auth_mod = $self->{'cfg'}->policy('ADMIN_AUTH_METHOD');
+    _log "DEBUG", "admin_auth_meth = $auth_mod\n";
 
     if (exists $self->{'auth_mod_loaded'}) {
 	my $auth_r = $auth_mod."::authenticateUser";
@@ -911,7 +948,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.8 2005/03/05 04:14:16 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.9 2005/04/06 20:50:36 jeffmurphy Exp $
 
 =cut
 

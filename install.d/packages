@@ -20,3 +20,5 @@ libpng-devel
 libjpeg
 libjpeg-devel
 reiserfs-utils
+# perl SOAP
+expat-devel
