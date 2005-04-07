@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.8 2005/04/07 18:56:48 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.9 2005/04/07 19:06:45 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.8 2005/04/07 18:56:48 mtbell Exp $
+$Id: interfacecfg.pl,v 1.9 2005/04/07 19:06:45 mtbell Exp $
 
 =cut
 
@@ -77,12 +77,15 @@ my $HARESOURCES	= "/etc/ha.d/haresources";
 getopts('d:r:c:h', \%opts);
 
 Usage() if ($opts{'h'});
-	
-if (($opts{'r'} > 2 || $opts{'r'} < 1) &&
-    ($opts{'d'} > 2 || $opts{'d'} < 1)) {
+
+if (exists $opts{'r'} && ($opts{'r'} > 2 || $opts{'r'} < 1)) {
 	Usage();
 } 
 
+if (exists $opts{'d'} && ($opts{'d'} > 2 || $opts{'d'} < 1)) {
+	Usage();
+}
+	
 $rord = ($opts{'r'}) ? 'r' : 'd';
 
 my $cfg = new NetPass::Config(($opts{'c'}) ? $opts{'c'} : 
