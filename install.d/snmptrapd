@@ -1,0 +1,4 @@
+## BEGIN-NETPASS AFTER ^OPTIONS=
+OPTIONS="-n -Lf /opt/netpass/log/snmptraps.log -p /var/run/snmptrapd.pid -F '%#04.4y-%#02.2m-%02.2l %#02.2h:%#02.2j:%#02.2k TRAP %N;%w;%q;%A;%v\n' "
+## END-NETPASS
+

@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.15 2005/04/06 20:50:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.16 2005/04/07 18:51:10 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,7 +57,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.15 2005/04/06 20:50:35 jeffmurphy Exp $
+$Id: install,v 1.16 2005/04/07 18:51:10 jeffmurphy Exp $
 
 =cut
 
@@ -680,6 +680,8 @@ sub depatchConf {
 
 sub patchConf {
 	my ($b, $f) = (shift, shift);
+
+
 	return unless (-f "$b/$f");
 
 	backupFile("$b/$f");
@@ -715,11 +717,52 @@ sub patchConf {
 		return;
 	}
 
-	my $dst = new FileHandle "$b/$f", "a";
+	## BEGIN-NETPASS APPEND
+	## BEGIN-NETPASS REPLACE ^OPTIONS=
+	## BEGIN-NETPASS AFTER   ^OPTIONS=
+	## BEGIN-NETPASS BEFORE  ^OPTIONS=
+
+	my $placeWhere = "APPEND";
+	my $placeRE    = "";
+
+	if ($marker =~ /^##\s+\S+\s+(\S+)\s+(\S+)/) {
+		$placeWhere = $1;
+		$placeRE    = $2;
+	}
+
+
+	if ($placeWhere eq "APPEND") {
+		my $dst = new FileHandle "$b/$f", "a";
+		die "cant open $b/$f for appending: $!" unless defined($dst);
+		print $dst @d;
+		$dst->close;
+		return;
+	} 
+
+	my $src = new FileHandle "$b/$f", "r";
 	die "cant open $b/$f for reading: $!" unless defined($dst);
-	print $dst @d;
-	$dst->close;
-	return;
+	my @orig = <$src>;
+	$src->close;
+
+	my $dst = new FileHandle "$b/$f", "w";
+	die "cant open $b/$f for writing: $!" unless defined($dst);
+	foreach my $line (@orig) {
+		if ($line =~ /$placeRE/) {
+			if    ( $placeWhere eq "REPLACE" ) {
+				print $dst @d;
+			}
+			elsif ( $placeWhere eq "AFTER" ) {
+				print $dst $line, @d;
+			}
+			elsif ( $placeWhere eq "BEFORE" ) {
+				print $dst @d, $line;
+			}
+		} else {
+			print $dst $line;
+		}
+	}
+	my @orig = <$src>;
+	$src->close;
 }
 
 sub cwd {
