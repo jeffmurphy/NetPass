@@ -72,7 +72,7 @@ my $tid = threads->create(\&soapServer, \%opts);
 die "Unable to spawn soap server thread." unless $tid;
 
 # process snort logs from here on in
-my $logfile = ($opts{'l'}) ? $opts{'l'} : $DEFAULTSNORTLOG;
+my $logfile = (exists $opts{'l'}) ? $opts{'l'} : $DEFAULTSNORTLOG;
 die "Unable to open $logfile" unless -e $logfile;
 
 my $fh = new File::Tail (
@@ -97,7 +97,7 @@ exit 0;
 
 sub soapServer () {
 	my $opts = shift;
-	my $port = ($opts->{'P'}) ? $opts->{'P'} : $DEFAULTPORT;
+	my $port = (exists $opts->{'P'}) ? $opts->{'P'} : $DEFAULTPORT;
 
 	my $daemon = SOAP::Transport::TCP::Server->new(
 							LocalPort       => $port,
@@ -199,7 +199,7 @@ sub _snortGetPid {
 	my %opts = %::opts;
 	my $fh   = new FileHandle;
 
-	if (-e $opts{'p'} && $fh->open($opts{'p'})) {
+	if (exists $opts{'p'} && -e $opts{'p'} && $fh->open($opts{'p'})) {
 		my $pid = <$fh>;
 		chomp $pid;
 		$fh->close;
