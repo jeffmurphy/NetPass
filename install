@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.16 2005/04/07 18:51:10 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.17 2005/04/07 20:50:41 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,7 +57,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.16 2005/04/07 18:51:10 jeffmurphy Exp $
+$Id: install,v 1.17 2005/04/07 20:50:41 jeffmurphy Exp $
 
 =cut
 
@@ -681,18 +681,19 @@ sub depatchConf {
 sub patchConf {
 	my ($b, $f) = (shift, shift);
 
+	ll("Patching configuration file: $b/$f");
 
 	return unless (-f "$b/$f");
 
 	backupFile("$b/$f");
 
 	my $src = new FileHandle "$PKGDIR/install.d/$f", "r";
-	die "cant open $PKGDIR/install.d/$f for reading: $!" unless defined($src);
+	ldie "cant open $PKGDIR/install.d/$f for reading: $!" unless defined($src);
 	my @d = <$src>;
 	$src->close;
 
 	my $dst = new FileHandle "$b/$f", "r";
-	die "cant open $b/$f for reading: $!" unless defined($dst);
+	ldie "cant open $b/$f for reading: $!" unless defined($dst);
 	my @s = <$dst>;
 	$dst->close;
 
@@ -706,16 +707,18 @@ sub patchConf {
 		}
 	}
 	if ($marker eq "") {
-		print "WARNING: no ## marker found in $PKGDIR/install.d/$f\n";
+		lprint "WARNING: no ## marker found in $PKGDIR/install.d/$f\n";
 		return;
 	}
 
 	# check to see if the patch is already applied
 
 	if (grep (/$marker/, @s)) {
-		print "patch $PKGDIR/install.d/$f already applied to $b/$f\n";
+		lprint "patch $PKGDIR/install.d/$f already applied to $b/$f\n";
 		return;
 	}
+
+	ll("Patch contains: ", @d);
 
 	## BEGIN-NETPASS APPEND
 	## BEGIN-NETPASS REPLACE ^OPTIONS=
@@ -733,19 +736,19 @@ sub patchConf {
 
 	if ($placeWhere eq "APPEND") {
 		my $dst = new FileHandle "$b/$f", "a";
-		die "cant open $b/$f for appending: $!" unless defined($dst);
+		ldie "cant open $b/$f for appending: $!" unless defined($dst);
 		print $dst @d;
 		$dst->close;
 		return;
 	} 
 
 	my $src = new FileHandle "$b/$f", "r";
-	die "cant open $b/$f for reading: $!" unless defined($dst);
+	ldie "cant open $b/$f for reading: $!" unless defined($dst);
 	my @orig = <$src>;
 	$src->close;
 
 	my $dst = new FileHandle "$b/$f", "w";
-	die "cant open $b/$f for writing: $!" unless defined($dst);
+	ldie "cant open $b/$f for writing: $!" unless defined($dst);
 	foreach my $line (@orig) {
 		if ($line =~ /$placeRE/) {
 			if    ( $placeWhere eq "REPLACE" ) {
@@ -979,6 +982,28 @@ Welcome to NetPass v$v!
 EOF
 }
 
+sub squidGuardConfig {
+	my $cf = shift;
+	my $sn = shift;
+
+	ll ("Patching $cf with servername=$sn\n");
+
+	my $fh = new FileHandle $cf, "r";
+	ldie "cant open $cf for reading: $!" unless defined ($fh);
+	my @orig = <$fh>;
+	$fh->close;
+	my $fh = new FileHandle $cf, "w";
+	ldie "cant open $cf for writing: $!" unless defined ($fh);
+	foreach my $line  (@orig) {
+		if ($line =~ /redirect 302:http/) {
+			print "\t\tredirect 302:http://$sn/?url=%u\n";
+		} else {
+			print $line;
+		}
+	}
+	$fh->close;
+}
+
 sub apacheConfig {
 	my $srcConf = shift;
 	my $dstConf = shift;
@@ -1027,6 +1052,9 @@ real name.\n\n");
 
 	ll ("ServerName=$ServerName\n");
 	apacheConfig_set(\@conf, '^ServerName', "ServerName $ServerName");
+
+	#XXX
+	squidGuardConfig("/opt/squidguard/SquidGuard.conf", $ServerName);
 
 	my $ssl = ask ("Do you want to enable SSL/HTTPS (we won't make the certificates for you)? [Y/N] ");
 	if ($ssl =~ /^y/i) {
