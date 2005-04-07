@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.7 2005/04/07 18:49:37 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.8 2005/04/07 18:56:48 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.7 2005/04/07 18:49:37 mtbell Exp $
+$Id: interfacecfg.pl,v 1.8 2005/04/07 18:56:48 mtbell Exp $
 
 =cut
 
@@ -102,7 +102,7 @@ foreach my $net (@$networks) {
 	$ifaces{$net}{'mask'}	 = $ips[5]; 
 	$ifaces{$net}{'bcast'}	 = $ips[6];
 
-	if (exists $opts{'d'} && defined($opts{'d'}) {
+	if (exists $opts{'d'} && defined($opts{'d'})) {
 		$ifaces{$net}{'redir'}   = ($opts{'d'} == 1) ? $cfg->primary_redirector($net) :
 						       	       $cfg->secondary_redirector($net);
 		$ifaces{$net}{'redir'}	 = 'unknown redirector' if !defined($ifaces{$net}{'redir'});
