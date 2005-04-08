@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.3 2005/04/08 20:08:10 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -37,7 +37,7 @@ Rob Colantuoni <rgc@buffalo.edu>
 
 =head1 REVISION
 
-$Id: import_nessus_scans.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: import_nessus_scans.pl,v 1.3 2005/04/08 20:08:10 jeffmurphy Exp $
 
 =cut
 
@@ -72,23 +72,64 @@ use strict;
 use lib '/opt/netpass/lib';
 use NetPass;
 use NetPass::DB;
+use Getopt::Std;
+
+my %opts;
+getopts('c:Dh?', \%opts);
+if (exists $opts{'h'} || exists $opts{'?'}) {
+	print "$0 [-h?D] [-c config]\n";
+	exit 0;
+}
+
+my $D = exists $opts{'D'};
+
+print "Loading Netpass object ..\n" if $D; 
+
+my $np = new NetPass(-config => 
+		     exists $opts{'c'} ? 
+		     $opts{'c'} :
+		     "/opt/netpass/etc/netpass.conf");
 
 
-my $np = new NetPass(-config => "/opt/netpass/etc/netpass.conf");
+die "failed to load NetPass config" unless defined ($np);
+
+print "Connecting to database ..\n" if $D;
+
 my $netpass = new NetPass::DB($np->cfg->dbSource,
-                                     $np->cfg->dbUsername,
-                                     $np->cfg->dbPassword);
+                              $np->cfg->dbUsername,
+                              $np->cfg->dbPassword);
 
 my $dbh = $netpass->{dbh};
 
-open(FD, "/opt/nessus/bin/nessus -q -p localhost 1241 netpass netpass |") ||
-  die "open failed $!";
+print "Retrieving nessus configuration ..\n" if $D;
+my $bd = $np->cfg->nessusBaseDir();
+
+die "nessus base_dir undefined in netpass configuration"
+  if (!defined($bd) || ($bd eq ""));
+
+if (! -x "$bd/bin/nessus") {
+	die "cant find $bd/bin/nessus";
+}
+
+my $host = $np->cfg->nessusHost();
+my $user = $np->cfg->nessusUsername();
+my $pass = $np->cfg->nessusPassword();
+my $port = $np->cfg->nessusPort();
+
+my $ncmd = "$bd/bin/nessus -q -p $host $port $user $pass "; 
+
+print qq{Nessus command is: "$ncmd"\n} if $D;
+
+open(FD, "$ncmd |") ||
+  die qq{open of "$ncmd" failed: $!};
 
 my $query = "INSERT IGNORE INTO nessusScans (pluginID, name, family, category, short_desc, description, addedBy, lastModifiedBy, revision, copyright, cve, bugtraq, other_refs) VALUES (?,?,?,?,?,?,'import','import',?,?,?,?,?)";
 
 my $sth = $dbh->prepare($query);
 
+print "Going into read loop ..\n" if $D;
 while(my $l = <FD>) {
+	print qq{Read: "$l"} if $D;
 
         my ($id, $family, $name, $category, $copyright, $shortDesc, $revision, $cveId, $bugtraqId, $references, $description) = split(/\|/, $l);
 

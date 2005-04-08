@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/Radius.pm,v 1.2 2004/12/31 19:36:16 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Auth/Radius.pm,v 1.3 2005/04/08 20:08:21 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -52,6 +52,11 @@ sub authenticateUser {
 	
 	my $r = new Authen::Radius(Host   => $rs,
 				   Secret => $sec);
+	if (!defined($r)) {
+		_log("ERROR", "Failed to connect to radius server ($rs)\n");
+		return 0;
+	}
+
 	$r->clear_attributes;
 	$r->add_attributes (
 		    { Name => 1, Value => $u, Type => 'string' },
@@ -78,7 +83,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Radius.pm,v 1.2 2004/12/31 19:36:16 jeffmurphy Exp $
+$Id: Radius.pm,v 1.3 2005/04/08 20:08:21 jeffmurphy Exp $
 
 =cut
 

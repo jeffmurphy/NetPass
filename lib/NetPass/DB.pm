@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.10 2005/04/06 20:50:36 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.11 2005/04/08 20:08:20 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1137,12 +1137,152 @@ sub audit {
 
     return 1;
 }
+
+
+=head2 addResult(mac => $mac, type => [nessus|snort|manual], id => $id, msg => $msgId)
+
+Submit an entry into the results table. If the type is "manual" then you need to 
+specify a specific message to show the user (via the "msg" parameter). Otherwise you
+can simply specify the Snort or Nessus ID and NetPass will correlate that with the
+Nessus and Snort configuration data to derive the appropriate message to display for
+the user.
+
+=over 4
+
+=item mac
+
+ MAC address passed as number (no colons, etc). We'll pad it out for you
+ with leading zeros if needed.
+
+=item type
+
+ nessus - this is the result of a Nessus scan
+ snort  - this is the result of a Snort hit
+ manual - this is someone being manually quarantined (DMCA complaint, etc)
+
+=item id 
+
+ The ID if the Nessus scan or Snort rule that matched for this client. Only applicable
+ if type is "nessus" or "snort"
+
+=item msg
+
+ The specified message to show the user (only applicable if type is "manual").
+
+=back
+
+ Example
+
+ $dbh->addResult(-mac => 112233445566, -type => 'nessus', -id => 12219);
+ $dbh->addResult(-mac => 112233445566, -type => 'manual', -msg => 'msg:dmca');
+
+ Returns
+
+ 0                    on success (so addResult && die should work)
+ "invalid message id" if type = "manual" and msg does not exist 
+ "invalid mac"        if mac not registered or is "remote"
+ "invalid type"       if type is unknown
+ "invalid parameters" if the routine was called improperly
+ "db failure"         if there was a DB failure
+
+=cut
+
+sub addResult {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-mac -type) ],
+			     -defaults => {
+					   -mac       => undef,
+					   -type      => undef,
+					   -id        => undef,
+					   -msg       => undef,
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($m, $t, $i, $msg) = $parms->get('-mac', '-type', '-id', '-msg');
+    
+    if ($m =~ /REMOTE/) {
+	    _log("WARNING", "cant add result for remote client\n");
+	    return "invalid mac";
+    }
+
+    $m = NetPass::padMac($m);
+
+    if ($m !~ /^[0-9a-f]+$/) {
+	    _log("WARNING", "$m invalid mac address. not 0-9a-f\n");
+	    return "invalid mac";
+    }
+
+    my $sql;
+
+    if ($t =~ /^manual$/i) {
+	    my $junk = $self->getPage($msg);
+	    if (!defined($junk)) {
+		    _log("ERROR", "$m cant add 'manual' result with invalid msg '$msg'\n");
+		    return "invalid message id";
+            }
+            $sql  = "INSERT INTO results (macAddress, dt, testType, messageID) VALUES (";
+            $sql .= $self->dbh->quote($m). ",";
+            $sql .= "NOW(),";
+            $sql .= $self->dbh->quote($t). ",";
+            $sql .= $self->dbh->quote($msg). ")";
+    }
+
+    elsif ($t =~ /^nessus$/) {
+            if ( ($i !~ /^\d+$/) || ($i < 1) ) {
+                     _log("ERROR", "$m type=nessus but id($i) is not a number\n");
+                     return "invalid parameters";
+            }
+            $sql  = "INSERT INTO results (macAddress, dt, testType, nessusID) VALUES (";
+            $sql .= $self->dbh->quote($m). ",";
+            $sql .= "NOW(),";
+            $sql .= $self->dbh->quote($t). ",";
+            $sql .= $self->dbh->quote($i). ")";
+    }
+
+    elsif ($t =~ /^snort$/) {
+            if ( ($i !~ /^\d+$/) || ($i < 1) ) {
+                     _log("ERROR", "$m type=snort but id($i) is not a number\n");
+                     return "invalid parameters";
+            }
+            $sql  = "INSERT INTO results (macAddress, dt, testType, snortID) VALUES (";
+            $sql .= $self->dbh->quote($m). ",";
+            $sql .= "NOW(),";
+            $sql .= $self->dbh->quote($t). ",";
+            $sql .= $self->dbh->quote($i). ")";
+    }
+
+    my $rv = $self->dbh->do($sql);
+
+    if (!defined($rv)) {
+            _log ("ERROR", qq{$m sql failure sql="$sql" err=}.$self->dbh->errstr);
+            return "db failure\n".$self->dbh->errstr;
+    }
+
+
+    return 0;
+
+}
+
+
+
+
     
 sub commit {
 	my $self = shift;
 	$self->reconnect() || return 0;
 	return $self->{'dbh'}->commit;
 }
+
+
+
+
 
 =head1 AUTHOR
 
@@ -1156,6 +1296,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.10 2005/04/06 20:50:36 jeffmurphy Exp $
+$Id: DB.pm,v 1.11 2005/04/08 20:08:20 jeffmurphy Exp $
 
 1;

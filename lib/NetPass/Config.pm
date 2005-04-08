@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.8 2005/03/31 15:02:44 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.9 2005/04/08 20:08:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1029,6 +1029,17 @@ sub expandTagList {
 	return $etl;
 }
 
+=head2 B<$np->cfg->nessusBaseDir()>
+
+
+=cut
+
+sub nessusBaseDir {
+	my $self = shift;
+	$self->reloadIfChanged();
+	return $self->{'cfg'}->obj('nessus')->value('BASE_DIR');
+}
+
 =head2 B<$np->cfg->nessusUsername()>
 
 
@@ -1120,7 +1131,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.8 2005/03/31 15:02:44 mtbell Exp $
+$Id: Config.pm,v 1.9 2005/04/08 20:08:11 jeffmurphy Exp $
 
 =cut
 
