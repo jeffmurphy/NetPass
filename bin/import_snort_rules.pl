@@ -60,7 +60,7 @@ my $data = {};
 
 getopts('s:l:h?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'} ||
-	     !defined($opts{'l'}) || !defined($opts{'s'});
+	     !exists($opts{'l'}) || !exists($opts{'s'});
 
 die "Cannot cd into ".$opts{'l'} unless(-d $opts{'l'});
 opendir(DIR, $opts{'l'}) || die "unable to open ".$opts{'l'};
