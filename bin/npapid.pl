@@ -38,8 +38,8 @@ if (exists $opts{'D'}) {
     daemonize("npapid", "/var/run/netpass");
 }
 
-$np     = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-			     "/opt/netpass/etc/netpass.conf");
+$np     = new NetPass(-config => (exists $opts{'c'} && defined $opts{'c'}) ? $opts{'c'} :
+			         "/opt/netpass/etc/netpass.conf");
 
 die ("Unable to access netpass object") if (!$np);
 my $cfg = $np->cfg();
