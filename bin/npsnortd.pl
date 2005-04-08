@@ -66,7 +66,7 @@ my $DEFAULTSNORTLOG	= "/opt/snort/logs/snort.log";
 my $DEFAULTSNORTRULES	= "/opt/snort/etc/snort.rules";
 
 getopts('s:S:c:p:r:l:qDh?', \%opts);
-pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
+pod2usage(2) if exists $opts{'h'}  || exists $opts{'?'};
 pod2usage(2) if !exists $opts{'s'} || !exists $opts{'S'};
 
 if ($opts{'s'} !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\,*)+$/) {
@@ -75,9 +75,9 @@ if ($opts{'s'} !~ /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\,*)+$/) {
 
 my $D = 0;
 if (exists $opts{'D'}) {
-    $D = 1;
+	$D = 1;
 } else {
-    daemonize("npsoapd", "/var/run");
+	daemonize("npsoapd", "/var/run");
 }
 
 my $tid = threads->create(\&soapServer, \%opts);
