@@ -146,6 +146,7 @@ CREATE TABLE `snortRules` (
   `category` varchar(255) default NULL,
   `classtype` varchar(64) default NULL,
   `short_desc` varchar(255) default NULL,
+  `description` text,
   `rule` text,
   `addedBy` varchar(32) NOT NULL default '',
   `addedOn` timestamp(14) NOT NULL,
