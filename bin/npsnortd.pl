@@ -7,7 +7,7 @@
 =head1 SYNOPSIS
 
  npsnortd.pl
-     -s npapi_server      the server npapid is running on
+     -s srvr1,srvr2...    the server npapid is running on
      -S secret            the secret key
      -l logfile		  the snort log file
      -r rulesfile	  the snort rules file
@@ -160,7 +160,7 @@ use strict;
 use Digest::MD5 qw(md5_hex);
 require SOAP::Lite;
 
-sub check_soap_auth {
+my $check_soap_auth = sub {
         my $self         = shift;
         my $their_secret = shift;
         my $rip          = $::remote_ip;
@@ -169,18 +169,22 @@ sub check_soap_auth {
 	my $my_secret    = md5_hex($rip.$opts{'S'});
 
 	return ($their_secret eq $my_secret) ? 1 : 0;
-}
+};
 
 sub restartSnort {
         my $self	 = shift;
         my $key		 = shift;
 	my %opts         = %::opts;
 
-	return undef unless ($self->check_soap_auth($key));
-	return undef unless ($self->_snortRunning());
+	return undef unless ($self->$check_soap_auth($key));
+	return undef unless ($self->$snortRunning());
 
-	my $pid = $self->_snortGetPid();
+	my $pid = $self->$snortGetPid();
 	return undef unless $pid;
+
+	if (exists $opts{'s'} && defined $opts{'s'}) {
+		my @npapiservers = split(/\,/, $opts{'s'});
+	}
 
 	# rewrite snort rules file here
 
@@ -191,11 +195,11 @@ sub snortRunning {
         my $self = shift;
         my $key  = shift;
 
-	return $self->_snortRunning() if ($self->check_soap_auth($key));
+	return $self->$snortRunning() if ($self->$check_soap_auth($key));
 	return undef;
 }
 
-sub _snortGetPid {
+my $snortGetPid = sub {
 	my %opts = %::opts;
 	my $fh   = new FileHandle;
 
@@ -207,16 +211,16 @@ sub _snortGetPid {
 	}
 	
 	return undef;
-}
+};
 
-sub _snortRunning {
+my $snortRunning = sub {
 	my $self = shift;
 
-	my $pid = $self->_snortGetPid();
+	my $pid = $self->$snortGetPid();
 	return undef unless $pid;
 
         return 1 if (kill(0, $pid) > 0);
         return undef;
-}
+};
 
 1;

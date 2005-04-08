@@ -26,7 +26,7 @@ file tracks things such as:
 
 =cut
 
-sub check_soap_auth {
+my $check_soap_auth = sub {
         my $self         = shift;
         my $their_secret = shift;
         my $rip          = $::remote_ip;
@@ -37,7 +37,7 @@ sub check_soap_auth {
         my $my_secret    = md5_hex($rip.$secret);
 
         return ($their_secret eq $my_secret) ? 1 : 0;
-}
+};
 
 =head2 $aref = NetPass::API::getSnortRules($secret, $type = <enabled | disabled | all>)
 
@@ -55,13 +55,15 @@ sub getSnortRules {
 	my $cfg	   = $np->cfg();
 	my @aref;
 
-	return undef unless ($self->check_soap_auth($secret));
+	return undef unless ($self->$check_soap_auth($secret));
 	return undef unless ($type =~ /^(enabled|disabled|all)$/);
 
 	my $network = $cfg->getNetworks();
 	return undef unless (defined ($network));
 
-	push @aref, map($cfg->quarantineVlan($_), @$network);
+	# hafta figure out a snort rule to block already quarantined
+	# machines... 
+	#push @aref, map($cfg->quarantineVlan($_), @$network);
 
 	my $rules = $dbh->getSnortRules($type);
 	return undef unless defined($rules);
