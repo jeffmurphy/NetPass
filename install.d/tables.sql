@@ -28,9 +28,11 @@ CREATE TABLE results (
 	testType	enum('nessus', 'snort', 'manual')  NOT NULL default 'nessus',
 	nessusID	INTEGER UNSIGNED,
 	snortID         INTEGER UNSIGNED,
-	messageID	VARCHAR(128),
+	manualID	VARCHAR(128),
 	status		enum('pending', 'user-fixed', 'fixed') NOT NULL default 'pending',
-	PRIMARY KEY (macAddress)
+	INDEX (macAddress),
+	INDEX (macAddress, testType),
+	INDEX (macAddress, status),
 ) TYPE=NDBCLUSTER;
 
 CREATE TABLE policy (

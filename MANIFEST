@@ -18,10 +18,12 @@ bin/portmover-restart.sh
 bin/resetport.pl
 bin/proc_counter.pl
 bin/portmover.pl
+bin/npapid.pl
+bin/npsnortd.pl
 bin/resetport-restart.sh
 bin/rm_stale_cookies.pl
-bin/npsnortd.pl
 bin/import_snort_rules.pl
+bin/getresults.pl
 doc/cron.monthly/mysql_binlog_rotate
 doc/logrotate.d/apache
 doc/logrotate.d/netpass
@@ -66,6 +68,7 @@ doc/user_overview.txt
 doc/squidguard.txt
 doc/apachehowto.txt
 doc/nessus-install.txt
+doc/npsnort.txt
 etc/netpass-example.conf
 install.d/logrotate.d/apache
 install.d/logrotate.d/netpass
@@ -97,6 +100,7 @@ install.d/pages.sql
 install.d/tables.sql
 install.d/ldirectord.cf
 install.d/testpm
+install.d/snmptrapd
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
 lib/NetPass/WWW/Session.pm.file
@@ -107,6 +111,7 @@ lib/NetPass/Auth/LDAP.pm
 lib/NetPass/Auth/Unix.pm
 lib/NetPass/Config.pm
 lib/NetPass/DB.pm
+lib/NetPass/API.pm
 lib/NetPass/LOG.pm
 lib/NetPass/Nessus.pm
 lib/NetPass/Network.pm
@@ -199,6 +204,7 @@ www/htdocs/loading.gif
 www/htdocs/mason2.html
 www/htdocs/netpass.mhtml
 www/htdocs/survey.mhtml
+www/htdocs/snmptrapd-netpass-check.mhtml
 CHANGES
 LICENSE
 MANIFEST

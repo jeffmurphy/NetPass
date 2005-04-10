@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.2 2005/04/08 20:08:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.4 2005/04/10 04:38:14 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -133,7 +133,7 @@
 			$m->comp('/Audit', msg => [ "Found vulnerability: $sid" ] );
 			push(@{$m->session->{'nessus'}}, $sid);
 			$m->session->{'nessus_defaults'}->{$sid} = $nes->Description;
-			$dbh->addResult
+			$npdbh->addResult(-type => 'nessus', -mac => $mac, -id => $sid);
 		}
 	}
 	

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.11 2005/04/08 20:08:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.12 2005/04/10 04:38:14 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -25,6 +25,13 @@ sub D {
 
     return $self->{'D'};
 }
+
+=head1 SYNOPSIS
+
+This is the interface for accessing the NetPass database. All SQL should be
+located in this module and abstracted away from higher-level modules.
+
+=head1 METHODS
 
 =head2 NetPass::DB::new(connstr, user, password, debug)
 
@@ -305,6 +312,8 @@ on success
 
 on failure (e.g. mac isnt registered)
 
+=back
+
 =cut
 
 sub setMessage {
@@ -347,6 +356,8 @@ on success
 
 on failure or no message set
 
+=back
+
 =cut
 
 sub getMessage {
@@ -384,6 +395,8 @@ on success
 =item undef
 
 SQL failure
+
+=back
 
 =cut
 
@@ -1139,13 +1152,12 @@ sub audit {
 }
 
 
-=head2 addResult(mac => $mac, type => [nessus|snort|manual], id => $id, msg => $msgId)
+=head2 addResult(-mac => $mac, -type => [nessus|snort|manual], -id => $id)
 
 Submit an entry into the results table. If the type is "manual" then you need to 
-specify a specific message to show the user (via the "msg" parameter). Otherwise you
-can simply specify the Snort or Nessus ID and NetPass will correlate that with the
-Nessus and Snort configuration data to derive the appropriate message to display for
-the user.
+specify a specific message to show the user. Otherwise you specify the Snort or Nessus ID 
+and NetPass will correlate that with the Nessus and Snort configuration data to derive the 
+appropriate message to display for the user.
 
 =over 4
 
@@ -1162,27 +1174,24 @@ the user.
 
 =item id 
 
- The ID if the Nessus scan or Snort rule that matched for this client. Only applicable
- if type is "nessus" or "snort"
-
-=item msg
-
- The specified message to show the user (only applicable if type is "manual").
+ The ID if the Nessus scan or Snort rule that matched for this client. If "type"
+ is "manual" then this parameter would be something like "msg:dmca".
 
 =back
 
  Example
 
  $dbh->addResult(-mac => 112233445566, -type => 'nessus', -id => 12219);
- $dbh->addResult(-mac => 112233445566, -type => 'manual', -msg => 'msg:dmca');
+ $dbh->addResult(-mac => 112233445566, -type => 'manual', -id => 'msg:dmca');
 
  Returns
 
- 0                    on success (so addResult && die should work)
- "invalid message id" if type = "manual" and msg does not exist 
+ 0                    on success (so "addResult && die" should work)
+ "invalid manual id"  if type = "manual" and msg does not exist 
  "invalid mac"        if mac not registered or is "remote"
  "invalid type"       if type is unknown
  "invalid parameters" if the routine was called improperly
+ "duplicate result"   this result is already submitted and is "pending"
  "db failure"         if there was a DB failure
 
 =cut
@@ -1197,7 +1206,7 @@ sub addResult {
 					   -mac       => undef,
 					   -type      => undef,
 					   -id        => undef,
-					   -msg       => undef,
+					   -force     => 0
 					  }
 			    }
 			   );
@@ -1205,7 +1214,7 @@ sub addResult {
     return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
       if (!defined($parms));
     
-    my ($m, $t, $i, $msg) = $parms->get('-mac', '-type', '-id', '-msg');
+    my ($m, $t, $i, $f) = $parms->get('-mac', '-type', '-id', '-force');
     
     if ($m =~ /REMOTE/) {
 	    _log("WARNING", "cant add result for remote client\n");
@@ -1219,19 +1228,24 @@ sub addResult {
 	    return "invalid mac";
     }
 
+    my $junk = $self->getResults(-mac => $m, -type => $t, -id => $i);
+    if ( (ref($junk) eq "HASH") && ($#{$junk->{'timestamp'}} > -1) ) {
+	    return "duplicate result";
+    }
+
     my $sql;
 
     if ($t =~ /^manual$/i) {
-	    my $junk = $self->getPage($msg);
+	    $junk = $self->getPage($i);
 	    if (!defined($junk)) {
-		    _log("ERROR", "$m cant add 'manual' result with invalid msg '$msg'\n");
-		    return "invalid message id";
+		    _log("ERROR", "$m cant add 'manual' result with invalid ID '$i'\n");
+		    return "invalid manual id";
             }
-            $sql  = "INSERT INTO results (macAddress, dt, testType, messageID) VALUES (";
+            $sql  = "INSERT INTO results (macAddress, dt, testType, manualID) VALUES (";
             $sql .= $self->dbh->quote($m). ",";
             $sql .= "NOW(),";
             $sql .= $self->dbh->quote($t). ",";
-            $sql .= $self->dbh->quote($msg). ")";
+            $sql .= $self->dbh->quote($i). ")";
     }
 
     elsif ($t =~ /^nessus$/) {
@@ -1258,6 +1272,8 @@ sub addResult {
             $sql .= $self->dbh->quote($i). ")";
     }
 
+    $self->reconnect() || return "db failure";
+
     my $rv = $self->dbh->do($sql);
 
     if (!defined($rv)) {
@@ -1265,9 +1281,177 @@ sub addResult {
             return "db failure\n".$self->dbh->errstr;
     }
 
-
     return 0;
+}
 
+
+
+=head2 getResults(-mac => $mac, -type => [nessus|snort|manual], -id => $id, -status => [pending|user-fixed|fixed|any])
+
+Fetch entries from the results table. The MAC address parameter is the only
+required one. If you call this routine with just a MAC address, all "pending" results
+will be returned. Specify additional parameters to narrow down what is returned (or
+expand the results set by saying -status=>'any')
+
+=over 4
+
+=item mac
+
+ MAC address passed as number (no colons, etc). We'll pad it out for you
+ with leading zeros if needed.
+
+=item type
+
+ nessus - only return results of Nessus scans
+ snort  - only return results of Snort hits
+ manual - only return manually inserted results (e.g. DMCA)
+
+=item id 
+
+ Limit the results set to the given ID (if type is "nessus" or "snort").
+
+=item status
+
+ Limit the results set to results of this type. 
+       pending    - the results have not yet been fixed.
+       user-fixed - the user claims they fixed it (i.e. a snort hit that can't be
+                    immediately and actively verified as being fixed)
+       fixed      - this result has been confirmed to be fixed.
+
+=back
+
+ Example
+
+ To retrieve all pending results for a host:
+
+ $dbh->getResults(-mac => 112233445566);
+
+ To retrieve all results for a host (even "fixed" results - i.e. historical):
+
+ $dbh->getResults(-mac => 112233445566, -status => 'any');
+
+ To test to see if a particular result is pending:
+
+ $dbh->getResults(-mac => 112233445566, -type => 'nessus', -id => 12219);
+
+ Or
+
+ $dbh->getResults(-mac => 112233445566, -type => 'manual', -id => 'msg:dmca');
+
+ Returns
+
+ HASHREF              on success (so addResult && die should work)
+ "invalid mac"        if mac doesnt look right ([0-9a-f]) or is "remote"
+ "invalid type"       if type is unknown
+ "invalid parameters" if the routine was called improperly
+ "db failure"         if there was a DB failure
+
+ The HASHREF will contain the keys "type", "id" and "status". These keys will
+ point to ARRAYREFs which will contain the actual results. So to process the
+ first result you might write
+
+ print
+   $hr->{'type'}->[0]     , ' ',
+   $hr->{'id'}->[0]       , ' ',
+   $hr->{'timestamp'}->[0], ' ',
+   $hr->{'status'}->[0];
+
+=cut
+
+sub getResults {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-mac -type) ],
+			     -defaults => {
+					   -mac       => undef,
+					   -type      => '',
+					   -id        => '',
+					   -status    => 'pending',
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($m, $t, $i, $s) = $parms->get('-mac', '-type', '-id', '-status');
+    
+    if ($s !~ /^(pending|fixed|user-fixed|any)$/) {
+	    _log("WARNING", "invalid 'status' of '$s' given\n");
+	    return "invalid paramters (status=$s)";
+    }
+
+    if ($m =~ /REMOTE/) {
+	    _log("WARNING", "cant add result for remote client\n");
+	    return "invalid mac";
+    }
+
+    $m = NetPass::padMac($m);
+
+    if ($m !~ /^[0-9a-f]+$/) {
+	    _log("WARNING", "$m invalid mac address. not 0-9a-f\n");
+	    return "invalid mac";
+    }
+
+    my $sql = "SELECT unix_timestamp(dt) as timestamp, testType as type, status, ";
+
+    if ($t =~ /^manual$/i) {
+            $sql .= "manualID as id FROM results WHERE testType = 'manual' AND macAddress = ";
+            $sql .= $self->dbh->quote($m);
+	    $sql .= " AND manualID = ".$self->dbh->quote($i) if (defined($i) && ($i ne ""));
+    }
+
+    elsif ($t =~ /^nessus$/i) {
+            $sql .= "nessusID as id FROM results WHERE testType = 'nessus' AND macAddress = ";
+            $sql .= $self->dbh->quote($m);
+	    $sql .= " AND manualID = ".$self->dbh->quote($i) if (defined($i) && ($i ne ""));
+    }
+
+    elsif ($t =~ /^snort$/i) {
+            $sql .= "snortID as id FROM results WHERE testType = 'snort' AND macAddress = ";
+            $sql .= $self->dbh->quote($m);
+	    $sql .= " AND manualID = ".$self->dbh->quote($i) if (defined($i) && ($i ne ""));
+    } 
+
+    else {
+	    $sql .= "(IF(nessusID is not null, nessusID, IF(snortID is not null, snortID, manualID))) AS id ";
+            $sql .= " FROM results WHERE macAddress = ";
+            $sql .= $self->dbh->quote($m);
+	    if ($i =~ /^\d+$/) {
+		    $sql .= " AND (nessusID = ".$self->dbh->quote($i). 
+                                  " OR ".
+                                   " snortID = ".$self->dbh->quote($i). ") ";
+	    } 
+	    elsif ($i ne "") {
+		    $sql .= " AND manualID = ".$self->dbh->quote($i);
+	    }
+    }
+
+    if ($s ne "any") {
+	    $sql .= " AND status = ".$self->dbh->quote($s);
+    }
+
+    $self->reconnect() || return "db failure";
+
+    my $rv = $self->dbh->selectall_arrayref($sql);
+
+    if (!defined($rv)) {
+            _log ("ERROR", qq{$m sql failure sql="$sql" err=}.$self->dbh->errstr);
+            return "db failure\n".$self->dbh->errstr;
+    }
+
+    my $hv = { 'timestamp' => [], 'type' => [], 'status' => [], 'id' => [], 'sql' => $sql };
+
+    foreach my $row (@{$rv}) {
+	    push @{$hv->{'timestamp'}}, $row->[0];
+	    push @{$hv->{'type'}}     , $row->[1];
+	    push @{$hv->{'status'}}   , $row->[2];
+	    push @{$hv->{'id'}}       , $row->[3];
+    }
+
+    return $hv;
 }
 
 
@@ -1296,6 +1480,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.11 2005/04/08 20:08:20 jeffmurphy Exp $
+$Id: DB.pm,v 1.12 2005/04/10 04:38:14 jeffmurphy Exp $
 
 1;
