@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.12 2005/04/10 04:38:14 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.13 2005/04/10 04:46:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1230,7 +1230,7 @@ sub addResult {
 
     my $junk = $self->getResults(-mac => $m, -type => $t, -id => $i);
     if ( (ref($junk) eq "HASH") && ($#{$junk->{'timestamp'}} > -1) ) {
-	    return "duplicate result";
+	    return "duplicate result" unless $f;
     }
 
     my $sql;
@@ -1480,6 +1480,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.12 2005/04/10 04:38:14 jeffmurphy Exp $
+$Id: DB.pm,v 1.13 2005/04/10 04:46:02 jeffmurphy Exp $
 
 1;
