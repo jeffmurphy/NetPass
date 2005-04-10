@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.13 2005/04/10 04:46:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.14 2005/04/10 15:12:16 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1152,7 +1152,7 @@ sub audit {
 }
 
 
-=head2 addResult(-mac => $mac, -type => [nessus|snort|manual], -id => $id)
+=head2 addResult(-mac => $mac, -type => [nessus|snort|manual|...], -id => $id)
 
 Submit an entry into the results table. If the type is "manual" then you need to 
 specify a specific message to show the user. Otherwise you specify the Snort or Nessus ID 
@@ -1171,6 +1171,8 @@ appropriate message to display for the user.
  nessus - this is the result of a Nessus scan
  snort  - this is the result of a Snort hit
  manual - this is someone being manually quarantined (DMCA complaint, etc)
+ ...    - the test type field is a 32 character text field. You can specify
+          anything you like, the above types are pre-defined by NetPass.
 
 =item id 
 
@@ -1204,8 +1206,8 @@ sub addResult {
 			     -required => [ qw(-mac -type) ],
 			     -defaults => {
 					   -mac       => undef,
-					   -type      => undef,
-					   -id        => undef,
+					   -type      => '',
+					   -id        => '',
 					   -force     => 0
 					  }
 			    }
@@ -1233,7 +1235,8 @@ sub addResult {
 	    return "duplicate result" unless $f;
     }
 
-    my $sql;
+    $t ||= '';
+    $i ||= '';
 
     if ($t =~ /^manual$/i) {
 	    $junk = $self->getPage($i);
@@ -1241,36 +1244,29 @@ sub addResult {
 		    _log("ERROR", "$m cant add 'manual' result with invalid ID '$i'\n");
 		    return "invalid manual id";
             }
-            $sql  = "INSERT INTO results (macAddress, dt, testType, manualID) VALUES (";
-            $sql .= $self->dbh->quote($m). ",";
-            $sql .= "NOW(),";
-            $sql .= $self->dbh->quote($t). ",";
-            $sql .= $self->dbh->quote($i). ")";
     }
 
     elsif ($t =~ /^nessus$/) {
             if ( ($i !~ /^\d+$/) || ($i < 1) ) {
                      _log("ERROR", "$m type=nessus but id($i) is not a number\n");
-                     return "invalid parameters";
+                     return "invalid parameters (nessus id must be number)";
             }
-            $sql  = "INSERT INTO results (macAddress, dt, testType, nessusID) VALUES (";
-            $sql .= $self->dbh->quote($m). ",";
-            $sql .= "NOW(),";
-            $sql .= $self->dbh->quote($t). ",";
-            $sql .= $self->dbh->quote($i). ")";
     }
 
     elsif ($t =~ /^snort$/) {
             if ( ($i !~ /^\d+$/) || ($i < 1) ) {
                      _log("ERROR", "$m type=snort but id($i) is not a number\n");
-                     return "invalid parameters";
+                     return "invalid parameters (nessus id must be number)";
             }
-            $sql  = "INSERT INTO results (macAddress, dt, testType, snortID) VALUES (";
-            $sql .= $self->dbh->quote($m). ",";
-            $sql .= "NOW(),";
-            $sql .= $self->dbh->quote($t). ",";
-            $sql .= $self->dbh->quote($i). ")";
     }
+
+    my $sql;
+
+    $sql  = "INSERT INTO results (macAddress, dt, testType, ID) VALUES (";
+    $sql .= $self->dbh->quote($m). ",";
+    $sql .= "NOW(),";
+    $sql .= $self->dbh->quote($t). ",";
+    $sql .= $self->dbh->quote($i). ")";
 
     $self->reconnect() || return "db failure";
 
@@ -1286,7 +1282,7 @@ sub addResult {
 
 
 
-=head2 getResults(-mac => $mac, -type => [nessus|snort|manual], -id => $id, -status => [pending|user-fixed|fixed|any])
+=head2 getResults(-mac => $mac, -type => [nessus|snort|manual|...], -id => $id, -status => [pending|user-fixed|fixed|any])
 
 Fetch entries from the results table. The MAC address parameter is the only
 required one. If you call this routine with just a MAC address, all "pending" results
@@ -1305,6 +1301,9 @@ expand the results set by saying -status=>'any')
  nessus - only return results of Nessus scans
  snort  - only return results of Snort hits
  manual - only return manually inserted results (e.g. DMCA)
+ ...    - the test type parameter is a 32 character text field.
+          you can specify anything, the above values are pre-defined
+          and reserved by NetPass.
 
 =item id 
 
@@ -1342,7 +1341,7 @@ expand the results set by saying -status=>'any')
 
  HASHREF              on success (so addResult && die should work)
  "invalid mac"        if mac doesnt look right ([0-9a-f]) or is "remote"
- "invalid type"       if type is unknown
+ "invalid type"       if type is invalid
  "invalid parameters" if the routine was called improperly
  "db failure"         if there was a DB failure
 
@@ -1395,43 +1394,14 @@ sub getResults {
 	    return "invalid mac";
     }
 
-    my $sql = "SELECT unix_timestamp(dt) as timestamp, testType as type, status, ";
+    $t ||= '';
+    $i ||= '';
 
-    if ($t =~ /^manual$/i) {
-            $sql .= "manualID as id FROM results WHERE testType = 'manual' AND macAddress = ";
-            $sql .= $self->dbh->quote($m);
-	    $sql .= " AND manualID = ".$self->dbh->quote($i) if (defined($i) && ($i ne ""));
-    }
+    my $sql = "SELECT unix_timestamp(dt) AS timestamp, testType AS type, status, id FROM results WHERE macAddress = " . $self->dbh->quote($m);
 
-    elsif ($t =~ /^nessus$/i) {
-            $sql .= "nessusID as id FROM results WHERE testType = 'nessus' AND macAddress = ";
-            $sql .= $self->dbh->quote($m);
-	    $sql .= " AND manualID = ".$self->dbh->quote($i) if (defined($i) && ($i ne ""));
-    }
-
-    elsif ($t =~ /^snort$/i) {
-            $sql .= "snortID as id FROM results WHERE testType = 'snort' AND macAddress = ";
-            $sql .= $self->dbh->quote($m);
-	    $sql .= " AND manualID = ".$self->dbh->quote($i) if (defined($i) && ($i ne ""));
-    } 
-
-    else {
-	    $sql .= "(IF(nessusID is not null, nessusID, IF(snortID is not null, snortID, manualID))) AS id ";
-            $sql .= " FROM results WHERE macAddress = ";
-            $sql .= $self->dbh->quote($m);
-	    if ($i =~ /^\d+$/) {
-		    $sql .= " AND (nessusID = ".$self->dbh->quote($i). 
-                                  " OR ".
-                                   " snortID = ".$self->dbh->quote($i). ") ";
-	    } 
-	    elsif ($i ne "") {
-		    $sql .= " AND manualID = ".$self->dbh->quote($i);
-	    }
-    }
-
-    if ($s ne "any") {
-	    $sql .= " AND status = ".$self->dbh->quote($s);
-    }
+    $sql .= " AND testType = ".$self->dbh->quote($t)  if ($t ne "");
+    $sql .= " AND ID = ".$self->dbh->quote($i)        if ($i ne "");
+    $sql .= " AND status = ".$self->dbh->quote($s)    if ($s ne "any");
 
     $self->reconnect() || return "db failure";
 
@@ -1480,6 +1450,6 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.13 2005/04/10 04:46:02 jeffmurphy Exp $
+$Id: DB.pm,v 1.14 2005/04/10 15:12:16 jeffmurphy Exp $
 
 1;

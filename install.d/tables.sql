@@ -25,10 +25,8 @@ CREATE TABLE register (
 CREATE TABLE results (
 	macAddress	VARCHAR(32)	NOT NULL,
 	dt		DATETIME	NOT NULL,
-	testType	enum('nessus', 'snort', 'manual')  NOT NULL default 'nessus',
-	nessusID	INTEGER UNSIGNED,
-	snortID         INTEGER UNSIGNED,
-	manualID	VARCHAR(128),
+	testType	VARCHAR(32),    #enum('nessus', 'snort', 'manual')  NOT NULL,
+	ID		VARCHAR(128),
 	status		enum('pending', 'user-fixed', 'fixed') NOT NULL default 'pending',
 	INDEX (macAddress),
 	INDEX (macAddress, testType),
