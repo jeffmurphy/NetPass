@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.10 2005/04/11 18:42:29 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.11 2005/04/11 18:45:32 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -435,7 +435,7 @@ sub npapiSecret {
     return undef;
 }
 
-=head2 $secret = $cfg-E<gt>snortEnabled(network)
+=head2 $bool = $cfg-E<gt>snortEnabled(network)
 
 Determines snort status on the specified network, returns either
 enabled, disabled, or not_really on success, 0 on failure.
@@ -1166,7 +1166,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.10 2005/04/11 18:42:29 mtbell Exp $
+$Id: Config.pm,v 1.11 2005/04/11 18:45:32 mtbell Exp $
 
 =cut
 
