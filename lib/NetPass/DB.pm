@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.14 2005/04/10 15:12:16 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.15 2005/04/11 18:17:14 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -39,11 +39,19 @@ Create a new NetPass DB object and connect to the underlying
 database (using DBI) with the specified details. If debug is 
 defined and non-zero, log debugging information using NetPass::LOG;
 
+The NetPass architecture specifies that the database be on the local
+machine. The connstr, user and password are optional. We will assume
+"dbi:mysql:database=netpass", "root" and "" as defaults. 
+
 =cut
 
 sub new {
     my ($class, $self) = (shift, {});
     my ($s, $u, $p, $d) = (shift, shift, shift, shift);
+
+    $s ||= "dbi:mysql:database=netpass";
+    $u ||= "root";
+    $p ||= "";
 
     # this should match, exactly, what's in mod_perl's startup.pl 
     # script. otherwise you'll get a 1:N (N > 1) ration of 
@@ -216,9 +224,6 @@ sub macIsRegistered {
 
     my $sql = "SELECT count(*) FROM register WHERE macAddress = '$ma'";
     my $row = $self->{'dbh'}->selectrow_arrayref($sql);
-
-    #use Data::Dumper;
-    #print STDERR Dumper($row), "\n";
 
     return -1 if (!defined($row) || (ref($row) ne "ARRAY"));
 
@@ -555,7 +560,6 @@ sub getPortMoveList {
     $self->reconnect() || return undef;
 
     my $ret = $self->{'dbh'}->selectall_arrayref($sql);
-    #print Dumper ($ret), "\n";
     return $ret;
 }
 
@@ -1425,6 +1429,440 @@ sub getResults {
 }
 
 
+=head2 putConfig(-config => ARRAYREF, -user => "username", -log => ARRAYREF)
+
+Insert a new configuration file into the database ("config" table).  This file
+becomes the current, active configuration almost immediately (or as soon 
+as C<NetPass::Config::reloadIfChanged> notices).
+
+=over 4
+
+=item config
+
+ This is an array reference that contains the new configuration file in 
+ C<Config::General> format.
+
+=item user
+
+ A username or identifier of the person who is importing the new configuration.
+
+=item log
+
+ An optional array reference containing some text describing what changes
+ have been made. 
+
+Returns
+
+ 0                     on success.
+ "db failure"          something failed with the DB
+ "invalid parameters"  the routine was called improperly.
+
+=back
+
+=cut
+
+sub putConfig {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-config -user) ],
+			     -defaults => {
+					   -config    => [],
+					   -user      => '',
+					   -log       => []
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($c, $u, $l) = $parms->get('-config', '-user', '-log');
+
+    return "invalid parameters (config empty)" unless (ref($c) eq "ARRAY" && $#{$c} >= 0);
+    return "invalid parameters (user empty)" unless ($u ne "");
+
+    my $ts = time();
+
+    my $sql = "INSERT INTO config (dt, user, config) VALUES ( ";
+    $sql .= "FROM_UNIXTIME($ts), ";
+    $sql .= $self->dbh->quote($u). ", ";
+    $sql .= $self->dbh->quote(join('', @$c)). ")";
+
+    my $rv = $self->dbh->do($sql);
+    return "db failure ".$self->dbh->errstr if (!defined($rv));
+
+    $sql = "SELECT rev FROM config WHERE user = ".$self->dbh->quote($u). 
+           " AND dt = FROM_UNIXTIME($ts) ";
+    $rv = $self->dbh->selectall_arrayref($sql);
+    return "db failure ".$self->dbh->errstr if (ref($rv) ne "ARRAY");
+
+    # append an initial message
+
+    my $rv2 = $self->appendLogToConfig(-rev => $rv->[0]->[0], -user => $u, 
+			     -log => [ 'created' ]);
+
+    return $rv2 if $rv2;
+
+    # append the user's log message.
+
+    $rv = $self->appendLogToConfig(-rev => $rv->[0]->[0], -user => $u, 
+			     -log => $l);
+
+    return $rv if $rv;
+
+    return 0;
+}
+
+
+=head2 getConfig(-rev => integer, -user => 'username', -lock => [0 | 1])
+
+Fetch the specified configuration from the database. If "rev" is not
+give, fetch the highest (latest) config from the database. If "lock"
+is "1", place an advisory lock on the configuration so that other people
+can't edit it without a warning.
+
+=over 4
+
+=item rev
+
+ An optional integer identifying which configuration to retrieve
+ from the database. Default is to fetch the latest.
+
+=item user
+
+ This parameter is required of lock is "1". 
+
+=item lock
+
+ 0 = get the config, I don't plan on editting it. (DEFAULT)
+ 1 = get the config, I plan on editting it, so warning anyone else
+     who tries to edit the config.
+
+=back
+
+Returns
+
+ HASHREF        containing keys:
+                  { 'config'    => ARRAYREF,
+                    'log'       => ARRAYREF,
+                    'timestamp' => integer,
+                    'rev'       => integer,
+                    'user'      => scalar string
+                  }
+ "lock failed"  you said lock=1 but someone else already has a 
+                config locked for editting
+ "db failure"   something failed with the DB
+
+=cut
+
+
+sub getConfig {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw() ],
+			     -defaults => {
+					   -rev    => 0,
+					   -lock   => 0,
+					   -user   => ''
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($r, $l, $u) = $parms->get('-rev', '-lock', '-user');
+
+    return "invalid parameters (rev)" unless ($r >= 0);
+    return "invalid parameters (lock)" unless ($l == 0 || $l == 1);
+    return "invalid parameters (user)" if ( ($l == 1) && ($u eq "") );
+
+    my $rv;
+
+    if ($l) {
+	    $rv = $self->lockConfig(-rev => $r, -user => $u);
+	    return $rv if ($rv);
+    }
+
+    my $sql = "SELECT config, log, UNIX_TIMESTAMP(dt) AS timestamp, rev, user FROM config ";
+    $sql .= " WHERE rev = ".$self->dbh->quote($r) if $r;
+    $sql .= " WHERE rev = (select MAX(rev) FROM config)" if ($r == 0);
+
+    $rv = $self->dbh->selectall_arrayref($sql);
+
+    return "db failure ".$self->dbh->errstr if (ref($rv) ne "ARRAY");
+
+    return   { 'config'    => [ split("\n", $rv->[0]->[0]) ], 
+	       'log'       => [ split("\n", $rv->[0]->[1]) ], 
+	       'timestamp' => $rv->[0]->[2]  , 
+	       'rev'       => $rv->[0]->[3]  , 
+	       'user'      => $rv->[0]->[4] 
+	     };
+}
+
+
+=head2 isConfigLocked(  )
+
+Check to see if the config is currently locked. If it is, return information
+about the lock.
+
+Returns
+
+ 0                    not locked
+ HASHREF              locked. see keys for details.
+ "db failure"         something failed with the DB
+
+=cut
+
+sub isConfigLocked {
+    my $self = shift;
+
+    my $sql = "SELECT rev, user FROM config WHERE xlock = 1";
+    my $rv  = $self->dbh->selectall_arrayref($sql);
+
+    return "db failure ".$self->dbh->errstr unless (ref($rv) eq "ARRAY");
+
+    if ($#{$rv} > 0) {
+            _log("ERROR", "multiple locks on config detected.");
+    }
+
+    return 0 if ($#{$rv} == -1);  # no locks
+
+    return { 'rev'  => $rv->[0]->[0],
+             'user' => $rv->[0]->[1]
+           };
+}
+
+=head2 lockConfig(-rev => rev, -user => username)
+
+Lock the configuration so other people know we are editting it. A note
+will be appended to the "log" for the configuration.  The latest
+configuration will be "locked" unless "rev" is specified. See
+C<NetPass::Config::rev()> 
+
+=over 4
+
+=item rev
+
+ The revision to lock. Required. Pass in the revision of the currently
+ running config.
+
+=item user
+
+ An identifier denoting who is locking the config. Required
+
+=back
+
+Returns
+
+ 0                    on success
+ "lock failed"        someone has it locked already. check the log by fetching
+                      the config. See C<NetPass::DB::getConfig>
+ "invalid parameters" the routine was called improperly 
+ "db failure"         something failed with the DB
+
+=cut
+
+sub lockConfig {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-rev -user) ],
+			     -defaults => {
+					   -rev    => 0,
+					   -user   => ''
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+
+    my ($r, $u) = $parms->get('-rev', '-user');
+
+    return "invalid parameters (rev)" unless ($r >= 0);
+    return "invalid parameters (user)" unless ($u ne "");
+
+    my $sql = "SELECT xlock, rev FROM config WHERE xlock = 1";
+    my $rv  = $self->dbh->selectall_arrayref($sql);
+    return "db failure ".$self->dbh->errstr unless (ref($rv) eq "ARRAY");
+
+    if ($#{$rv} > -1) {
+	    return "lock failed rev=".$rv->[0]->[1];
+    }
+    $sql = "UPDATE config SET xlock = 1 WHERE rev = ".$self->dbh->quote($r);
+    $rv  = $self->dbh->do($sql);
+
+    if (!defined($rv)) {
+	    return "db failure ". $self->dbh->errstr;
+    }
+
+    $self->appendLogToConfig(-rev => $r, -user => $u, -log => [ 'config locked' ]);
+    return 0;
+}
+
+
+=head2 unlockConfig(-rev => rev, -user => 'username')
+
+Unlock the configuration. Both parameters are required.
+
+Returns
+
+ 0                    on success
+ "invalid parameters" the routine was called improperly 
+ "db failure"         something failed with the DB
+
+=cut
+
+sub unlockConfig {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-rev -user) ],
+			     -defaults => {
+					   -rev    => 0,
+					   -user   => ''
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($r, $u) = $parms->get('-rev', '-user');
+
+    return "invalid parameters (rev)" unless ($r >= 0);
+    return "invalid parameters (rev)" unless ($u ne "");
+
+    my $rv = $self->appendLogToConfig(-rev => $r, -user => $u, -log => ['config unlocked']);
+    return $rv if ($rv);
+
+    my $sql = "UPDATE config SET xlock = 0";
+    $rv = $self->dbh->do($sql);
+    if (!defined($rv)) {
+	    return "db failure ". $self->dbh->errstr;
+    }
+    return 0;
+}
+
+
+
+=head2 fetchConfigs( )
+
+Fetch a listing of all of the stored configs. The listing will contain
+the rev, timestamp, lock status, and user. If you want the log and
+config, use getConfig. 
+
+Returns
+
+ HASHREF        on success containing keys: "rev", "timestamp",
+                "lock", "user". Each of those point to ARRAYREFs.
+ "db failure"   something failed with the DB
+
+So the revision of the first config in the list (which should be the 
+oldest) is  $hr->{'rev'}->[0]
+
+=cut
+
+
+sub fetchConfigs {
+    my $self = shift;
+    my $sql  = "SELECT rev, unix_timestamp(dt) AS timestamp, xlock, user FROM config";
+    my $rv   = $self->dbh->selectall_arrayref($sql);
+
+    if (ref($rv) ne "ARRAY" || ($#{$rv} == -1)) {
+	    return "db failure ".$self->dbh->errstr;
+    }
+
+    my $hv   = { 'rev' => [], 'timestamp' => [], 'lock' => [], 'user' => [] };
+    foreach my $row (@$rv) {
+	    push @{$hv->{'rev'}},       $row->[0];
+	    push @{$hv->{'timestamp'}}, $row->[1];
+	    push @{$hv->{'lock'}},      $row->[2];
+	    push @{$hv->{'user'}},      $row->[3];
+    }
+    return $hv;
+}
+
+
+=head2 appendLogToConfig(-rev => rev, -user => username, -log => [] )
+
+Add a log entry to the given config revision.
+
+Returns
+
+ 0                    on success
+ "invalid parameters" the routine was called improperly 
+ "db failure"         something failed with the DB
+
+=cut
+
+
+sub appendLogToConfig {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-rev -user -log) ],
+			     -defaults => {
+					   -rev    => 0,
+					   -user   => '',
+					   -log    => []
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($r, $u, $l) = $parms->get('-rev', '-user', '-log');
+
+    return "invalid parameters (rev)" unless ($r >= 0);
+    return "invalid parameters (user)" unless ($u ne "");
+    return "invalid parameters (log)" unless ( (ref($l) eq "ARRAY") && ($#{$l} >= 0));
+
+    my $sql = "SELECT log FROM config WHERE rev = ".$self->dbh->quote($r);
+
+    my $rv = $self->dbh->selectall_arrayref($sql);
+
+    if (ref($rv) ne "ARRAY") {
+	    return "db failure ".$self->dbh->errstr;
+    }
+
+    if ($#{$rv} == -1) {
+	    # the revision didnt exist. we dont throw an 
+	    # error tho.
+	    return 0;
+    }
+
+    $rv->[0]->[0] ||= "";
+
+    my $l2  = join(' ', scalar(localtime), $u, "\n", @$l, "\n", $rv->[0]->[0]);
+
+    $sql = "UPDATE config SET log = ".$self->dbh->quote($l2). " WHERE rev = ".
+      $self->dbh->quote($r);
+
+    $rv = $self->dbh->do($sql);
+    if (!defined($rv)) {
+	    return "db failure ".$self->dbh->errstr;
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+
+
 
 
     
@@ -1450,6 +1888,8 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.14 2005/04/10 15:12:16 jeffmurphy Exp $
+$Id: DB.pm,v 1.15 2005/04/11 18:17:14 jeffmurphy Exp $
+
+=cut
 
 1;

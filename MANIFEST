@@ -14,6 +14,7 @@ bin/macscan.pl
 bin/moveport.pl
 bin/npportcache.pl
 bin/nessus.pl
+bin/coconf.pl
 bin/portmover-restart.sh
 bin/resetport.pl
 bin/proc_counter.pl
@@ -21,6 +22,7 @@ bin/portmover.pl
 bin/npapid.pl
 bin/npsnortd.pl
 bin/resetport-restart.sh
+bin/ciconf.pl
 bin/rm_stale_cookies.pl
 bin/import_snort_rules.pl
 bin/getresults.pl

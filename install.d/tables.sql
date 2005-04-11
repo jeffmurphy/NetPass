@@ -59,12 +59,15 @@ create table networks (
 	index unique (name)
 ) TYPE=NDBCLUSTER;
 
-create table config (
+reate table config (
 	rev	integer unsigned not null auto_increment,
 	dt	datetime not null,
+	xlock   integer not null default 0,
 	user	varchar(128) not null,
+	log     text,
 	config	text,
-	primary key(dt)
+	primary key (rev),
+	index (dt)
 ) type=ndbcluster;
 
 CREATE TABLE passwd (
