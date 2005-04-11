@@ -6,6 +6,7 @@ use Carp;
 my $VERSION = '0.01';
 
 use lib qw("/opt/netpass/lib);
+use NetPass::LOG qw(_log _cont);
 use NetPass::Config;
 use Digest::MD5 qw(md5_hex);
 
@@ -61,11 +62,15 @@ sub getSnortRules {
 	my $network = $cfg->getNetworks();
 	return undef unless (defined ($network));
 
+	_log("DEBUG", "retrieving snort rules");
+
 	# hafta figure out a snort rule to block already quarantined
 	# machines... 
 	#push @aref, map($cfg->quarantineVlan($_), @$network);
 
 	my $rules = $dbh->getSnortRules($type);
+	_log("ERROR", "Unable to retrieve rules from database")
+	  	     unless defined($rules);
 	return undef unless defined($rules);
 
 	push @aref, @$rules;

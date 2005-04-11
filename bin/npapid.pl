@@ -49,14 +49,22 @@ $dbh = new NetPass::DB($cfg->dbSource,
                        $cfg->dbPassword,
                        1);
 
-die ("Unable to access NetPass::DB object") if (!$dbh);
+if (!$dbh) {
+   _log("ERROR", "Unable to access NetPass::DB object");
+   die ("Unable to access NetPass::DB object");
+}
 
+_log("DEBUG", "starting SOAP server");
 my $daemon = SOAP::Transport::TCP::Server->new(
 						LocalPort       => $cfg->npapiPort(),
 						Listen          => 5,
 						Reuse           => 1,
 				              )->dispatch_to('NetPass::API');
-die("Unable to create SOAP Server") if (!$daemon); 
+
+if (!$daemon) {
+   _log("ERROR", "Unable to start SOAP Server");	
+   die("Unable to start SOAP Server"); 
+}
 
 # handler borrowed from SOAP::Transport::TCP
 
@@ -69,6 +77,8 @@ while (1) {
    for my $session (@ready) {
       my $s = $session->handle->peername;
       $remote_ip = inet_ntoa((sockaddr_in($s))[1]); 
+
+      _log("DEBUG", "processing soap API call from $remote_ip");
  
       # we may be able to evaluate md5 hash here
       # but we will need to do xml parsing.
