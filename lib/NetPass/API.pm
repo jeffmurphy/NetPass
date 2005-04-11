@@ -12,7 +12,7 @@ use Digest::MD5 qw(md5_hex);
 
 =head1 NAME
 
-NetPass::Config - NetPass Configuration File Interface
+NetPass::API - NetPass API
 
 =head1 SYNOPSIS
 
@@ -20,8 +20,9 @@ NetPass::Config - NetPass Configuration File Interface
 
 =head1 DESCRIPTION
 
-This object provides access to the NetPass configuration file. The configuration
-file tracks things such as:
+This is the NetPass::API object which provides access to the
+NetPass object throught SOAP. This package should only
+be used in conjunction with npapid.pl daemon.
 
 =head1 METHODS
 
@@ -40,7 +41,7 @@ my $check_soap_auth = sub {
         return ($their_secret eq $my_secret) ? 1 : 0;
 };
 
-=head2 $aref = NetPass::API::getSnortRules($secret, $type = <enabled | disabled | all>)
+=head2 $aref = getSnortRules($secret, $type = <enabled | disabled | all>)
 
 Retrieve snort rules registered in the NetPass database. Returns
 an C<array reference> on success, C<undef> on failure.

@@ -45,9 +45,7 @@ Matt Bell <mtbell@buffalo.edu>
 #	Sys::HostIP
 #
 
-
 use strict;
-use vars qw($remote_ip %opts);
 
 use Getopt::Std;
 use Pod::Usage;
@@ -56,14 +54,16 @@ use Socket;
 use FileHandle;
 use File::Tail;
 use threads;
-require NetPass::Snort;
-require SOAP::Transport::TCP;
-require SOAP::Lite;
+use SOAP::Transport::TCP;
+use SOAP::Lite;
 
+use lib '/u1/students/mtbell/NetPass/lib';
+use NetPass::Snort;
 
-my $DEFAULTPORT		= 20011;
+use vars qw($remote_ip %opts);
+
+my $DEFAULTPORT		= 20008;
 my $DEFAULTSNORTLOG	= "/opt/snort/logs/snort.log";
-my $DEFAULTSNORTRULES	= "/opt/snort/etc/snort.rules";
 
 getopts('s:S:c:p:r:l:qDh?', \%opts);
 pod2usage(2) if exists $opts{'h'}  || exists $opts{'?'};
@@ -165,104 +165,3 @@ sub daemonize {
 	setsid                  or die "$myname: can't start a new session: $!";
 	open STDERR, '>&STDOUT' or die "$myname: can't dup stdout: $!";
 }
-
-package NetPass::Snort;
-
-use strict;
-use Digest::MD5 qw(md5_hex);
-use SOAP::Lite;
-use Sys::HostIP;
-use FileHandle;
-
-my $check_soap_auth = sub {
-        my $self         = shift;
-        my $their_secret = shift;
-        my $rip          = $::remote_ip;
-	my %opts	 = %::opts;
-
-	my $my_secret    = md5_hex($rip.$opts{'S'});
-
-	return ($their_secret eq $my_secret) ? 1 : 0;
-};
-
-my $snortGetPid = sub {
-	my %opts = %::opts;
-	my $fh   = new FileHandle;
-
-	if (-e $opts{'p'} && $fh->open($opts{'p'})) {
-		my $pid = <$fh>;
-		chomp $pid;
-		$fh->close;
-		return $pid;
-	}
-	
-	return undef;
-};
-
-my $snortRunning = sub {
-	my $self = shift;
-
-	my $pid = $self->$snortGetPid();
-	return undef unless $pid;
-
-        return 1 if (kill(0, $pid) > 0);
-        return undef;
-};
-
-my $createSoapConnection = sub {
-	my %opts = %::opts;
-
-        foreach my $server (split(/\,/, $opts{'s'})) {
-		my $proxy = "tcp://$server:20003"; 
-		my $soap  = SOAP::Lite->new(
-				   	    uri   => 'tcp://netpass/NetPass/API',
-                           	   	    proxy => $proxy,
-                          	  	   );
-		return undef unless defined $soap;
-
-		# check to make sure we have a good connection
-		my $rv = eval {$soap->echo()->result};
-		return $soap if $rv
-        }
-
-	return undef;
-};
-
-sub restartSnort {
-        my $self         = shift;
-        my $key          = shift;
-        my %opts         = %::opts;
-	my $fh		 = new FileHandle;
-	my $md5  	 = md5_hex(hostip.$opts{'S'});
-
-        return undef unless ($self->$check_soap_auth($key));
-        return undef unless ($self->$snortRunning());
-
-        my $pid = $self->$snortGetPid();
-        return undef unless $pid;
-
-	my $soap = $self->$createSoapConnection();
-	return undef unless $soap;
-
-        # rewrite snort rules file here
-
-	my $aref = eval {$soap->getSnortRules($md5,"all")->result};
-	return undef unless defined($aref) && (ref($aref) eq 'ARRAY');
-
-	# add checking for rules file and make backup
-	
-
-        return 1 if (kill(1, $pid) > 0);
-	return undef;
-}
-
-sub snortRunning {
-        my $self = shift;
-        my $key  = shift;
-
-        return $self->$snortRunning() if ($self->$check_soap_auth($key));
-        return undef;
-}
-
-
-1;
