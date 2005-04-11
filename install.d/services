@@ -1,12 +1,12 @@
 ## BEGIN-NETPASS
 portmover       20000/tcp
 resetport       20001/tcp
-npcfg           20002/tcp
-npcfgd          20003/tcp
+npapi           20002/tcp
+npapid          20003/tcp
 appstarter      20005/tcp
 macscan         20006/tcp
-npstat          20007/tcp
-npstatd         20008/tcp
+npsnort         20007/tcp
+npsnortd        20008/tcp
 npportcache     20009/tcp
 
 
