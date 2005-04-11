@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.9 2005/04/08 20:08:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.10 2005/04/11 18:42:29 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -433,6 +433,41 @@ sub npapiSecret {
         return $self->{'cfg'}->obj('npapi')->value('secret');
     }
     return undef;
+}
+
+=head2 $secret = $cfg-E<gt>snortEnabled(network)
+
+Determines snort status on the specified network, returns either
+enabled, disabled, or not_really on success, 0 on failure.
+
+=cut
+
+sub snortEnabled {
+    my $self = shift;
+    my $nw   = shift;
+
+    $self->reloadIfChanged();
+
+    if (!$self->{'cfg'}->obj('network')->exists($nw)) {
+        _log("ERROR", "Unknown Network $nw");
+        return 0;
+    }
+
+    if ($self->{'cfg'}->obj('network')->obj($nw)->exists('snort') &&
+	$self->{'cfg'}->obj('network')->obj($nw)->obj('snort')->exists('mode')) {
+	my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort')->value('mode');
+	return $s if ($s =~ /^(enabled|disabled|not_really)$/);
+	return 0;
+    }
+
+    if ($self->{'cfg'}->exists('snort') &&
+	$self->{'cfg'}->obj('snort')->exists('mode')) {
+	my $s = $self->{'cfg'}->obj('snort')->value('mode');
+	return $s if ($s =~ /^(enabled|disabled|not_really)$/);
+	return 0;
+    }
+
+    return 0;
 }
 
 =head2 my $qvlan = $cfg-E<gt>quarantineVlan(network)
@@ -1131,7 +1166,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.9 2005/04/08 20:08:11 jeffmurphy Exp $
+$Id: Config.pm,v 1.10 2005/04/11 18:42:29 mtbell Exp $
 
 =cut
 
