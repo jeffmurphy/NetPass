@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.16 2005/04/12 14:18:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.17 2005/04/12 19:52:16 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -383,13 +383,15 @@ sub getMessage {
     return $a->[0];
 }
 
-=head2 $msg = getRegisteredIP(mac[, mac, ...])
+=head2 $rv = getRegisterInfo(-mac => mac, -macs => [], -ip => ip, -ips => [])
 
 This routine will get the registered info on an already registered MAC. Returns:
 
 =over 4
 
-=item C<HASHREF> containing keys that correspond to the macAddresses given.
+=item C<HASHREF> 
+
+containing keys that correspond to the macAddresses given.
 values of C<HASHREF> are C<HASHREF>s containing keys: ipAddress, lastSeen,
 registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup.
 
@@ -397,9 +399,13 @@ If the Mac is not registered, it won't be in the HASHREF returned.
 
 on success
 
-=item undef
+=item "invalid parameters" 
 
-SQL failure
+if routine was called improperly.
+
+=item "db failure" 
+
+some sort of SQL failure
 
 =back
 
@@ -408,16 +414,38 @@ SQL failure
 sub getRegisterInfo {
     my $self = shift;
 
+
     $self->reconnect() || return undef;
 
-    my @crit = ();
+    my $parms = parse_parms({
+			     -parms    => \@_,
+			     -legal    => [ qw(-mac -macs -ip -ips) ],
+			     -defaults => { -mac  => '',
+					    -macs => [],
+					    -ip   => '',
+					    -ips  => []
+					  }
+			    }
+			   );
 
-    foreach my $ma (@_) {
-	    push @crit, "macAddress = '$ma'";
+    return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
+    
+    my ($mac, $macs, $ip, $ips) = $parms->get('-mac', '-macs', 
+					      '-ip', '-ips');
+
+    my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE ";
+    if ($mac ne "") {
+	    $sql .= " macAddress = ".$self->dbh->quote($mac);
     }
-
-    my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE " .
-      join (" OR " , @crit) ;
+    elsif ($ip ne "") {
+	    $sql .= " ipAddress = ".$self->dbh->quote($mac);
+    }
+    elsif ($#{$macs} > -1) {
+	    $sql .= join (" OR ", (map (" macAddress = ".$self->dbh->quote($_), @{$macs})));
+    }
+    elsif ($#{$ips} > -1) {
+	    $sql .= join (" OR ", (map (" ipAddress = ".$self->dbh->quote($_), @{$ip})));
+    }
 
     my $a    = $self->{'dbh'}->selectall_hashref($sql, 'macAddress');
 
@@ -1890,7 +1918,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.16 2005/04/12 14:18:13 jeffmurphy Exp $
+$Id: DB.pm,v 1.17 2005/04/12 19:52:16 jeffmurphy Exp $
 
 =cut
 

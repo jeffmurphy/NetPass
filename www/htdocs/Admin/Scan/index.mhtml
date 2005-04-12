@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.2 2005/04/12 19:52:18 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -109,10 +109,10 @@ return if(!$submit && !$search && !$update);
 
 if ($update) {
         if ($readOnly eq "") {
-		$npdbh->reqAppAction('reload_nessus_plugins', 'start', '');
+		$np->db->reqAppAction('reload_nessus_plugins', 'start', '');
         } else {
                 # this really shouldnt happen. we dont give them a Refresh Plugins button
-                $npdbh->audit(  -user => $m->session->{'logged_in'},
+                $np->db->audit(  -user => $m->session->{'logged_in'},
                                 -severity => "ALERT",
                                 -msg => [ "tried to Refresh Plugins but is ReadOnly" ]);
         }
@@ -123,7 +123,7 @@ if($submit) {
                 saveChanges($dbh,\%ARGS, $ids);
         } else {
                 # this really shouldnt happen. we dont give them a submit button
-                $npdbh->audit(  -user => $m->session->{'logged_in'},
+                $np->db->audit(  -user => $m->session->{'logged_in'},
                                 -severity => "ALERT",
                                 -msg => [ "tried to change ScanAdmin but is ReadOnly" ]);
 
@@ -337,14 +337,14 @@ sub saveChanges {
 			  ($args->{'messageOrig:'.$id} eq $args->{"message:$id"}) );
 
 		if ($args->{"message:$id"} ne $args->{"messageOrig:$id"}) {
-			$npdbh->audit(
+			$np->db->audit(
 				-user => $m->session->{'logged_in'},
 			      	-msg => [ "ScanAdmin: $id message changed to", $args->{"message:$id"},
 					  "from", $args->{'messageOrig:'.$id} ]);
 		}
 
 		if ($args->{"status:$id"} ne $args->{"statusOrig:$id"}) {
-			$npdbh->audit(
+			$np->db->audit(
 				-user => $m->session->{'logged_in'},
 			      	-msg => [ "ScanAdmin: $id status changed to", $status, "from", 
 					  $args->{'statusOrig:'.$id} ]);
