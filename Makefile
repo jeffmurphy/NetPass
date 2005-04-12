@@ -6,6 +6,6 @@ clean:
 	find . -name \*.old -exec rm -f {} \;
 
 manifest: clean
-	find . -type f -print | egrep -v '(CVS|.nfs)' | \
+	find . -type f -print | egrep -v '(CVS|.nfs|.#)' | \
 		sed -e 's/\.\///' > MANIFEST
 

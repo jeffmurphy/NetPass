@@ -120,7 +120,6 @@ lib/NetPass/LOG.pm
 lib/NetPass/Nessus.pm
 lib/NetPass/Network.pm
 lib/NetPass/Stats.pm
-lib/NetPass/.#Config.pm.1.9
 lib/OSS/Template/Templates/Site.pm
 lib/OSS/Template/BoxArea.pm
 lib/OSS/Template/Box.pm
