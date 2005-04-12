@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.17 2005/04/12 19:52:16 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.18 2005/04/12 21:12:28 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -413,7 +413,7 @@ some sort of SQL failure
 
 sub getRegisterInfo {
     my $self = shift;
-
+    my $kfield;
 
     $self->reconnect() || return undef;
 
@@ -436,18 +436,22 @@ sub getRegisterInfo {
     my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE ";
     if ($mac ne "") {
 	    $sql .= " macAddress = ".$self->dbh->quote($mac);
+	    $kfield = "macAddress";
     }
     elsif ($ip ne "") {
 	    $sql .= " ipAddress = ".$self->dbh->quote($mac);
+	    $kfield = "ipAddress";
     }
     elsif ($#{$macs} > -1) {
 	    $sql .= join (" OR ", (map (" macAddress = ".$self->dbh->quote($_), @{$macs})));
+	    $kfield = "macAddress";
     }
     elsif ($#{$ips} > -1) {
 	    $sql .= join (" OR ", (map (" ipAddress = ".$self->dbh->quote($_), @{$ip})));
+	    $kfield = "ipAddress";
     }
 
-    my $a    = $self->{'dbh'}->selectall_hashref($sql, 'macAddress');
+    my $a    = $self->{'dbh'}->selectall_hashref($sql, $kfield);
 
     return $a if (defined($a) && (ref($a) eq "HASH"));
 
@@ -1918,7 +1922,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.17 2005/04/12 19:52:16 jeffmurphy Exp $
+$Id: DB.pm,v 1.18 2005/04/12 21:12:28 mtbell Exp $
 
 =cut
 
