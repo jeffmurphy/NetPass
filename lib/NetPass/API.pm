@@ -129,8 +129,19 @@ sub processIP {
 		return ("nothing");
 	}
 
-	my $mac = "";
-	push @msgs, map(print("snort quarantined $ip $mac for violation of $_ snort rule."),
+	my $ip2mac = getRegisterInfo(-ip => $ip);
+	if (ref($ip2mac) ne 'HASHREF') {
+		_log("ERROR", "Unable to retrieve ip to mac mapping");
+		return undef;
+	}
+
+	my $mac = $ip2mac->{$ip}->{'macAddress'};
+	if (!defined $mac) {
+		_log("ERROR", "Cannot determine mac address");
+		return undef;
+	}
+
+	push @msgs, map("snort quarantined $ip $mac for violation of $_ snort rule.",
 		        @sids); 
 
 	$np->db->alert (
@@ -144,9 +155,9 @@ sub processIP {
 
 	foreach my $sid (@sids) {
 		my $rv = $np->db->addResult (
-				      		mac	=> $mac,
-				      		type	=> 'snort',
-				      		id	=> $sid 
+				      		-mac	=> $mac,
+				      		-type	=> 'snort',
+				      		-id	=> $sid 
 				    	    );
 
 		if ($rv eq "invalid mac") {
@@ -157,7 +168,7 @@ sub processIP {
 			_log("ERROR", "database failure");
 			return undef;	
 		}
-		if ($rv ne "duplicate result" || $rv != 0) {
+		if ($rv ne "duplicate result" && $rv != 0) {
 			_log("ERROR", "Unknown Error");
 			return undef;
 		}
