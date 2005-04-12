@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.13 2005/04/12 18:11:52 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.14 2005/04/12 18:45:23 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -197,7 +197,7 @@ sub policy {
 
 =head2 movePort(-switch =E<gt> switch, -port =E<gt> port, -vlan =E<gt> E<lt>unquarantine | quaranineE<gt>)
 
-Move a port it's unquarantined quarantined VLAN as appropriate
+Move a port to its unquarantined or quarantined VLAN as appropriate
 for the given switch (i.e. as defined in C<netpass.conf>). Returns 1 on success, 
 0 on failure. Check np-E<gt>error for reason.
 
@@ -210,7 +210,7 @@ sub movePort {
     my $cfg = $self->{'cfg'};
 
     if ($vlan !~ /^(unquarantine|quarantine)$/i) {
-	$self->error("vlan param must be good|bad");
+	$self->error(qq{vlan param must be either "quarantine" or "unquarantine"});
 	return 0;
     }
 
@@ -268,12 +268,11 @@ Available tags are:\n";
     _log ("DEBUG", "$port is currently in vlans: ", join(',', @$x), "\n")
       if $self->D;
 
-    # jcm commented out. forget why i commented this out, but 
-    # i'm sure i had a good reason.
-    #if (grep (/^$vlan$/, @$x)) {
-    #    $self->error("already in that vlan: nothing to do!");
-    #    return 0;
-    #}
+    if (grep (/^$_vlan$/, @$x)) {
+	    _log ("WARNING", "$hn/$port is already in vlan $vlan ($_vlan)\n");
+	    $self->error("already in that vlan: nothing to do!");
+	    return 1; # success
+    }
 
     _log ("INFO", "Setting port $port on $hn to PVID $_vlan ($vlan)\n")
       if !$self->Q;
@@ -971,7 +970,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.13 2005/04/12 18:11:52 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.14 2005/04/12 18:45:23 jeffmurphy Exp $
 
 =cut
 
