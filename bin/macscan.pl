@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.3 2005/04/12 14:18:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,10 +15,11 @@ as ports with multiple MACs.
 
 =head1 SYNOPSIS
 
- macscan.pl [-q] [-D] [-c config]
+ macscan.pl [-q] [-D] [-c cstr] [-U dbuser/dbpass]
      -q             be quiet. exit status only.
      -D             enable debugging
-     -c             config file (/opt/netpass/etc/netpass.conf)
+     -c             db connect string
+     -U             db user[/pass]
 
 =head1 OPTIONS
 
@@ -35,7 +36,7 @@ Enable debugging output.
 
 =item B<-c config> 
 
-Use alternate configuration file. Default is C</opt/netpass/etc/netpass.conf>
+Connect to alternate database.
 
 =back
 
@@ -54,7 +55,7 @@ directed to the default webpage.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: macscan.pl,v 1.3 2005/04/12 14:18:12 jeffmurphy Exp $
 
 =cut
 
@@ -83,7 +84,7 @@ NetPass::LOG::init [ 'macscan', 'local0' ];
 #pod2usage(1) if $#ARGV != 0;
 
 my %opts;
-getopts('c:qDh?', \%opts);
+getopts('c:U:qDh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 # foreach network in <switchmap> {
@@ -98,10 +99,16 @@ pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 #    }
 #
 
-my $np : shared = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} : 
-		     "/opt/netpass/etc/netpass.conf",
-		     -debug => exists $opts{'D'} ? 1 : 0,
-                     -quiet => exists $opts{'q'} ? 1 : 0);
+my $dbuser : shared;
+my $dbpass : shared;
+($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+
+my $cstr : shared = exists $opts{'c'} ? $opts{'c'} : undef;
+
+my $np : shared = new NetPass(-cstr   => $cstr,
+			      -dbuser => $dbuser, -dbpass => $dbpass,
+			      -debug => exists $opts{'D'} ? 1 : 0,
+			      -quiet => exists $opts{'q'} ? 1 : 0);
 
 my $nws = $np->cfg->getNetworks();
 my @threads;
@@ -125,7 +132,7 @@ sub thread_entry {
 	# create thread-local connection to database. as of this writing,
 	# still no way to share a common connection.
 
-	my $dbh =  new NetPass::DB($np->cfg->dbSource, $np->cfg->dbUsername, $np->cfg->dbPassword);
+	my $dbh =  new NetPass::DB($cstr, $dbuser, $dbpass);
 	die "unable to connect to database" unless defined $dbh;
 
 	# fetch list of ports we "know" about from the config. we
@@ -135,6 +142,8 @@ sub thread_entry {
 
 	# pre-create the SNMP objects for speed. pre-fetch valid
 	# ports, again, for speed.
+
+# XXX over-ride dbh inside of np object?
 
 	my %snmp;
 	foreach my $switch (@{$np->cfg->getSwitches($network)}) {

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.12 2005/04/12 14:01:41 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.13 2005/04/12 14:18:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -17,8 +17,6 @@ use NetPass::Network qw(ip2int cidr2int host2addr);
 
 use Class::ParmList qw(simple_parms parse_parms);
 
-my $VERSION       	= '1.0001';
-
 =head1 NAME
 
 NetPass::Config - NetPass Configuration File Interface
@@ -27,14 +25,15 @@ NetPass::Config - NetPass Configuration File Interface
 
     use NetPass::Config;
 
-    $c = new NetPass::Config("/etc/netpass.conf")
-    die "Cannot load netpass.conf: ". $c->error()
+    $c = new NetPass::Config(-db => NetPass::DB)
+    die "Cannot load netpass conf: ". $c->error()
         if ($c->err);
 
 =head1 DESCRIPTION
 
-This object provides access to the NetPass configuration file. The configuration
-file tracks things such as:
+This object provides access to the NetPass configuration. The configuration
+is stored in the database, and so you must pass in a reference to a 
+C<NetPass::DB> object. The configuration tracks things such as:
 
 =over 4
 
@@ -62,19 +61,11 @@ not in the same address space as the network(s) that a given switch services.
 
 =head1 METHODS
 
-=head2 my $cfg = new NetPass::Config($configFile)
-
-Create a new NetPass configuration object. The specified file
-will be read in and you can then use this object's methods to
-access the configuration attributes.
-
 =cut
-
-#tie $NetPass::Config::errstr, 'NetPass::Config::var', '&errstr'; 
 
 my $errstr;
 
-sub AUTOLOAD {
+sub xxAUTOLOAD {
         no strict;
         return if($AUTOLOAD =~ /::DESTROY$/);
         if ($AUTOLOAD=~/(\w+)$/) {
@@ -98,42 +89,69 @@ sub debug {
 
 sub reloadIfChanged {
     my $self = shift;
-    my $new_mtime = (stat($self->{'cf'}))[9];
 
-    if ( $self->{'mtime'} < $new_mtime ) {
-	_log ("DEBUG", "config file changed. reloading. ".$self->{'cf'}."\n");
-	$self->{'cfg'} = new Config::General(-ConfigFile => $self->{'cf'},
-					     -AutoTrue => 1,
-					     -ExtendedAccess => 1, 
-					     -StrictObjects => 0);
-	$self->{'mtime'} = $new_mtime;
+    # see if there's a newer rev of the config
+
+    my $newCfg = $self->{'db'}->getConfig();
+    if (ref($newCfg) ne "HASH") {
+	    _log("WARNING", "couldnt check for new config: $newCfg");
+	    return;
+    }
+
+    if ($newCfg->{'rev'} > $self->{'cfg_from_db'}->{'rev'}) {
+	    # yes, new config available.
+
+	    _log ("DEBUG", "config changed. reloading. cur=".
+		  $self->{'cfg_from_db'}->{'rev'}.
+		  " new=".$newCfg->{'rev'});
+
+	    $self->{'cfg'} = new Config::General(-String           => $newCfg->{'config'},
+						 -AutoTrue         => 1,
+						 -IncludeRelative  => 0,
+						 -UseApacheInclude => 0,
+						 -ExtendedAccess   => 1,
+						 -LowerCaseNames   => 1,
+						 -StrictObjects    => 0);
+	    $self->{'cfg_from_db'} = $newCfg;
     }
 }
 
+
+=head2 my $cfg = new NetPass::Config(-db => NetPass::DB object )
+
+Create a new NetPass configuration object. The config will be
+loaded from the database. You can then use this object's methods to
+access the configuration attributes. If the config changes in 
+the database, we'll detect that and re-load it on the fly.
+
+=cut
+
 sub new {
-  my ($class, $self) = (shift, {});
-  my $cf  = shift;
-  my $dbg = shift;
+	my ($class, $self) = (shift, {});
+	my $db  = shift;
+	my $dbg = shift;
+	
+	die Carp::longmess("no DB object specified") unless (ref($db) eq "NetPass::DB");
+	
+	my $rv  = $db->getConfig();
+	die Carp::longmess("failed to load config from database: $rv") unless (ref($rv) eq "HASH");
 
-  die Carp::longmess("no configuration file specified") unless defined($cf);
-  die Carp::longmess("configuration file doesn't exist ($cf)") unless (-f $cf && -r $cf);
+	my $cfg = new Config::General( -String           => $rv->{'config'},
+				       -AutoTrue         => 1,
+				       -IncludeRelative  => 0,
+				       -UseApacheInclude => 0,
+				       -ExtendedAccess   => 1,
+				       -LowerCaseNames   => 1,
+				       -StrictObjects    => 0);
+	
+	die Carp::longmess("failed to parse configuration") unless defined($cfg);
 
-  my $cfg =  new Config::General(-ConfigFile => $cf,
-				 -AutoTrue => 1,
-				 -IncludeRelative => 1,
-				 -UseApacheInclude => 1,
-				 -ExtendedAccess => 1, 
-				 -StrictObjects => 0);
-
-  die Carp::longmess("failed to load configuration from $cf") unless defined($cfg);
-  $self->{'cfg'}   = $cfg;
-  $self->{'dbg'}   = $dbg;
-  $self->{'cf'}    = $cf;
-  $self->{'mtime'} = (stat($cf))[9];
-
-  #$NetPass::Config::errstr = "nosuch";
-
-  return bless ($self, $class);
+	$self->{'cfg_from_db'} = $rv;
+	$self->{'db'}          = $db;
+	$self->{'cfg'}         = $cfg;
+	$self->{'dbg'}         = $dbg;
+	
+	return bless ($self, $class);
 }
 
 =head2 my $dbh = $cfg-E<gt>dbSource
@@ -1159,7 +1177,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.12 2005/04/12 14:01:41 mtbell Exp $
+$Id: Config.pm,v 1.13 2005/04/12 14:18:12 jeffmurphy Exp $
 
 =cut
 

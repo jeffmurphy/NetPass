@@ -6,7 +6,7 @@
 
 =head1 SYNOPSIS
 
- import_snort_rules.pl
+ import_snort_rules.pl [-D] [-q] [-c cstr] [-U dbuser/dbpass] <-l rulesdir> <-s sigdir>
      -l rulesdir	  directory where the snort rules are located        	 
      -s sigdir	  	  directory where all the snort signature files are located        	 
      -h                   this message
@@ -48,19 +48,23 @@ use lib '/opt/netpass/lib';
 use NetPass;
 use NetPass::DB;
 
-my $np = new NetPass(-config => "/opt/netpass/etc/netpass.conf");
-my $netpass = new NetPass::DB($np->cfg->dbSource,
-                              $np->cfg->dbUsername,
-                              $np->cfg->dbPassword);
-
-my $dbh = $netpass->{dbh};
-
 my %opts;
-my $data = {};
 
-getopts('s:l:h?', \%opts);
+getopts('c:U:Dqs:l:h?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'} ||
 	     !exists($opts{'l'}) || !exists($opts{'s'});
+
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
+
+my $dbh = $np->db->{dbh};
+
+my $data = {};
+
 
 die "Cannot cd into ".$opts{'l'} unless(-d $opts{'l'});
 opendir(DIR, $opts{'l'}) || die "unable to open ".$opts{'l'};

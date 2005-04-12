@@ -113,6 +113,7 @@ lib/NetPass/Auth/LDAP.pm
 lib/NetPass/Auth/Unix.pm
 lib/NetPass/Config.pm
 lib/NetPass/DB.pm
+lib/NetPass/Snort.pm
 lib/NetPass/API.pm
 lib/NetPass/LOG.pm
 lib/NetPass/Nessus.pm

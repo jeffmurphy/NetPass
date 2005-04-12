@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/coconf.pl,v 1.1 2005/04/11 18:17:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/coconf.pl,v 1.2 2005/04/12 14:18:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: coconf.pl,v 1.1 2005/04/11 18:17:13 jeffmurphy Exp $
+$Id: coconf.pl,v 1.2 2005/04/12 14:18:11 jeffmurphy Exp $
 
 =cut
 
@@ -64,35 +64,35 @@ pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 NetPass::LOG::init *STDOUT if exists $opts{'D'};
 
-my $npdbh = new NetPass::DB();
+my $np = new NetPass();
 
-die "failed to connect to database ".DBI->errstr unless defined($npdbh);
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 my $whoami = `/usr/bin/whoami`;
 chomp($whoami);
 
 my $rv;
-my $rev = exists $opts{'r'} ? $opts{'r'} : "";
+my $rev = exists $opts{'r'} ? $opts{'r'} : 0;
 
 if (exists $opts{'l'}) {
 	if ($rev ne "") {
 		if (exists $opts{'f'}) {
-			$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to force unlock config: $rv" if $rv;
 		}
-		$rv = $npdbh->lockConfig(-rev  => $rev,
+		$rv = $np->db->lockConfig(-rev  => $rev,
 					 -user => $whoami);
 		die "failed to lock config: $rv" if $rv;
 	} else {
-		my $hv = $npdbh->getConfig();
+		my $hv = $np->db->getConfig();
 		if ( (ref($hv) eq "HASH") && ($hv->{'rev'} > 0) ) {
 			$rev = $hv->{'rev'};
 			if (exists $opts{'f'}) {
-				$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+				$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 				die "failed to force unlock config: $rv" if $rv;
 			}
 
-			$rv = $npdbh->lockConfig(-rev  => $rev,
+			$rv = $np->db->lockConfig(-rev  => $rev,
 						 -user => $whoami);
 			die "failed to lock config: $rv" if $rv;
 		}
@@ -100,8 +100,7 @@ if (exists $opts{'l'}) {
 	print "# Configuration revision $rev locked for editing.\n";
 }
 
-
-$rv = $npdbh->getConfig(-rev => $rev);
+$rv = $np->db->getConfig(-rev => $rev);
 
 die "failed to fetch config: $rv" if (ref($rv) ne "HASH");
 

@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/ciconf.pl,v 1.1 2005/04/11 18:17:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/ciconf.pl,v 1.2 2005/04/12 14:18:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,8 +12,9 @@
 
 =head1 SYNOPSIS
 
- ciconfig.pl [-c config] [-D] [-u] [-f] [-m 'msg']
-     -c configFile  [default /opt/netpass/etc/netpass.conf]
+ ciconfig.pl [-c cstr] [-U dbuser/dbpass] [-D] [-u] [-f] [-m 'msg']
+     -c cstr        db connect string
+     -U user/pass   db user[/pass]
      -D             enable debugging
      -u             unlock the config
      -f             force. break an existing lock.
@@ -47,7 +48,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: ciconf.pl,v 1.1 2005/04/11 18:17:13 jeffmurphy Exp $
+$Id: ciconf.pl,v 1.2 2005/04/12 14:18:11 jeffmurphy Exp $
 
 =cut
 
@@ -67,9 +68,9 @@ pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 NetPass::LOG::init *STDOUT if exists $opts{'D'};
 
-my $npdbh = new NetPass::DB();
+my $np = new NetPass();
 
-die "failed to connect to database ".DBI->errstr unless defined($npdbh);
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 my $fh = new FileHandle $opts{'c'}, "r";
 die qq{cant open $opts{'c'} for reading: $!} unless defined($fh);
@@ -90,7 +91,7 @@ if (exists $opts{'m'}) {
 	@log = <STDIN>;
 }
 
-my $rv = $npdbh->isConfigLocked();
+my $rv = $np->db->isConfigLocked();
 
 die "failed to check lock status: $rv" 
   if ( (ref($rv) ne "HASH") && ($rv =~ /db failure/) );
@@ -112,17 +113,17 @@ if (ref ($rv) eq "HASH") {
 	# if it was locked by someone else and no force -> error
 
 	if ( $user eq $whoami ) {
-		$rv = $npdbh->putConfig(-config => \@c, -user => $whoami, -log => \@log);
+		$rv = $np->db->putConfig(-config => \@c, -user => $whoami, -log => \@log);
 		if ($rv) {
 			warn "failed to put new config (unlocking config): $rv";
-			$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to unlock config: $rv" if $rv;
 			print "Successfully unlocked config.\n";
 			exit 255;
 		}
 		print "Successfully stored config.\n";
 		if (exists $opts{'u'}) {
-			$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to unlock config: $rv" if $rv;
 			print "Successfully unlocked config.\n";
 		}
@@ -132,22 +133,22 @@ if (ref ($rv) eq "HASH") {
 
 	elsif ( exists $opts{'f'} ) {
 		print "Config is locked by $user. Forcing unlock.\n";
-		$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+		$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 		die "failed to unlock config: $rv" if $rv;
-		$rv = $npdbh->lockConfig(-rev => $rev, -user => $whoami);
+		$rv = $np->db->lockConfig(-rev => $rev, -user => $whoami);
 		die "failed to lock config: $rv" if $rv;
 
-		$rv = $npdbh->putConfig(-config => \@c, -user => $whoami, -log => \@log);
+		$rv = $np->db->putConfig(-config => \@c, -user => $whoami, -log => \@log);
 		if ($rv) {
 			warn "failed to put new config (unlocking config): $rv";
-			$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to unlock config: $rv" if $rv;
 			print "Successfully unlocked config.\n";
 			exit 255;
 		}
 		print "Successfully stored config.\n";
 		if (exists $opts{'u'}) {
-			$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to unlock config: $rv" if $rv;
 			print "Successfully unlocked config.\n";
 		}
@@ -162,7 +163,7 @@ if (ref ($rv) eq "HASH") {
 } else {
 	# else config is not locked. lock it, import it, unlock it (if -u)
 
-	$rv = $npdbh->getConfig(-user => $whoami, -lock => 1);
+	$rv = $np->db->getConfig(-user => $whoami, -lock => 1);
 	die "failed to lock config: $rv" if (ref($rv) ne "HASH");
 	my $rev = $rv->{'rev'};
 
@@ -170,11 +171,11 @@ if (ref ($rv) eq "HASH") {
 
 	$rev ||= 0;
 
-	$rv = $npdbh->putConfig(-config => \@c, -user => $whoami, -log => \@log);
+	$rv = $np->db->putConfig(-config => \@c, -user => $whoami, -log => \@log);
 	if ($rv) {
 		warn "failed to put new config (unlocking config): $rv";
 		if ($rev > 0) {
-			$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to unlock config: $rv" if $rv;
 		}
 		print "Successfully unlocked config.\n";
@@ -183,7 +184,7 @@ if (ref ($rv) eq "HASH") {
 	print "Successfully stored config.\n";
 	if (exists $opts{'u'}) {
 		if ($rev > 0) {
-			$rv = $npdbh->unlockConfig(-rev => $rev, -user => $whoami);
+			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to unlock config: $rv" if $rv;
 		}
 		print "Successfully unlocked config.\n";

@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/appstarter.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/appstarter.pl,v 1.3 2005/04/12 14:18:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,7 +15,7 @@ system.
 
 =head1 SYNOPSIS
 
- appstarter.pl [-c config] [-n] [-q] [-D] 
+ appstarter.pl [-c cstr] [-U dbuser/dbpass] [-n] [-q] [-D] 
      -c configFile  [default /opt/netpass/etc/netpass.conf]
      -n             "not really"
      -q             be quiet. exit status only.
@@ -25,10 +25,15 @@ system.
 
 =over 8
 
-=item B<-c configFile>
+=item B<-c cstr>
 
-Specify an alternate NetPass configuration file. The default is
-C</opt/netpass/etc/netpass.conf>
+Specify an alternate NetPass DB connection string. The default is
+"dbi:mysql:database=netpass" (DB on localhost). 
+
+=item B<-U dbuser/dbpass>
+
+Specify an alternate username/password to use to connect to the 
+database. Default is "root" and no password.
 
 =item B<-q>
 
@@ -110,7 +115,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: appstarter.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: appstarter.pl,v 1.3 2005/04/12 14:18:11 jeffmurphy Exp $
 
 =cut
 
@@ -137,16 +142,17 @@ if(defined($otherPid) && $otherPid) {
 
 require NetPass;
 require NetPass::Config;
-require NetPass::DB;
 
 $SIG{'ALRM'} = \&alarmHandler;
 
 
 my %opts;
-getopts('c:qnDh?', \%opts);
+getopts('c:U:qnDh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 my $D = 0;
+
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
 if (exists $opts{'D'}) {
     $D = 1;
@@ -156,50 +162,17 @@ if (exists $opts{'D'}) {
 
 print "new NP\n" if $D;
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-		     "/opt/netpass/etc/netpass.conf",
-		     -debug => exists $opts{'D'} ? 1 : 0,
-		     -quiet => exists $opts{'q'} ? 1 : 0);
+my $np = new NetPass(-cstr   => exists $opts{'c'} ? $opts{'c'} : undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-die "failed to create NetPass object" unless defined $np;
-
-print "DB connect\n" if $D;
-
-my $dbh = new NetPass::DB($np->cfg->dbSource,
-			  $np->cfg->dbUsername,
-			  $np->cfg->dbPassword,
-			  1);
-
-if (!defined($dbh)) { 
-    my $e = "failed to create NP:DB ".DBI->errstr."\n";
-    _log "ERROR", $e;
-    print $e;
-    exit 255;
-}
-
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 while (1) {
     _log "DEBUG", "wakeup: processing worklist\n" if $D;
 
     RUNONCE::handleConnection();
-    my $ar = $dbh->get();
-
-
-    if (!defined($ar)) {
-	_log "ERROR", "db error ".$dbh->error."\n";
-    }
-
-    foreach my $row (@$ar) {
-	if( $np->movePort(-switch => $row->[1],
-			  -port   => $row->[2],
-			  -vlan   => $row->[3]) ) {
-	    $dbh->portMoveCompleted($row->[0]);
-	} else {
-	    my $e = $np->error;
-	    _log "ERROR", "failed to move port $row->[1] p$row->[2] to $row->[3] (ID $row->[0]) ERR=$e\n";
-	    $dbh->portMoveCompleted($row->[0], 'unmanaged') if ($e =~ /UNMANAGED/);
-	}
-    }
 
     _log "DEBUG", "sleeping for 10 seconds.\n" if $D;
     print scalar localtime(time()), " sleeping...\n" if $D;

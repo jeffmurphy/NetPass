@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.3 2005/04/08 20:08:10 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.4 2005/04/12 14:18:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -8,7 +8,7 @@
 
 =head1 NAME
 
- import_nessus_scans.pl 
+ import_nessus_scans.pl [-c cstr] [-U dbuser/dbpass] [-D]
 
 =head1 SYNOPSIS
 
@@ -18,8 +18,7 @@
 
 This script will connect to the nessus server, download the available
 plugins and import them into the nessusScans table. It won't stomp 
-on existing entries in that table. It isn't very clever about
-how to connect to the nessus server. It's hardcoded right now.
+on existing entries in that table. 
 
 =head1 SEE ALSO
 
@@ -37,37 +36,12 @@ Rob Colantuoni <rgc@buffalo.edu>
 
 =head1 REVISION
 
-$Id: import_nessus_scans.pl,v 1.3 2005/04/08 20:08:10 jeffmurphy Exp $
+$Id: import_nessus_scans.pl,v 1.4 2005/04/12 14:18:11 jeffmurphy Exp $
 
 =cut
 
 
 use strict;
-
-
-
-# CREATE TABLE nessusScans (
-#   pluginID int(10) unsigned NOT NULL default '0',
-#   name varchar(255) default NULL,
-#   family varchar(255) default NULL,
-#   category varchar(255) default NULL,
-#   short_desc varchar(255) default NULL,
-#   description text,
-#   addedBy varchar(32) NOT NULL default '',
-#   addedOn timestamp(14) NOT NULL,
-#   lastModifiedBy varchar(32) NOT NULL default '',
-#   lastModifiedOn timestamp(14) NOT NULL,
-#   status enum('enabled','disabled') default 'disabled',
-#   info varchar(255) NOT NULL default 'nessus:',
-#   revision varchar(255) default NULL,
-#   copyright varchar(255) default NULL,
-#   cve varchar(255) default NULL,
-#   bugtraq varchar(255) default NULL,
-#   other_refs varchar(255) default NULL,
-#   PRIMARY KEY  (pluginID),
-#   KEY status (status)
-# ) TYPE=MyISAM;
-
 
 use lib '/opt/netpass/lib';
 use NetPass;
@@ -75,7 +49,7 @@ use NetPass::DB;
 use Getopt::Std;
 
 my %opts;
-getopts('c:Dh?', \%opts);
+getopts('c:U:Dh?', \%opts);
 if (exists $opts{'h'} || exists $opts{'?'}) {
 	print "$0 [-h?D] [-c config]\n";
 	exit 0;
@@ -83,23 +57,17 @@ if (exists $opts{'h'} || exists $opts{'?'}) {
 
 my $D = exists $opts{'D'};
 
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+
 print "Loading Netpass object ..\n" if $D; 
 
-my $np = new NetPass(-config => 
-		     exists $opts{'c'} ? 
-		     $opts{'c'} :
-		     "/opt/netpass/etc/netpass.conf");
+my $np = new NetPass(-config => exists $opts{'c'} ? $opts{'c'} : undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass);
 
 
-die "failed to load NetPass config" unless defined ($np);
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
-print "Connecting to database ..\n" if $D;
-
-my $netpass = new NetPass::DB($np->cfg->dbSource,
-                              $np->cfg->dbUsername,
-                              $np->cfg->dbPassword);
-
-my $dbh = $netpass->{dbh};
+my $dbh = $np->db->{dbh};
 
 print "Retrieving nessus configuration ..\n" if $D;
 my $bd = $np->cfg->nessusBaseDir();

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.15 2005/04/11 18:17:14 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.16 2005/04/12 14:18:13 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1577,6 +1577,8 @@ sub getConfig {
     
     my ($r, $l, $u) = $parms->get('-rev', '-lock', '-user');
 
+    $r ||= 0;
+
     return "invalid parameters (rev)" unless ($r >= 0);
     return "invalid parameters (lock)" unless ($l == 0 || $l == 1);
     return "invalid parameters (user)" if ( ($l == 1) && ($u eq "") );
@@ -1888,7 +1890,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.15 2005/04/11 18:17:14 jeffmurphy Exp $
+$Id: DB.pm,v 1.16 2005/04/12 14:18:13 jeffmurphy Exp $
 
 =cut
 

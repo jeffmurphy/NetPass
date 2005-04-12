@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/getresults.pl,v 1.1 2005/04/10 04:38:14 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/getresults.pl,v 1.2 2005/04/12 14:18:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,7 +12,7 @@
 
 =head1 SYNOPSIS
 
- getresults.pl [-c config] [-D] [-t nessus|snort|manual]
+ getresults.pl [-c cstr] [-U dbuser/dbpass] [-D] [-t nessus|snort|manual]
                [-s pending|fixed|user-fixed|any] [-i id]
                <-m macaddr>
 
@@ -48,7 +48,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: getresults.pl,v 1.1 2005/04/10 04:38:14 jeffmurphy Exp $
+$Id: getresults.pl,v 1.2 2005/04/12 14:18:11 jeffmurphy Exp $
 
 =cut
 
@@ -65,7 +65,7 @@ require NetPass::Config;
 pod2usage(1) if $#ARGV < 1;
 
 my %opts;
-getopts('c:t:m:s:i:qDh?', \%opts);
+getopts('c:t:m:s:i:U:qDh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 NetPass::LOG::init *STDOUT if exists $opts{'D'};
@@ -76,25 +76,21 @@ if ((exists $opts{'t'} && ($opts{'t'} !~ /^nessus|snort|manual$/)) ||
     (exists $opts{'i'} && ($opts{'m'} eq ""))                      ||
     (exists $opts{'s'} && ($opts{'s'} !~ /^pending|fixed|user-fixed|any$/)));
 
-my $np = new NetPass(-config => exists $opts{'c'} ? $opts{'c'} :
-                                "/opt/netpass/etc/netpass.conf",
-		     -debug => exists $opts{'D'} ? 1 : 0,
-		     -quiet => exists $opts{'q'} ? 1 : 0);
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-die "failed to create NetPass object" unless defined $np;
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-my $npdbh = new NetPass::DB($np->cfg->dbSource,
-                            $np->cfg->dbUsername,
-                            $np->cfg->dbPassword);
-
-die "failed to connect to database ".DBI->errstr unless defined($npdbh);
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 my %params;
 $params{'-type'}   = $opts{'t'} if (exists $opts{'t'});
 $params{'-status'} = $opts{'s'} if (exists $opts{'s'});
 $params{'-id'}     = $opts{'i'} if (exists $opts{'i'});
 
-my $r = $npdbh->getResults(-mac => $opts{'m'}, %params);
+my $r = $np->db->getResults(-mac => $opts{'m'}, %params);
 
 if (ref($r) eq "HASH") {
 	printf("Results for address: ". $opts{'m'}."\n");

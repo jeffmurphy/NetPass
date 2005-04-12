@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.9 2005/04/06 20:50:36 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.10 2005/04/12 14:18:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -36,7 +36,7 @@ NetPass - Routines for interacting with the NetPass system
 
 =cut
 
-sub AUTOLOAD {
+sub xx_AUTOLOAD {
         no strict;
         return if($AUTOLOAD =~ /::DESTROY$/);
         if ($AUTOLOAD=~/(\w+)$/) {
@@ -78,6 +78,11 @@ Constructor.
 
 =back
 
+Returns
+
+ NetPass object  on success
+ "db failure"    failed to connect to db
+
 =back
 
 =cut
@@ -87,9 +92,11 @@ sub new {
 
     my $parms = parse_parms({
 			     -parms => \@_,
-			     -legal => [qw(-debug -config -notReally -quiet)],
-			     -required => [qw(-config)],
+			     -legal => [qw(-debug -cstr -dbuser -dbpass -notReally -quiet)],
 			     -defaults => {
+					   -cstr      => '',
+					   -dbuser    => '',
+					   -dbpass    => '',
 					   -notReally => 0,
 					   -debug     => 0,
 					   -quiet     => 0
@@ -99,17 +106,27 @@ sub new {
     die Carp::longmess (Class::ParmList->error) if (!defined($parms));
 
     ($self->{'debug'},
-     $self->{'configFile'},
+     $self->{'cstr'},
+     $self->{'dbuser'},
+     $self->{'dbpass'},
      $self->{'notReally'},
-     $self->{'quiet'}) = $parms->get('-debug', '-config', '-notReally', 
-				     '-quiet');
+     $self->{'quiet'}) = $parms->get('-debug', '-cstr', '-dbuser',
+				     '-dbpass', '-notReally', '-quiet');
 
-    $self->{'cfg'} = new NetPass::Config($self->{'configFile'},
+    $self->{'db'}  = new NetPass::DB($self->{'cstr'}, $self->{'dbuser'},
+				     $self->{'dbpass'});
+
+    return "db failure ".DBI->errstr if (!defined($self->{'db'}));
+
+    $self->{'cfg'} = new NetPass::Config($self->{'db'},
 					 $self->{'debug'});
 
-    #print "C ", $NetPass::Config::errstr, "\n";
-
     return bless $self, $class;
+}
+
+sub db {
+	my $self = shift;
+	return $self->{'db'};
 }
 
 sub D {
@@ -948,7 +965,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.9 2005/04/06 20:50:36 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.10 2005/04/12 14:18:12 jeffmurphy Exp $
 
 =cut
 

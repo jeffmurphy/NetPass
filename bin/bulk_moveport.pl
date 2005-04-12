@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/bulk_moveport.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/bulk_moveport.pl,v 1.3 2005/04/12 14:18:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,9 +12,9 @@ reset.pl - Reset Networks on the NetPass System
 
 =head1 SYNOPSIS
 
- reset.pl <-N ip/mask> [-n] [-h] [-c config file] <-a action>
+ reset.pl [-c cstr] [-U dbuser/dbpass] <-N ip/mask> [-n] [-h] <-a action>
      -a	action		  actions are either quarantine or unquarantine
-     -c	config file	  location of netpass.conf
+     -c	cstr	          db connect string
      -N ip/mask		  specify the ip and netmask of the network to have action performed on it  
      -n                   print actions that will be preformed without doing them 
      -h                   this message
@@ -23,7 +23,7 @@ reset.pl - Reset Networks on the NetPass System
 
 This script will move all ports, or a selected network of ports to either the
 quarantine or unquarantine network. The correct VLAN ID, etc, will be derived
-from the C<netpass.conf> file. You can use "ps" to watch the process name. It should
+from the C<netpass.conf>. You can use "ps" to watch the process name. It should
 update with the percentage complete.
 
 =head1 SEE ALSO
@@ -42,7 +42,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: bulk_moveport.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: bulk_moveport.pl,v 1.3 2005/04/12 14:18:11 jeffmurphy Exp $
 
 =cut
 
@@ -54,7 +54,9 @@ use lib qw(/opt/netpass/lib);
 use NetPass::LOG qw(_log _cont);
 use NetPass;
 use NetPass::Config;
-#require NetPass::SNMP;
+
+sub moveswitch ($$$$$$$);
+sub getSwitchPortMap ($);
 
 NetPass::LOG::init [ 'reset', 'local0' ]; #*STDOUT;
 
@@ -62,7 +64,7 @@ $SIG{CHLD} = "IGNORE";
 
 my %opts;
 
-getopts('DqnhN:c:a:', \%opts);
+getopts('U:DqnhN:c:a:', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 pod2usage(2) if !exists $opts{'N'} || !exists $opts{'a'};
 
@@ -76,10 +78,12 @@ if ($opts{'N'} !~ /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,3}/) {
 	pod2usage(2);
 }
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-                             "/opt/netpass/etc/netpass.conf",
-                             -debug => exists $opts{'D'} ? 1 : 0,
-                             -quiet => exists $opts{'q'} ? 1 : 0);
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} : undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug => exists $opts{'D'} ? 1 : 0,
+		     -quiet => exists $opts{'q'} ? 1 : 0);
 
 die "failed to create NetPass object" unless defined $np;
 
@@ -131,7 +135,7 @@ if ($opts{'N'} eq '0.0.0.0/0') {
 
 exit 0;
 
-sub moveswitch () {
+sub moveswitch ($$$$$$$) {
 	my $np	      = shift;
 	my $net       = shift;
 	my $switch    = shift;
@@ -163,7 +167,7 @@ sub moveswitch () {
 	return 1;
 }
 
-sub getSwitchPortMap () {
+sub getSwitchPortMap ($) {
 	my $cfg = shift;
 	my $map = {};
 
