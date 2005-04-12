@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.2 2005/04/12 16:17:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -91,7 +91,7 @@ if($#vulns > -1) {
 
 	$m->session->{'phase'} = 'SCAN';
 
-	my $msg = $npdbh->getPage('msg:remediate_completed', 1);
+	my $msg = $np->db->getPage('msg:remediate_completed', 1);
 
 	if($msg) {
 		print $msg;

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Audit,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Audit,v 1.2 2005/04/12 16:17:26 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,10 +15,10 @@
 	#my $i = $m->session->{'remote_addr'};
 	#my $u = $m->session->{'username'};
 
-	$npdbh->audit(  -mac  => $m->session->{'remote_mac'},
-			-ip   => $m->session->{'remote_addr'},
-			-user => $m->session->{'username'},
-			-msg  => $msg
+	$np->db->audit(  -mac  => $m->session->{'remote_mac'},
+			 -ip   => $m->session->{'remote_addr'},
+			 -user => $m->session->{'username'},
+			 -msg  => $msg
 			);
 
 

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/CookieDetect,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/CookieDetect,v 1.2 2005/04/12 16:17:26 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -24,7 +24,7 @@ if($m->session->{'phase'} eq 'SCAN') {
         my %c = Apache::Cookie->fetch;
         return 1 if (exists $c{$cn});
 
-        my $ncfu = $npdbh->getPage('msg:no_cookies', 1);
+        my $ncfu = $np->db->getPage('msg:no_cookies', 1);
         if (defined($ncfu) && ($ncfu ne "")) {
               print $ncfu;
         } else {

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Attic/sq.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Attic/sq.mhtml,v 1.2 2005/04/12 16:17:28 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -52,7 +52,7 @@ my $ALLOWEDDOMAINS     = "$squidbasedir/allowed_domains";
 
 if ($ARGS{'action'}) {
 	writeConf($SQUIDCONFFILE, $ALLOWEDURLS, $ALLOWEDDOMAINS, \%ARGS);
-	$npdbh->reqAppAction('squid',   'restart', '')
+	$np->db->reqAppAction('squid',   'restart', '')
 }
 
 my $data = readConf($SQUIDCONFFILE, $ALLOWEDURLS, $ALLOWEDDOMAINS);

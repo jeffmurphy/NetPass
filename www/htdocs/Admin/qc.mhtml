@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.10 2005/03/17 17:38:40 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.11 2005/04/12 16:17:28 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -41,7 +41,7 @@ if ($m->comp('/Admin/MemberOf', 'group' => [ @rwGroups ])) {
 }
 
 my $statuses = ['QUAR','PQUAR','UNQUAR','PUNQUAR'];  # love the grammer!
-my $msgs     = getAllMsgs($dbh);
+my $msgs     = getAllMsgs($np->db->{'dbh'});
 
 </%perl>
 
@@ -168,20 +168,20 @@ return if(!$submit && !$search);
 
 if($submit) {
 	if ($readOnly eq "") {
-        	my $sqr = saveQuarChanges($dbh,\%ARGS, $ids);
+        	my $sqr = saveQuarChanges($np->db->{'dbh'},\%ARGS, $ids);
 		if ($sqr ne "") {
 			print $q->p({-class=>"error"}, $sqr);
 		}
 	} else {
 		# this really shouldnt happen. we dont give them a submit button
-		$npdbh->audit(  -user => $m->session->{'logged_in'},
+		$np->db->audit(  -user => $m->session->{'logged_in'},
 				-severity => "ALERT",
                                 -msg => [ "tried to change QuarControl but is ReadOnly" ]);
 
 	}
 }
 
-my ($results, $count) = getQuars($dbh, $ip, $mac, $uid, $type, $status, $uqlinkup);
+my ($results, $count) = getQuars($np->db->{'dbh'}, $ip, $mac, $uid, $type, $status, $uqlinkup);
 
 if($count<0) {
 	print "Sorry, there was an error while processing your request! ($results)";
@@ -564,14 +564,14 @@ sub saveQuarChanges {
 			 join(',', @params));
 
 		if ($args->{"message:$mac"} ne $args->{"messageOrig:$mac"}) {
-			$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+			$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
 				-user => $m->session->{'logged_in'},
 			      	-msg => [ "QC: message changed to", $args->{"message:$mac"},
 					  "from", $args->{"messageOrig:$mac"} ]);
 		}
 
 		if ($args->{"status:$mac"} ne $args->{"statusOrig:$mac"}) {
-			$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+			$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
 				-user => $m->session->{'logged_in'},
 			      	-msg => [ "QC: status changed to", $args->{"status:$mac"},
 					  "from",  $args->{"statusOrig:$mac"} ]);
@@ -606,21 +606,21 @@ sub saveQuarChanges {
 				$rv = "not found on network. port reset failed.";
 
 				_log("DEBUG", "$mac $ipAddr $rv\n");
-				$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+				$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
 					-user => $m->session->{'logged_in'},
 			      		-msg => [ "QC: $rv " ]);
 
 				$rv = qq{mac address "$mac" $rv};
 			} else {
 				_log("DEBUG", "$mac $ipAddr found. quarantining $sw $po\n");
-				if (! $npdbh->requestMovePort(-switch => $sw, 
+				if (! $np->db->requestMovePort(-switch => $sw, 
 						-port => $po, -vlan => 'quarantine',
 						-by => 'qc.mhtml')) {
 
 					$rv = "$mac requestMovePort($sw, $po) failed\n";
 					_log("ERROR", "$rv\n");
 
-					$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+					$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
 						-user => $m->session->{'logged_in'},
 			      			-msg => [ "QC: $rv " ]);
 				}
@@ -629,7 +629,7 @@ sub saveQuarChanges {
 		} else {
 			$rv = "$mac failed to update database: ".$sth->errstr;
 			_log("ERROR", "$rv\n");
-			$npdbh->audit(-mac => $mac, -ip => $args->{'ip'}, 
+			$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
 					-user => $m->session->{'logged_in'},
 		      			-msg => [ "QC: $rv " ]);
 		}

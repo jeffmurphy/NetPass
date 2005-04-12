@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Validate,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Validate,v 1.2 2005/04/12 16:17:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -27,7 +27,7 @@
 	my ($rv, $sw, $po);
 
 	# Returns a status of "UNREG", "QUAR", "PQUAR", "UNQUAR", "PUNQUAR"
-	($rv, $sw, $po) = $np->validateMac($npdbh, $mac, $ip);
+	($rv, $sw, $po) = $np->validateMac($mac, $ip);
 
 	$m->session->{'regStatus'} = $rv;
 
@@ -74,7 +74,7 @@
 		# if you have messages waiting, then send you to remediate phase
 
 		else {
-			my $Xmsg = $npdbh->getMessage($mac);
+			my $Xmsg = $np->db->getMessage($mac);
 			if(defined($Xmsg) && ($Xmsg ne "")) {
 				_log("DEBUG", "$mac $ip /Client/Validate status is P/QUAR and messages pending. setting Phase to REMEDIATE\n");
 				$m->session->{'phase'} = "REMEDIATE";

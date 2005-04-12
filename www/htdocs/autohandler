@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.3 2005/04/06 20:50:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.4 2005/04/12 16:17:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -22,20 +22,14 @@ NetPass::LOG::init [ 'web', 'local0' ];
 
 # these 3 are globals
 
-$np = new NetPass(-config => "/opt/netpass/etc/netpass.conf");
+$np = new NetPass();
 
-$npdbh = new NetPass::DB( $np->cfg->dbSource,
-			  $np->cfg->dbUsername,
-			  $np->cfg->dbPassword  );
-
-if (!defined($npdbh)) {
-	_log("ERROR", "NetPass::DB failed to connect to db: ",
-		DBI->errstr, "\n");
-	print "Filed to connect to database: ". DBI->errstr .
-		"Sorry, I can't recover from this.";
+if (ref($np) ne "NetPass") {
+	_log("ERROR", "failed to connect to NetPass: $np\n");
+	print "Failed to connect to NetPass: $np<BR>Sorry, I can't recover from this.";
 } else {
 
-	$dbh = $npdbh->dbh();
+	$dbh = $np->db->dbh();
 	$q = new OSS::Template(\%ARGS);
 
 	$m->comp('/style/front/header', %ARGS);
@@ -46,7 +40,6 @@ if (!defined($npdbh)) {
 </%init>
 
 <%cleanup>
-	if (defined ($npdbh)) { $npdbh->DESTROY(); }
 	if (defined ($np)  )  { $np->DESTROY()   ; }
 </%cleanup>
 

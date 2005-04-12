@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.4 2005/04/10 04:38:14 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.5 2005/04/12 16:17:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -16,7 +16,7 @@
 	_log("DEBUG", "$mac $ip start scan\n");
 	$m->comp('/Audit', 'msg' => [ 'start scan' ]);
 
-    	my $msg = $npdbh->getPage('msg:being_scanned', 1);
+    	my $msg = $np->db->getPage('msg:being_scanned', 1);
 
     	if(defined($msg)) {
     		print $msg;
@@ -28,7 +28,7 @@
 
    	use NetPass::Nessus;
 
-    	my $pids = $npdbh->getNessusPluginList('enabled');
+    	my $pids = $np->db->getNessusPluginList('enabled');
 
     	my $plugin_total = ($#$pids+1);
     	my $plugin_done  = 0;
@@ -133,7 +133,7 @@
 			$m->comp('/Audit', msg => [ "Found vulnerability: $sid" ] );
 			push(@{$m->session->{'nessus'}}, $sid);
 			$m->session->{'nessus_defaults'}->{$sid} = $nes->Description;
-			$npdbh->addResult(-type => 'nessus', -mac => $mac, -id => $sid);
+			$np->db->addResult(-type => 'nessus', -mac => $mac, -id => $sid);
 		}
 	}
 	
@@ -164,7 +164,7 @@
 
 scan_finished:
 
-	$msg = $npdbh->getPage('msg:scan_completed', 1);
+	$msg = $np->db->getPage('msg:scan_completed', 1);
 	_log("DEBUG", "$mac $ip end scan instructing them to hit continue. phase is now ".$m->session->{'phase'}."\n");
 	if (defined($msg)) {
 		print $msg;

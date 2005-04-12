@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.2 2005/04/12 16:17:28 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -45,14 +45,14 @@ if (! $m->comp('/Admin/MemberOf', 'group' => [ 'Admin' ]) ) {
 }
 
 if ($ARGS{'quarantineall'}) {
-	$npdbh->reqAppAction('quarall', 'start', '');
-        $npdbh->audit(  -user     => $m->session->{'logged_in'},
+	$np->db->reqAppAction('quarall', 'start', '');
+        $np->db->audit(  -user     => $m->session->{'logged_in'},
                         -severity => "ALERT",
                         -msg      => [ "Activated Quarantine All Global Reset" ]);
 
 } elsif ($ARGS{'unquarantineall'}) {
-	$npdbh->reqAppAction('unquarall', 'start', '');
-        $npdbh->audit(  -user     => $m->session->{'logged_in'},
+	$np->db->reqAppAction('unquarall', 'start', '');
+        $np->db->audit(  -user     => $m->session->{'logged_in'},
                         -severity => "ALERT",
                         -msg      => [ "Activated Unquarantine All Global Reset" ]);
 }

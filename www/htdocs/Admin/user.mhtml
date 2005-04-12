@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.4 2004/10/25 17:48:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.5 2005/04/12 16:17:28 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -29,7 +29,7 @@ To delete a user, remove them from all of the groups.<P>
 <tr><td colspan=2>
 <%perl>
 	my @groups = ('Admin', 'ScanAdmin', 'Editor', 'Reports', 'User', 'QuarAdmin');
-	my $users  = $npdbh->getUsersAndGroups();
+	my $users  = $np->db->getUsersAndGroups();
 	my $error  = "";
 
 	my $ldap   = $np->cfg->policy('LDAP_USER_QUERY');
@@ -100,14 +100,14 @@ To delete a user, remove them from all of the groups.<P>
 						if ($ARGS{'_newuser'} eq "_newuser") {
 							$error .= "Sorry, you can't create a user with that username.<BR>";
 						} 
-						elsif (!$npdbh->createUserWithGroups($ARGS{'_newuser'}, @gl)) {
+						elsif (!$np->db->createUserWithGroups($ARGS{'_newuser'}, @gl)) {
 							$error .= "Failed to add user $ARGS{_newuser}<BR> If the user doesn't already exist, let us know.<BR>";
 						}
 					} else {
 						$error .= "Sorry, you aren't allowed to add users.<BR>\n";
 					}
 				}
-				if ($npdbh->setUsersAndGroups($uh)) {
+				if ($np->db->setUsersAndGroups($uh)) {
 					$error .= "Changes saved.";
 				} else {
 					$error .= "Sorry, and error occurred. Let us know.";
@@ -116,7 +116,7 @@ To delete a user, remove them from all of the groups.<P>
 				$error .= "Sorry. Permission denied.<BR>Did you try to change an Admin?";
 			}
 		}
-		$users  = $npdbh->getUsersAndGroups();
+		$users  = $np->db->getUsersAndGroups();
 	}
 
 	if( defined($users) ) {

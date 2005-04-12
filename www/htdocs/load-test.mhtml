@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/load-test.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/load-test.mhtml,v 1.2 2005/04/12 16:17:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -72,24 +72,24 @@ sub test_npdbh {
     print "mac   is: " . $m->session->{'remote_mac'} . "<BR>";
     print "ip    is: " . $m->session->{'remote_addr'} . "<BR>";
 
-    $npdbh->registerHost($m->session->{'remote_mac'},
-                         $m->session->{'remote_addr'},
-                         $m->session->{'remote_os'},
-                         $m->session->{'username'});
+    $np->db->registerHost($m->session->{'remote_mac'},
+                          $m->session->{'remote_addr'},
+                          $m->session->{'remote_os'},
+                          $m->session->{'username'});
 
     my $sw = $m->session->{'switch'};
     my $po = $m->session->{'port'};
-   print "switch is $sw<BR>";
+    print "switch is $sw<BR>";
 
-    my $msg = $npdbh->getPage('msg:remote_you_passed', 1);
+    my $msg = $np->db->getPage('msg:remote_you_passed', 1);
     print "$msg<BR>";
 
-    print $npdbh->getMessage() . "<BR>";
-    $m->session->{'my_groups'} = $npdbh->getUserGroups('jcmurphy') . "<BR>";
+    print $np->db->getMessage() . "<BR>";
+    $m->session->{'my_groups'} = $np->db->getUserGroups('jcmurphy') . "<BR>";
                                                                                                                         
     print "groups are: " . $m->session->{'my_groups'} . "<BR>";
                                                                                                                         
-    my $pids = $npdbh->getNessusPluginList('enabled');
+    my $pids = $np->db->getNessusPluginList('enabled');
     foreach my $pid (@{$pids}) {
       print "$pids, ";
     }

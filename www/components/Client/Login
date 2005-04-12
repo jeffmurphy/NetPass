@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Login,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Login,v 1.2 2005/04/12 16:17:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -38,7 +38,7 @@
 
 	$m->session->{'username'}  = $username;
 	$m->session->{'logged_in'} = 1;
-	$m->session->{'my_groups'} = $npdbh->getUserGroups($username);
+	$m->session->{'my_groups'} = $np->db->getUserGroups($username);
 
 	$m->session->{'phase'}     = 'SCAN';
 

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.5 2005/04/06 20:50:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.6 2005/04/12 16:17:26 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -26,7 +26,7 @@ This component outputs a login prompt form.
 		if (defined($aok) && ($aok == 1)) {
 			$m->session->{'logged_in'} = 1; # FIX/Client/Login
 			$m->session->{'username'}  = $username;
-			$m->session->{'my_groups'} = $npdbh->getUserGroups($username);
+			$m->session->{'my_groups'} = $np->db->getUserGroups($username);
 			if ($m->caller(-1)->path =~ /^\/Admin/) {
 				$m->redirect($m->caller(-1)->path);
 			} else {
