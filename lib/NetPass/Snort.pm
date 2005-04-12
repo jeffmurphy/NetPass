@@ -117,7 +117,7 @@ sub restartSnort {
         my $soap = $self->$createSoapConnection();
         return undef unless $soap;
 
-        my $aref = eval {$soap->getSnortRules($md5, "all")->result};
+        my $aref = eval {$soap->getSnortRules($md5, "enabled")->result};
         return undef unless defined($aref) && (ref($aref) eq 'ARRAY');
 
 	my $logfile = (exists $opts{'l'}) ? $opts{'l'} : $DEFAULTSNORTRULES;
