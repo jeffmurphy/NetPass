@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.14 2005/04/12 15:24:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.15 2005/04/12 18:11:53 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -612,7 +612,8 @@ sub getBSW {
 =head2 my $switches = $cfg-E<gt>getSwitches(network)
 
 Return the list of switches defined for this E<lt>networkE<gt>. Returns an ARRAY REF
-on success, C<undef> on failure.
+on success, C<undef> on failure. If "network" is "", then we return all configured 
+switches.
 
 =cut
 
@@ -620,8 +621,19 @@ on success, C<undef> on failure.
 sub getSwitches {
     my ($self, $network) = (shift, shift);
     $self->reloadIfChanged();
-    # exclude the "bsw" keyword
-    my @switches = grep { !/^bsw$/i } $self->{'cfg'}->obj('network')->obj($network)->keys('switches');
+
+    my @switches;
+
+    if (defined($network) && ($network ne "")) {
+	    # exclude the "bsw" keyword
+	    @switches = grep { !/^bsw$/i } $self->{'cfg'}->obj('network')->obj($network)->keys('switches');
+    } else {
+	    my $nws = $self->getNetworks();
+	    foreach my $nw (@$nws) {
+		    push @switches, grep { !/^bsw$/i } $self->{'cfg'}->obj('network')->obj($nw)->keys('switches');
+	    }
+    }
+
     return \@switches;
 }
 
@@ -1184,7 +1196,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.14 2005/04/12 15:24:09 jeffmurphy Exp $
+$Id: Config.pm,v 1.15 2005/04/12 18:11:53 jeffmurphy Exp $
 
 =cut
 

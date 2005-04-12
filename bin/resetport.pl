@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.10 2005/04/12 15:24:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.11 2005/04/12 18:11:52 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -77,7 +77,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.10 2005/04/12 15:24:08 jeffmurphy Exp $
+$Id: resetport.pl,v 1.11 2005/04/12 18:11:52 jeffmurphy Exp $
 
 =cut
 
@@ -231,7 +231,8 @@ sub processLines {
 			} else {
 				print "cant parse port out of \"$_port\". skip\n"
 				  if exists $opts{'D'};
-				_log("ERROR", "cant parse port out of \"$_port\"\n");
+				_log("WARNING", "cant parse port out of \"$_port\"\n")
+				  unless exists $opts{'q'};
 				next;
 			}
 			

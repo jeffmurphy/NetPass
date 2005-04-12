@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.12 2005/04/12 17:02:36 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.13 2005/04/12 18:11:52 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -38,7 +38,7 @@ NetPass - Routines for interacting with the NetPass system
 
 sub DESTROY {
 	my $self = shift;
-	$self->{'db'}->DESTROY();
+	$self->{'db'}->DESTROY() if defined($self->{'db'});
 }
 
 sub xx_AUTOLOAD {
@@ -971,7 +971,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.12 2005/04/12 17:02:36 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.13 2005/04/12 18:11:52 jeffmurphy Exp $
 
 =cut
 
