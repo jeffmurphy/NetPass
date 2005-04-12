@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.11 2005/04/12 15:24:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.12 2005/04/12 17:02:36 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -35,6 +35,11 @@ NetPass - Routines for interacting with the NetPass system
 =head1 METHODS
 
 =cut
+
+sub DESTROY {
+	my $self = shift;
+	$self->{'db'}->DESTROY();
+}
 
 sub xx_AUTOLOAD {
         no strict;
@@ -469,12 +474,12 @@ sub enforceMultiMacPolicy {
 			my $neighbor_status = $self->db->macStatus($m);
 			if ( !defined($neighbor_status) || ($neighbor_status ne "UNQUAR") ) {
 				_log "DEBUG", "$mac $ip found an unreg/quar neighbor $m status=".(defined($neighbor_status)?$neighbor_status:"UNREG")."\n";
-				$np->db->audit(-mac => $mac, -ip => $ip, 
+				$self->db->audit(-mac => $mac, -ip => $ip, 
 					       -msg => [ "multi-mac: BAD neighbor $m status ".
 							 (defined($neighbor_status)?$neighbor_status:"UNREG") ]);
 				$allOK = 0;
 			} else {
-				$np->db->audit(-mac => $mac, -ip => $ip, 
+				$self->db->audit(-mac => $mac, -ip => $ip, 
 					       -msg => [ "multi-mac: OK neighbor $m status ".
 							 (defined($neighbor_status)?$neighbor_status:"UNREG") ]);
 				push @OKmacs, $m;
@@ -486,10 +491,10 @@ sub enforceMultiMacPolicy {
 		if (!$allOK) {
 			_log "DEBUG", "$mac $ip on $sw $po at least one of our neighbors is unreg/quar. setting message to msg:multi_mac\n";
 			
-			$np->db->audit(-mac => $mac, -ip => $ip, 
+			$self->db->audit(-mac => $mac, -ip => $ip, 
 				       -msg => [ "multi-mac: at least one neighbor is BAD. we will receive msg:multi_mac" ]);
 			
-			$np->db->setMessage($mac, 'msg:multi_mac');
+			$self->db->setMessage($mac, 'msg:multi_mac');
 			
 			# we return permQuar because there's really no way for
 			# them to unquarantine themselves - there's no remediation
@@ -966,7 +971,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.11 2005/04/12 15:24:08 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.12 2005/04/12 17:02:36 jeffmurphy Exp $
 
 =cut
 
