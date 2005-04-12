@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.11 2005/04/11 18:45:32 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.12 2005/04/12 14:01:41 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -448,23 +448,16 @@ sub snortEnabled {
 
     $self->reloadIfChanged();
 
-    if (!$self->{'cfg'}->obj('network')->exists($nw)) {
-        _log("ERROR", "Unknown Network $nw");
+    if (recur_exists($self->{'cfg'}, 'network', $nw, 'snort', 'mode')) {
+        my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort')->value('mode');
+        return $s if ($s =~ /^(enabled|disabled|not_really)$/);
         return 0;
     }
 
-    if ($self->{'cfg'}->obj('network')->obj($nw)->exists('snort') &&
-	$self->{'cfg'}->obj('network')->obj($nw)->obj('snort')->exists('mode')) {
-	my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort')->value('mode');
-	return $s if ($s =~ /^(enabled|disabled|not_really)$/);
-	return 0;
-    }
-
-    if ($self->{'cfg'}->exists('snort') &&
-	$self->{'cfg'}->obj('snort')->exists('mode')) {
-	my $s = $self->{'cfg'}->obj('snort')->value('mode');
-	return $s if ($s =~ /^(enabled|disabled|not_really)$/);
-	return 0;
+    if (recur_exists($self->{'cfg'}, 'snort', 'mode')) {
+        my $s = $self->{'cfg'}->obj('snort')->value('mode');
+        return $s if ($s =~ /^(enabled|disabled|not_really)$/);
+        return 0;
     }
 
     return 0;
@@ -1166,7 +1159,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.11 2005/04/11 18:45:32 mtbell Exp $
+$Id: Config.pm,v 1.12 2005/04/12 14:01:41 mtbell Exp $
 
 =cut
 
