@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/npportcache.pl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/npportcache.pl,v 1.4 2005/04/12 20:53:43 jeffmurphy Exp $
 #
 
 
@@ -71,7 +71,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: npportcache.pl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
+$Id: npportcache.pl,v 1.4 2005/04/12 20:53:43 jeffmurphy Exp $
 
 =cut
 
@@ -268,7 +268,7 @@ sub handleClientInput {
 
 	    _log("DEBUG", "mac=$mac ip=$ip\n") if exists $opts{'D'};
 
-	    my $nw = $np->cfg->getMatchingNetwork($ip);
+	    my $nw = $np->cfg->getMatchingNetwork(-ip => $ip);
 	    if (!defined($nw)) {
 		_log ("ERROR", "no network matches $ip\n");
 		syswrite($fd, "nonetwork\n");

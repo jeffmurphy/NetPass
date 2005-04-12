@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Survey,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Survey,v 1.2 2005/04/12 20:53:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -29,7 +29,9 @@
 #my $survey_completed_already = exists $c{netpass_survey} ? $c{netpass_survey}->value : 'no';
 
 #return 1 if($survey_completed_already eq 'yes');
-   
+
+my $ip =    $ENV{'REMOTE_ADDR'}; 
+
 if($submit) {
 	if(!$valuableservice || !$waittime || !$selfremedy || !$instructions_helpful) {
 		$error = "Questions 1-4 are required. Please answer them to the best of your abilities.";
@@ -46,10 +48,10 @@ if($submit) {
 		7. $email
 
 		UID =".$m->session->{'username'}."
-		IP  =".$ENV{'REMOTE_ADDR'}."\n\n";
+		IP  =$ip\n\n";
                 my %mail = (
                                 smtp            => 'mail.oss.buffalo.edu',
-                                To              =>  $np->policy('SURVEY_EMAIL'),
+                                To              =>  $np->cfg->policy('SURVEY_EMAIL', $ip),
                                 From            => 'netpass_feedback@rgc.oss.buffalo.edu',
                                 Subject         => '[Netpass Feedback]',
                                 Message         => $mail_content

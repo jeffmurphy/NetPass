@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.4 2005/04/12 18:11:52 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.5 2005/04/12 20:53:43 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -64,11 +64,14 @@ back into the quarantine and the registered MACs are pointed at a web page
 letting them know why they've been quarantined. The unregistered MACs are implicitly
 directed to the default webpage.
 
+This script will only quarantine ports if the MULTI_MAC configuration setting
+is set to ALL_OK.
+
 =head1 AUTHOR
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.4 2005/04/12 18:11:52 jeffmurphy Exp $
+$Id: macscan.pl,v 1.5 2005/04/12 20:53:43 jeffmurphy Exp $
 
 =cut
 

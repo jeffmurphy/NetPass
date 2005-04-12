@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.15 2005/04/12 18:11:53 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.16 2005/04/12 20:53:44 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -659,57 +659,108 @@ sub getNetComment {
 }
 
 
-=head2 $val = $np->policy($key)
+=head2 $val = $np->policy($key, $nw)
 
 Given a key (a policy/configuration variable name) return the associated value
 or undef if the variable doesnt exist in the C<netpass.conf> file's 
-E<lt>policyE<gt> section.
+E<lt>policyE<gt> section. Networks can have E<lt>policyE<gt> sections too.
+If we're given a network, we'll search there first. If we don't find
+anything useful, we'll try the global policy.
 
 =cut
 
 sub policy {
 	my $self = shift;
-	
+	my $pvar = shift;
+	my $nw   = shift;
+
+	$nw ||= "";
+
 	$self->reloadIfChanged();
 	
 	return undef 
 	  if (! exists $self->{'cfg'}) || 
 	    (ref $self->{'cfg'} ne "Config::General::Extended");
-	return undef if ! $self->{'cfg'}->exists('policy');
 	
 	my $k = shift;
 	return undef unless defined $k;
 	$k =~ tr [A-Z] [a-z]; # because of AutoLowerCase
 
+	if ($nw !~ /\//) { # not CIDR, bare IP
+		$nw = $self->getMatchingNetwork(-ip => $nw);
+	}
+
+	if (recurs_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
+		return $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
+	}
+
+	return undef if ! $self->{'cfg'}->exists('policy');
 	return undef if ! $self->{'cfg'}->obj('policy')->exists($k);
 	return $self->{'cfg'}->obj('policy')->value($k);
 }
 
-=head2 my $network = $cfg-E<gt>getMatchingNetwork($ip)
+=head2 my $network = $cfg-E<gt>getMatchingNetwork(-ip => $ip, -switch => $ip, -port => $port)
 
-Return the network that the specified IP is a part of. C<undef> if no such
-network configured.
+Return the network that the specified IP is a part of. If IP is 
+omitted and switch/port given instead, then return the network that
+the switch port is configured for. 
+
+Returns
+
+=over
+
+=item B<network> 
+
+In CIDR notication, on success.
+
+=item B<"invalid parameters">
+
+Routine was called improperly.
+
+=item B<"none">
+
+If no network was found that matches.
+
+=back
 
 =cut
 
 sub getMatchingNetwork {
     my $self = shift;
-    my $ip   = shift;
 
     $self->reloadIfChanged();
 
-    return undef if !defined($ip);
+    my $parms = parse_parms({
+			     -parms    => \@_,
+			     -legal    => [qw(-switch -port -ip)],
+			     -defaults => { -ip => '', -switch => '', -port => '' }
+			    }
+			   );
 
-    my $ip_ = ip2int(host2addr($ip));
+    return Carp::longmess("invalid parameters ".Class::ParmList->error) if (!defined($parms));
+    
+    my ($ip, $sw, $po) = $parms->get('-ip', '-switch', '-port');
 
-    foreach my $n ($self->{'cfg'}->keys('network')) {
-	my ($n_, $m_) = cidr2int($n);
-	_log("DEBUG", sprintf("%x & %x ? %x (%x)\n", $ip_, $m_, $n_,
-			     ($ip_ & $m_))) if $self->{'dbg'} > 1;
-	return $n if ( ($ip_ & $m_) == $n_);
+    return "invalid params (if !ip then sw/po both reqd)"
+      if (($ip ne "") && (($sw eq "") || ($po eq "")));
+
+    if ($ip ne "") {
+	    my $ip_ = ip2int(host2addr($ip));
+	    
+	    foreach my $n ($self->{'cfg'}->keys('network')) {
+		    my ($n_, $m_) = cidr2int($n);
+		    _log("DEBUG", sprintf("%x & %x ? %x (%x)\n", $ip_, $m_, $n_,
+					  ($ip_ & $m_))) if $self->{'dbg'} > 1;
+		    return $n if ( ($ip_ & $m_) == $n_);
+	    }
+    } 
+    else {
+	    # fetch the vlans for the given switch port
+	    # look thru each network until you find one that matches
+	    # the vlans
     }
 
-    return undef;
+    return "none";
 }
 
 =head2 my ($r, $w) = $cfg-E<gt>getCommunities(hostname)
@@ -1196,7 +1247,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.15 2005/04/12 18:11:53 jeffmurphy Exp $
+$Id: Config.pm,v 1.16 2005/04/12 20:53:44 jeffmurphy Exp $
 
 =cut
 

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.14 2005/04/12 18:45:23 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.15 2005/04/12 20:53:44 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -178,21 +178,28 @@ sub cfg {
 }
 
 
-=head2 $val = $np-E<gt>policy($key)
+=head2 $val = $np-E<gt>policy($key, $network)
 
 =over
 
 Given a key (a policy/configuration variable name) return the associated value
 or undef if the variable doesnt exist in the C<netpass.conf> file's 
-E<lt>policyE<gt> section. 
+E<lt>policyE<gt> section. If the network is given, we'll search there first.
+If the key doesn't exist on the specified network, we'll search the global
+policy.
 
 =back
 
 =cut
 
 sub policy {
+
+	die Carp::longmess("DEPRECATED. FIX ME.");
+
     my $self = shift;
-    return $self->{'cfg'}->policy(shift);
+    my $pvar = shift;
+
+    return $self->{'cfg'}->policy($pvar);
 }
 
 =head2 movePort(-switch =E<gt> switch, -port =E<gt> port, -vlan =E<gt> E<lt>unquarantine | quaranineE<gt>)
@@ -616,7 +623,7 @@ sub findOurSwitchPort_tree {
 	$mac = padMac($mac);
 	
 	_log ("DEBUG", "finding network for $ip\n");
-	my $myNW = $self->cfg->getMatchingNetwork($ip);
+	my $myNW = $self->cfg->getMatchingNetwork(-ip => $ip);
 	
 	# this is a total lame work around for what looks like a nortel
 	# bug. very occasionally it will return the mac on the wrong port (the uplink)
@@ -689,7 +696,7 @@ sub findOurSwitchPort_linear {
 	$mac = padMac($mac);
 	
 	_log "DEBUG", "finding network for $ip\n";
-	my $myNW = $self->cfg->getMatchingNetwork($ip);
+	my $myNW = $self->cfg->getMatchingNetwork(-ip => $ip);
 	
 	if (defined($myNW)) {
 		my $switches = $self->cfg->getSwitches($myNW);
@@ -970,7 +977,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.14 2005/04/12 18:45:23 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.15 2005/04/12 20:53:44 jeffmurphy Exp $
 
 =cut
 

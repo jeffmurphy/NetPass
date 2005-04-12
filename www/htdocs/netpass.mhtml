@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.3 2005/04/12 16:17:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.4 2005/04/12 20:53:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -29,8 +29,8 @@ $m->comp("/Client/Validate", %ARGS);
 
 _log("DEBUG", "$mac $ip Phase: ".$m->session->{'phase'}."\n");
 
-if($np->policy('COOKIE_DETECT')) {
-	return if ($m->comp('/CookieDetect', %ARGS) != 1);
+if($np->cfg->policy('COOKIE_DETECT', $ip)) {
+	return if ($m->comp('/CookieDetect', 'ip' => $ip, %ARGS) != 1);
 }
 
 if($m->session->{'phase'} eq 'LOGIN') {
@@ -65,7 +65,7 @@ if($m->session->{'phase'} eq 'LOGIN') {
 	my $url = $m->session->{'url'};
 
 	if(!$url) {
-		$url = $np->policy('REDIR_URL_DEFAULT');
+		$url = $np->cfg->policy('REDIR_URL_DEFAULT', $ip);
 	}
 	
 	if(ref($url) =~ /ARRAY/) {
@@ -91,7 +91,7 @@ if($m->session->{'phase'} eq 'LOGIN') {
 		print $m;
 	}
 
-	if ($np->policy('AUTO_REDIRECT') eq "yes") {
+	if ($np->cfg->policy('AUTO_REDIRECT', $ip) eq "yes") {
 		print "<meta http-equiv=\"Refresh\" content=\"15;$url\">";
 	}
 

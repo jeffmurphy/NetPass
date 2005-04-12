@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/garp.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/garp.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -96,7 +96,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: garp.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: garp.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
 
 =cut
 
@@ -115,7 +115,7 @@ NetPass::LOG::init [ 'garp', 'local0' ];
 my %opts;
 
 
-getopts('i:a:n:m:r:hvD', \%opts);
+getopts('c:U:i:a:n:m:r:hvD', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 pod2usage(1) if !exists $opts{'i'}; # interface is required
 
@@ -135,12 +135,14 @@ my ($rtr_ma, $pkt);
 die "unable to determine hwaddr for interface $opts{'i'}" 
   if ( !defined($ma) );
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-			     "/opt/netpass/etc/netpass.conf",
-			     -debug => exists $opts{'D'} ? 1 : 0,
-			     -quiet => exists $opts{'q'} ? 1 : 0);
-	
-die "failed to create NetPass object" unless defined $np;
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+
+my $np = new NetPass(-cstr  => exists $opts{'c'} ? $opts{'c'} : undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug => exists $opts{'D'} ? 1 : 0,
+		     -quiet => exists $opts{'q'} ? 1 : 0);
+
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 	
 if ( !defined($ip) ) {
     print $opts{'i'}." mac is ".join(':', @$ma)." but no IP defined.\n" 
@@ -228,7 +230,7 @@ if (exists $opts{'r'}) {
 }
 
 my $daemon = 0;
-my $pidDir = $np->policy('PID_DIR') || "/var/run/netpass";
+my $pidDir = $np->cfg->policy('PID_DIR') || "/var/run/netpass";
 my $pidFn  = $pidDir."/garp.PID.pid";
 if (! exists $opts{'D'}) {
     daemonize("garp", $pidDir, $pidFn, $opts{'i'});

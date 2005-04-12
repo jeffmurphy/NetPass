@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.6 2005/04/12 16:17:26 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.7 2005/04/12 20:53:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,6 +18,8 @@ This component outputs a login prompt form.
 <%perl>
         return 1 if (exists $m->session->{'logged_in'} && 
 			($m->session->{'logged_in'} == 1));
+
+	my $ip = $ENV{'REMOTE_ADDR'};
 
         if (defined($username) && ($username ne "")) {
 	    	my $aok = $np->authenticateAdmin($username,
@@ -44,10 +46,10 @@ This component outputs a login prompt form.
 <form method="post" name="mainForm">
  <table align=center border='0' width='300'>
    <tr><th align=center colspan=2>Login</th></tr>
-   <tr><td><%$np->policy('USERNAME_PROMPT') || "Username:"%></td>
+   <tr><td><%$np->cfg->policy('USERNAME_PROMPT', $ip) || "Username:"%></td>
        <td><input name="username" size=8></td>
    </tr>
-   <tr><td><%$np->policy('PASSWORD_PROMPT') || "Password:"%></td>
+   <tr><td><%$np->cfg->policy('PASSWORD_PROMPT', $ip) || "Password:"%></td>
        <td><input type=password name="password" size=8></td>
    </tr>
    <tr><td colspan=2 align=center><input type="submit" value="Login"></td></tr>

@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/fsp.pl,v 1.3 2005/04/12 15:23:52 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/fsp.pl,v 1.4 2005/04/12 20:53:43 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: fsp.pl,v 1.3 2005/04/12 15:23:52 jeffmurphy Exp $
+$Id: fsp.pl,v 1.4 2005/04/12 20:53:43 jeffmurphy Exp $
 
 =cut
 
@@ -77,7 +77,7 @@ my $np = new NetPass(-config => exists $opts{'c'} ? $opts{'c'} : undef,
 
 die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
-my $nw = $np->cfg->getMatchingNetwork($ip);
+my $nw = $np->cfg->getMatchingNetwork(-ip => $ip);
 
 print "our network is: ".$nw."\n";
 print "our bsw     is: ".$np->cfg->getBSW($nw)."\n";

@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/coconf.pl,v 1.2 2005/04/12 14:18:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/coconf.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: coconf.pl,v 1.2 2005/04/12 14:18:11 jeffmurphy Exp $
+$Id: coconf.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
 
 =cut
 
@@ -59,12 +59,18 @@ require NetPass;
 require NetPass::Config;
 
 my %opts;
-getopts('o:c:qflr:Dh?', \%opts);
+getopts('o:c:U:qflr:Dh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 NetPass::LOG::init *STDOUT if exists $opts{'D'};
 
-my $np = new NetPass();
+
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+
+my $np = new NetPass(-cstr  => exists $opts{'c'} ? $opts{'c'} : undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug => exists $opts{'D'} ? 1 : 0,
+		     -quiet => exists $opts{'q'} ? 1 : 0);
 
 die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 

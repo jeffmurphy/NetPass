@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.3 2005/04/12 19:52:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.4 2005/04/12 20:53:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -50,7 +50,7 @@ print $q->start_form();
 
 if($#vulns > -1) {
 
-	my $autoexpand = ($#vulns <= ($np->policy('RESULTS_EXPAND')-1));
+	my $autoexpand = ($#vulns <= ($np->cfg->policy('RESULTS_EXPAND', $ip)-1));
 
 	print qq{<table border=0 cellpadding="0" cellspacing="0" style="border-collapse: collapse" width="100%"><tr><th colspan=3>Detected Security Issues</th></tr>};
 
