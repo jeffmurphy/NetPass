@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.13 2005/04/12 14:18:12 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.14 2005/04/12 15:24:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -163,7 +163,9 @@ Return the database source appropriate for passing into DBI.
 sub dbSource {
     my $self = shift;
     $self->reloadIfChanged();
-    return $self->{'cfg'}->obj('database')->value('source');
+    return $self->{'cfg'}->obj('database')->value('source')
+      if (recur_exists ($self->{'cfg'}, 'database', 'source'));
+    return "dbi:mysql:database=netpass";
 }
 
 =head2 my $dbuser = $cfg-E<gt>dbUsername
@@ -175,7 +177,9 @@ Return the database username appropriate for passing into DBI.
 sub dbUsername {
     my $self = shift;
     $self->reloadIfChanged();
-    return $self->{'cfg'}->obj('database')->value('username');
+    return $self->{'cfg'}->obj('database')->value('username')
+      if (recur_exists ($self->{'cfg'}, 'database', 'username'));
+    return "root";
 }
 
 
@@ -188,7 +192,9 @@ Return the database password appropriate for passing into DBI.
 sub dbPassword {
     my $self = shift;
     $self->reloadIfChanged();
-    return $self->{'cfg'}->obj('database')->value('password');
+    return $self->{'cfg'}->obj('database')->value('password')
+      if (recur_exists ($self->{'cfg'}, 'database', 'password'));
+    return "";
 }
 
 =head2 my $networks = $cfg-E<gt>getNetworks()
@@ -661,7 +667,8 @@ sub policy {
 	
 	my $k = shift;
 	return undef unless defined $k;
-	
+	$k =~ tr [A-Z] [a-z]; # because of AutoLowerCase
+
 	return undef if ! $self->{'cfg'}->obj('policy')->exists($k);
 	return $self->{'cfg'}->obj('policy')->value($k);
 }
@@ -1177,7 +1184,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.13 2005/04/12 14:18:12 jeffmurphy Exp $
+$Id: Config.pm,v 1.14 2005/04/12 15:24:09 jeffmurphy Exp $
 
 =cut
 

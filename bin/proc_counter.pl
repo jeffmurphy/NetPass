@@ -11,9 +11,12 @@ proc_counter.pl - counts the number of netpass related procs
 
 =head1 SYNOPSIS
 
- proc_counter.pl [-c config file]
-     -c config file       location of netpass.conf
-     -h                   this message
+ proc_counter.pl [-c cstr] [-U user/pass] [-qDh?]
+     -c cstr              db connect string
+     -U user/pass         db user[/pass]
+     -q                   quiet
+     -D                   debug
+     -h -?                this message
 
 =head1 DESCRIPTION
 
@@ -38,8 +41,7 @@ use Sys::Hostname;
 use Pod::Usage;
 
 use lib qw{/opt/netpass/lib};
-use NetPass::Config;
-use NetPass::DB;
+use NetPass;
 
 # processes to count
 my $proc = {
@@ -52,28 +54,22 @@ my %opts;
 getopts('c:h?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
-my $cfg = new NetPass::Config(defined $opts{'c'} ? $opts{'c'} :
-                              "/opt/netpass/etc/netpass.conf");
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-die "failed to create NetPass::Config object" unless defined $cfg;
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-my $dbh = new NetPass::DB($cfg->dbSource,
-                          $cfg->dbUsername,
-                          $cfg->dbPassword,
-                          1);
-
-if (!defined($dbh)) {
-    print "failed to create NP:DB ".DBI->errstr."\n";
-    exit 255;
-}
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 my $onedayago = time() - 86400;
 
 my $delete = "DELETE FROM stats_procs WHERE dt <= FROM_UNIXTIME($onedayago)";
 my $insert = "INSERT INTO stats_procs (serverid, dt, proc, count) VALUES (?,NOW(),?,?)";
-$dbh->{'dbh'}->do($delete);
+$np->db->{'dbh'}->do($delete);
 
-my $sth = $dbh->{'dbh'}->prepare($insert);
+my $sth = $np->dbh->{'dbh'}->prepare($insert);
 
 my $t = new Proc::ProcessTable;
 

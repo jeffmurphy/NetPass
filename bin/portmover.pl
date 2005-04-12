@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.3 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.4 2005/04/12 15:24:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -13,8 +13,9 @@ table and processes pending transactions.
 
 =head1 SYNOPSIS
 
- moveport.pl [-c config] [-n] [-q] [-D] 
-     -c configFile  [default /opt/netpass/etc/netpass.conf]
+ moveport.pl [-c cstr] [-U user/pass] [-n] [-q] [-D] 
+     -c cstr        db connect string
+     -U user/pass   db user[/pass]
      -n             "not really"
      -q             be quiet. exit status only.
      -D             enable debugging
@@ -23,10 +24,13 @@ table and processes pending transactions.
 
 =over 8
 
-=item B<-c configFile>
+=item B<-c cstr>
 
-Specify an alternate NetPass configuration file. The default is
-C</opt/netpass/etc/netpass.conf>
+DB to connect to.
+
+=item B<-U user/pass>
+
+Credentials to use when connecting to DB.
 
 =item B<-q>
 
@@ -70,7 +74,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: portmover.pl,v 1.3 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: portmover.pl,v 1.4 2005/04/12 15:24:08 jeffmurphy Exp $
 
 =cut
 
@@ -93,12 +97,8 @@ if(defined($otherPid) && $otherPid) {
 }
 
 require NetPass;
-require NetPass::Config;
-#require NetPass::SNMP;
-require NetPass::DB;
 
 $SIG{'ALRM'} = \&alarmHandler;
-
 
 my %opts;
 getopts('c:qnDh?', \%opts);
@@ -114,38 +114,25 @@ if (exists $opts{'D'}) {
 
 print "new NP\n" if $D;
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-		     "/opt/netpass/etc/netpass.conf",
-		     -debug => exists $opts{'D'} ? 1 : 0,
-		     -quiet => exists $opts{'q'} ? 1 : 0);
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-die "failed to create NetPass object" unless defined $np;
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-print "DB connect\n" if $D;
-
-my $dbh = new NetPass::DB($np->cfg->dbSource,
-			  $np->cfg->dbUsername,
-			  $np->cfg->dbPassword,
-			  1);
-
-if (!defined($dbh)) { 
-    my $e = "failed to create NP:DB ".DBI->errstr."\n";
-    _log "ERROR", $e;
-    print $e;
-    exit 255;
-}
-
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 while (1) {
     _log "DEBUG", "wakeup: processing worklist\n" if $D;
 
     RUNONCE::handleConnection();
-    my $ar      = $dbh->getPortMoveList();
+    my $ar      = $np->db->getPortMoveList();
     my $didWork = 0;
 
 
     if (!defined($ar)) {
-	_log "ERROR", "db error ".$dbh->error."\n";
+	_log "ERROR", "db error ".$np->db->error."\n";
     }
 
     foreach my $row (@$ar) {
@@ -153,11 +140,11 @@ while (1) {
 	    if( $np->movePort(-switch => $row->[2],
 			      -port   => $row->[3],
 			      -vlan   => $row->[4]) ) {
-		    $dbh->portMoveCompleted($row->[1]);
+		    $np->db->portMoveCompleted($row->[1]);
 	    } else {
 		    my $e = $np->error;
 		    _log "ERROR", "failed to move port $row->[2] p$row->[3] to $row->[4] (ID $row->[0] $row->[1]) ERR=$e\n";
-		    $dbh->portMoveCompleted($row->[1], 'unmanaged') if ($e =~ /UNMANAGED/);
+		    $np->db->portMoveCompleted($row->[1], 'unmanaged') if ($e =~ /UNMANAGED/);
 	    }
     }
 

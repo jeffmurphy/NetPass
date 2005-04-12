@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/garpctl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/garpctl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,7 +12,12 @@ garpctl - manage garp processes
 
 =head1 SYNOPSIS
 
- garpctl [-c config] [-qnDh?] <start | stop | status | restart> [interface]
+ garpctl [-c cstr] [-U dbuser/dbpass] [-qnDh?] <start | stop | status | restart> [interface]
+      -c cstr         db connect string
+      -U user/pass    db user[/pass]
+      -q              quiet
+      -D              debug
+      -h -?           this message
 
 =head1 OPTIONS
 
@@ -29,9 +34,9 @@ HA configuration, garp should run on the currently active redirector.
 Optional parameter specifying that we only want to fiddle with one of the
 garp processes. Example: C<garpctl stop eth1.812>
 
-=item B<-c config>
+=item B<-c cstr>
 
-Specify location of C<netpass.conf>
+Connect to an specific database.
 
 =item B<-q>
 
@@ -67,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: garpctl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: garpctl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
 
 =cut
 
@@ -94,9 +99,11 @@ NetPass::LOG::init [ 'garpctl', 'local0' ];
 
 
 my %opts;
-getopts('c:qnDh?', \%opts);
+getopts('c:U:qnDh?', \%opts);
 
 my ($cmd, $if) = (shift, shift);
+
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
 
 
@@ -112,17 +119,17 @@ if ( !defined($cmd) || ($cmd !~ /^(start|stop|restart|status)$/i) ) {
     pod2usage(1);
 }
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-		     "/opt/netpass/etc/netpass.conf",
-		     -debug => exists $opts{'D'} ? 1 : 0,
-		     -quiet => exists $opts{'q'} ? 1 : 0);
+my $np = new NetPass(-cstr   => exists $opts{'c'} ? $opts{'c'} : undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-die "failed to create NetPass object" unless defined $np;
+die "failed to connect to NetPass: $np" unless (ref($np) ne "NetPass");
 
-my $pidDir = $np->policy('PID_DIR') || "/var/run/netpass";
+my $pidDir = $np->policy('pid_dir') || "/var/run/netpass";
 my $pids   = getPids($pidDir);
 
-my $baseDir = $np->policy('BASE_DIR') || "/opt/netpass";
+my $baseDir = $np->policy('base_dir') || "/opt/netpass";
 
 print "calling command $cmd\n" if exists $opts{'D'};
 
@@ -139,13 +146,13 @@ sub getPids {
 
     opendir(DH, "/var/run/netpass") || die "cant open $d : $!";
     foreach my $fn (grep { /^garp\.[0-9]+\.pid$/ } readdir(DH)) {
-	my $fh = new FileHandle "$d/$fn", "r";
-	die "cant open $d/$fn: $!" unless defined $fh;
-	my ($pid, $if) = (<$fh>, <$fh>);
-	chomp($pid); chomp($if);
-	die "file didnt contain correct info"
-	  unless defined($pid) && defined($if);
-	$pids{$pid} = $if;
+	    my $fh = new FileHandle "$d/$fn", "r";
+	    die "cant open $d/$fn: $!" unless defined $fh;
+	    my ($pid, $if) = (<$fh>, <$fh>);
+	    chomp($pid); chomp($if);
+	    die "file didnt contain correct info"
+	      unless defined($pid) && defined($if);
+	    $pids{$pid} = $if;
     }
     closedir(DH);
     return \%pids;

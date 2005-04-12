@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/mysql_binlog_rotate.pl,v 1.3 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/mysql_binlog_rotate.pl,v 1.4 2005/04/12 15:24:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -36,7 +36,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: mysql_binlog_rotate.pl,v 1.3 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: mysql_binlog_rotate.pl,v 1.4 2005/04/12 15:24:08 jeffmurphy Exp $
 
 =cut
 
@@ -47,7 +47,7 @@ use Getopt::Std;
 use Pod::Usage;
 
 use lib '/opt/netpass/lib';
-use NetPass::Config;
+use NetPass;
 
 my $MINLOGS = 10;
 
@@ -55,14 +55,16 @@ my %opts;
 getopts('c:h?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
-my $cfg = new NetPass::Config(defined $opts{'c'} ? $opts{'c'} : 
-			      "/opt/netpass/etc/netpass.conf");
-die "Cannot get NetPass::Config object" unless defined $cfg;
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-my $cstr = sprintf("dbi:mysql:database=%s;host=%s", $cfg->dbSource, 'localhost');
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-my $dbh = DBI->connect($cstr, $cfg->dbUsername, $cfg->dbPassword);
-die "Cannot connect to database" unless defined $dbh;
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
+
+my $dbh = $np->db->{'dbh'};
 
 my $logs = $dbh->selectall_arrayref("SHOW MASTER LOGS");
 die "Unable to get binlogs" unless defined $logs;

@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/moveport.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/moveport.pl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -13,8 +13,9 @@ and quarantine VLANs.
 
 =head1 SYNOPSIS
 
- moveport.pl [-c config] [-n] [-q] [-D] <switch> <port> <unquarantine | quarantine>
-     -c configFile  [default /opt/netpass/etc/netpass.conf]
+ moveport.pl [-c cstr] [-U dbuser/dbpass] [-n] [-q] [-D] <switch> <port> <unquarantine | quarantine>
+     -c cstr        db connect string
+     -U user/pass   db user[/pass]
      -n             "not really"
      -q             be quiet. exit status only.
      -D             enable debugging
@@ -23,10 +24,13 @@ and quarantine VLANs.
 
 =over 8
 
-=item B<-c configFile>
+=item B<-c cstr>
 
-Specify an alternate NetPass configuration file. The default is
-C</opt/netpass/etc/netpass.conf>
+Specify an alternate database to connect to.
+
+=item B<-U user/pass>
+
+Connect to database using these credentials.
 
 =item B<-q>
 
@@ -86,7 +90,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: moveport.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: moveport.pl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
 
 =cut
 
@@ -98,8 +102,6 @@ use Pod::Usage;
 
 use NetPass::LOG qw(_log _cont);
 require NetPass;
-require NetPass::Config;
-#require NetPass::SNMP;
 
 NetPass::LOG::init [ 'moveport', 'local0' ]; #*STDOUT;
 
@@ -111,12 +113,14 @@ pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 my ($hn, $port, $vlan) = (shift, shift, shift);
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-                                "/opt/netpass/etc/netpass.conf",
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+
+my $np = new NetPass(-cstr  => exists $opts{'c'} ? $opts{'c'} : undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
 		     -debug => exists $opts{'D'} ? 1 : 0,
 		     -quiet => exists $opts{'q'} ? 1 : 0);
 
-die "failed to create NetPass object" unless defined $np;
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 my $rv = $np->movePort(-switch => $hn, -port => $port, -vlan => $vlan);
 

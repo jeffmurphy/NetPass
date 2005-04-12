@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.9 2005/03/31 15:00:49 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.10 2005/04/12 15:24:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -14,11 +14,12 @@ set the client to unquar if they pass validation checks.
 
 =head1 SYNOPSIS
 
- resetport.pl [-n] [-q] [-D] <traplog>
+ resetport.pl [-c cstr] [-U user/pass] [-nqDh?] <traplog>
      -n             "not really"
      -q             be quiet. exit status only.
      -D             enable debugging
-     -c             netpass.conf location
+     -c             db connect string
+     -U user/pass   db user[/pass]
 
 =head1 OPTIONS
 
@@ -34,9 +35,13 @@ an error occurred. Otherwise, exit with zero status.
 "Not really". Tell us what you will do, but don't really do it (this flag
 negates the C<-q> flag)
 
-=item B<-c>
+=item B<-c cstr>
 
-location of C<netpass.conf> - defaults to /opt/netpass/etc/netpass.conf
+DB do connect to.
+
+=item B<-U user/pass>
+
+Credentials to use when connect to DB.
 
 =item B<-D> 
 
@@ -72,7 +77,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.9 2005/03/31 15:00:49 jeffmurphy Exp $
+$Id: resetport.pl,v 1.10 2005/04/12 15:24:08 jeffmurphy Exp $
 
 =cut
 
@@ -92,7 +97,6 @@ my $otherPid = RUNONCE::alreadyRunning('resetport');
 
 require NetPass;
 use NetPass::LOG qw(_log _cont);
-require NetPass::Config;
 
 if(defined($otherPid) && $otherPid) {
     _log "ERROR", "i'm already running. pid=$otherPid\n";
@@ -101,7 +105,7 @@ if(defined($otherPid) && $otherPid) {
 
 
 my %opts;
-getopts('vnqDc:h?', \%opts);
+getopts('vnqDc:U:h?', \%opts);
 pod2usage(1) if $#ARGV != 0;
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
@@ -114,32 +118,16 @@ if (exists $opts{'D'}) {
 
 my $fname = shift;
 
-print "new NP ", (exists $opts{'c'} ? $opts{'c'} : "[default conf]"), "\n" if exists $opts{'D'};
+print "new NP..\n" if exists $opts{'D'};
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-		     "/opt/netpass/etc/netpass.conf",
-		     -debug => exists $opts{'D'} ? 1 : 0,
-		     -quiet => exists $opts{'q'} ? 1 : 0);
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-if (!defined($np)) {
-    _log "ERROR", "failed to create NetPass object\n";
-    exit 255;
-}
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-
-print "DB connect\n" if $opts{'D'};
-
-my $dbh = new NetPass::DB($np->cfg->dbSource,
-                          $np->cfg->dbUsername,
-                          $np->cfg->dbPassword,
-                          1);
-
-if (!defined($dbh)) {
-    my $e = "failed to create NP:DB ".DBI->errstr."\n";
-    _log "ERROR", $e;
-    print $e;
-    exit 255;
-}
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 print "new File::Tail\n" if exists $opts{'D'};
 
@@ -178,7 +166,7 @@ while (1) {
 	}
 
         RUNONCE::handleConnection();
-        processLines($np, $dbh, $unq,
+        processLines($np, $unq,
                      $unq_on_linkup, \@lines);
 
 	foreach my $switch (keys %$unq) {
@@ -211,7 +199,7 @@ Periodically, that list will be processed by another routine.
 =cut
 
 sub processLines {
-	my ($np, $dbh, $unq) = (shift, shift, shift);
+	my ($np, $unq) = (shift, shift);
 	my $unq_on_linkup = shift;
 	my $lines = shift;
 
@@ -278,10 +266,10 @@ sub processLines {
 					_log("DEBUG", " not really!\n") if exists $opts{'D'};
 					_log("INFO", "-n flag given. not really doing it.\n"); 
 				} else {
-					$dbh->requestMovePort(-switch => $switch, -port => $port, 
-							      -vlan => 'quarantine', 
-							      -by => 'resetport.pl') ||
-								_log("ERROR", $dbh->error());
+					$np->db->requestMovePort(-switch => $switch, -port => $port, 
+								 -vlan => 'quarantine', 
+								 -by => 'resetport.pl') ||
+								   _log("ERROR", $np->db->error());
 					_log ("DEBUG", " backfrom dbh->requestMovePort\n") 
 					  if exists $opts{'D'};
 				}
@@ -312,7 +300,7 @@ sub processLines {
 	}
 }
 
-=head2 procUQ($np, $dbh, $uq, $uqsetting)
+=head2 procUQ($np, $uq, $uqsetting)
 
 This routine will run the list of ports-to-be-possibly-unquarantined
 and will unquarantine those that should be. Those that shouldnt be
@@ -330,28 +318,17 @@ sub procUQ {
 
 	print "thread connecting to DB\n" if $opts{'D'};
 
-	my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-                     	     "/opt/netpass/etc/netpass.conf",
-                     	     -debug => exists $opts{'D'} ? 1 : 0,
-                     	     -quiet => exists $opts{'q'} ? 1 : 0);
+	my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-	if (!defined($np)) {
-    		_log "ERROR", "failed to create NetPass object\n";
+	my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+			     -dbuser => $dbuser, -dbpass => $dbpass,
+			     -debug  => exists $opts{'D'} ? 1 : 0,
+			     -quiet  => exists $opts{'q'} ? 1 : 0);
+	
+
+	if (ref($np) ne "NetPass") {
+    		_log("ERROR", "failed to connect to NetPass: $np\n");
 		threads->join;
-		return 1;
-	}
-
-	my $dbh = new NetPass::DB($np->cfg->dbSource,
-                          	  $np->cfg->dbUsername,
-                          	  $np->cfg->dbPassword,
-                          	  1
-			         );
-
-	if (!defined($dbh)) {
-		my $e = "failed to create NP:DB ".DBI->errstr."\n";
-    		_log "ERROR", $e;
-    		print $e;
-    		threads->join;
 		return 1;
 	}
 
@@ -391,7 +368,7 @@ sub procUQ {
 				# we just need to call validateMac on the first
 				# registered mac address we found. 
 				
-				my ($regMac, $regMacStatus) = findRegMac($dbh, $macList);
+				my ($regMac, $regMacStatus) = findRegMac($np, $macList);
 				if (!defined($regMac)) {
 					_log ("WARNING", "no macs registered on $switch $port. leaving in quarantine.\n");
 				} else {
@@ -408,9 +385,9 @@ sub procUQ {
 							if(exists $opts{'n'}) {
 								_log("DEBUG", "not really!\n");
 							} else {
-								$dbh->requestMovePort(-switch => $switch, -port => $port, 
-										      -vlan => 'unquarantine', -by => 'resetport.pl') ||
-											push @failed, $port;
+								$np->db->requestMovePort(-switch => $switch, -port => $port, 
+											 -vlan => 'unquarantine', -by => 'resetport.pl') ||
+											   push @failed, $port;
 							}
 						} else {
 							_log ("DEBUG", "$regMac leave quar $switch $port\n");
@@ -421,7 +398,7 @@ sub procUQ {
 						
 						_log ("DEBUG", "$switch $port has more than one mac on it. enforceMultiMacPolicy\n");
 						
-						my ($_rv, $_sw, $_po) = $np->enforceMultiMacPolicy($dbh, $regMac, '', $regMacStatus, 
+						my ($_rv, $_sw, $_po) = $np->enforceMultiMacPolicy($regMac, '', $regMacStatus, 
 												   $switch, $port, 
 												   undef, {$port => $macList});
 						if ($_rv =~ /UNQUAR$/) {
@@ -429,7 +406,7 @@ sub procUQ {
 							if (exists $opts{'n'}) {
 								_log("DEBUG", "not really!\n");
 							} else {
-								$dbh->requestMovePort(-switch => $switch, -port => $port, 
+								$np->db->requestMovePort(-switch => $switch, -port => $port, 
 										      -vlan => 'unquarantine', -by => 'resetport.pl') ||
 											push @failed, $port;
 							}
@@ -453,7 +430,7 @@ sub procUQ {
 				# XXX we're not going to implement the other MULTI_MAC cases yet
 				# endif
 			
-				my $numOK   = $dbh->UQLinkUp_itDependsCheck($macList);
+				my $numOK   = $np->db->UQLinkUp_itDependsCheck($macList);
 				my $mmpol   = $np->cfg->policy('MULTI_MAC');
 				
 				if ( ($numOK == ($#$macList+1)) && ($mmpol eq "ALL_OK") ) {
@@ -462,11 +439,11 @@ sub procUQ {
 					if (exists $opts{'n'}) {
 						_log("DEBUG", "not really!\n");
 					} else {
-						$dbh->requestMovePort(-switch => $switch, 
-								      -port => $port, 
-								      -vlan => 'unquarantine',
-								      -by => 'resetport.pl') ||
-									push @failed, $port;
+						$np->db->requestMovePort(-switch => $switch, 
+									 -port => $port, 
+									 -vlan => 'unquarantine',
+									 -by => 'resetport.pl') ||
+									   push @failed, $port;
 					}
 				} else {
 					_log ("DEBUG", "$switch $port 'itdepends' set. somethings not right. quar port. ",
@@ -559,10 +536,10 @@ sub resetPortEnabled {
 }
 
 sub findRegMac {
-	my $dbh = shift;
+	my $np = shift;
 	my $ml = shift;
 	foreach my $m ( @$ml ) {
-		my $ms = $dbh->macStatus($m);
+		my $ms = $np->db->macStatus($m);
 		return (NetPass::padMac($m), $ms) if defined($ms);
 	}
 	return undef; # no macs were registered

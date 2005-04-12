@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/nessus.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/nessus.pl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,7 +12,7 @@ nessus.pl - purges mysql binlogs
 
 =head1 SYNOPSIS
 
- nessus.pl [IP ADDRESS]
+ nessus.pl [-c cstr] [-U user/pass] [-qDh?] [IP ADDRESS]
 
 =head1 DESCRIPTION
 
@@ -32,7 +32,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: nessus.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: nessus.pl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
 
 =cut
 

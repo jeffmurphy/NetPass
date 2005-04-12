@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.9 2005/04/07 19:06:45 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.10 2005/04/12 15:24:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,8 +12,9 @@
 
 =head1 SYNOPSIS
 
- interfacecfg.pl [-c config] [-r 1|2] [-d 1|2]
-     -c configFile  [default /opt/netpass/etc/netpass.conf]
+ interfacecfg.pl [-c cstr] [-U dbuser/dbpass] [-r 1|2] [-d 1|2]
+     -c cstr        db connect string
+     -U user/pass   db user[/pass]
      -r 1|2         real server number
      -d 1|2         redirector number
 
@@ -44,7 +45,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.9 2005/04/07 19:06:45 mtbell Exp $
+$Id: interfacecfg.pl,v 1.10 2005/04/12 15:24:08 jeffmurphy Exp $
 
 =cut
 
@@ -53,7 +54,7 @@ use strict;
 use Carp;
 use Getopt::Std;
 use lib qw(/opt/netpass/lib);
-use NetPass::Config;
+use NetPass;
 
 sub Usage();
 sub getIps($);
@@ -74,7 +75,7 @@ my $IFCONFIG	= "/sbin/ifconfig";
 my $ROUTE	= "/sbin/route";
 my $HARESOURCES	= "/etc/ha.d/haresources";
 
-getopts('d:r:c:h', \%opts);
+getopts('U:d:r:c:h', \%opts);
 
 Usage() if ($opts{'h'});
 
@@ -88,16 +89,23 @@ if (exists $opts{'d'} && ($opts{'d'} > 2 || $opts{'d'} < 1)) {
 	
 $rord = ($opts{'r'}) ? 'r' : 'd';
 
-my $cfg = new NetPass::Config(($opts{'c'}) ? $opts{'c'} : 
-			      "/opt/netpass/etc/netpass.conf");
-my $networks = $cfg->getNetworks();
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
+
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
+
+my $networks = $np->cfg->getNetworks();
 
 foreach my $net (@$networks) {
 	my @ips                  = getIps($net);
-	$ifaces{$net}{'int'}     = $cfg->getInterface($net); 
-	$ifaces{$net}{'qvlan'}   = $cfg->quarantineVlan($net);
-	$ifaces{$net}{'nqvlan'}  = $cfg->nonquarantineVlan($net);
-	$ifaces{$net}{'vip'}	 = ($cfg->virtualIP($net)) ? $cfg->virtualIP($net) : $ips[0]; 
+	$ifaces{$net}{'int'}     = $np->cfg->getInterface($net); 
+	$ifaces{$net}{'qvlan'}   = $np->cfg->quarantineVlan($net);
+	$ifaces{$net}{'nqvlan'}  = $np->cfg->nonquarantineVlan($net);
+	$ifaces{$net}{'vip'}	 = ($np->cfg->virtualIP($net)) ? $np->cfg->virtualIP($net) : $ips[0]; 
 	$ifaces{$net}{'d1'}	 = $ips[1]; 
 	$ifaces{$net}{'d2'}	 = $ips[2]; 
 	$ifaces{$net}{'r1'}	 = $ips[3]; 
@@ -106,8 +114,8 @@ foreach my $net (@$networks) {
 	$ifaces{$net}{'bcast'}	 = $ips[6];
 
 	if (exists $opts{'d'} && defined($opts{'d'})) {
-		$ifaces{$net}{'redir'}   = ($opts{'d'} == 1) ? $cfg->primary_redirector($net) :
-						       	       $cfg->secondary_redirector($net);
+		$ifaces{$net}{'redir'}   = ($opts{'d'} == 1) ? $np->cfg->primary_redirector($net) :
+						       	       $np->cfg->secondary_redirector($net);
 		$ifaces{$net}{'redir'}	 = 'unknown redirector' if !defined($ifaces{$net}{'redir'});
 	}
 }

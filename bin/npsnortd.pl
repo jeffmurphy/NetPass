@@ -65,7 +65,7 @@ use vars qw($remote_ip %opts);
 my $DEFAULTPORT		= 20008;
 my $DEFAULTSNORTLOG	= "/opt/snort/logs/snort.log";
 
-getopts('s:S:c:p:r:l:qDh?', \%opts);
+getopts('s:S:p:r:l:qDh?', \%opts);
 pod2usage(2) if exists $opts{'h'}  || exists $opts{'?'};
 pod2usage(2) if !exists $opts{'s'} || !exists $opts{'S'};
 

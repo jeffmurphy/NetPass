@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/npportcache.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/npportcache.pl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
 #
 
 
@@ -11,8 +11,9 @@ from netpass code and performs the queries for the code.
 
 =head1 SYNOPSIS
 
- npportcache.pl [-c config] [-n] [-q] [-D] [-p port]
-     -c configFile  [default /opt/netpass/etc/netpass.conf]
+ npportcache.pl [-c cstr] [-U user/pass] [-nqDh?] [-p port]
+     -c cstr        db connect string
+     -U user/pass   db user[/pass]
      -p #           port to listen on
      -n             "not really"
      -q             be quiet. exit status only.
@@ -22,10 +23,13 @@ from netpass code and performs the queries for the code.
 
 =over 8
 
-=item B<-c configFile>
+=item B<-c cstr>
 
-Specify an alternate NetPass configuration file. The default is
-C</opt/netpass/etc/netpass.conf>
+Specify an alternate database to connect to.
+
+=item B<-U user/pass>
+
+Credentials to use when connecting to database.
 
 =item B<-q>
 
@@ -67,7 +71,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: npportcache.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: npportcache.pl,v 1.3 2005/04/12 15:24:08 jeffmurphy Exp $
 
 =cut
 
@@ -97,13 +101,11 @@ if(defined($otherPid) && $otherPid) {
 }
 
 require NetPass;
-require NetPass::Config;
-require NetPass::DB;
 
 $SIG{'ALRM'} = \&alarmHandler;
 
 my %opts;
-getopts('c:p:qnDh?', \%opts);
+getopts('U:c:p:qnDh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 my $D = 0;
@@ -116,12 +118,15 @@ if (exists $opts{'D'}) {
 
 print "new NP\n" if $D;
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-                     "/opt/netpass/etc/netpass.conf",
-                     -debug => exists $opts{'D'} ? 1 : 0,
-                     -quiet => exists $opts{'q'} ? 1 : 0);
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-die "failed to create NetPass object" unless defined $np;
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
+
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
+
 
 # forever:
 #     check for new cnx, add to cnx list
@@ -251,7 +256,7 @@ sub handleClientInput {
 	    _log ("ERROR", fileno($fd)." sent us bad data. no mac or ip given: \"$buf\"\n");
 	} else {
 
-	    $mac = padMac($mac);
+	    $mac = NetPass::padMac($mac);
 
 	    # figure out which network we are on
 	    # search all switches for a cache entry that matches us
@@ -292,14 +297,6 @@ sub handleClientInput {
 	    }
 	}
     }
-}
-
-sub padMac {
-        my $m = shift;
-        return $m unless defined($m);
-        $m = "0" x (12-length($m)) . $m;
-        $m =~ tr [A-Z] [a-z];
-        return $m;
 }
 
 sub checkForNewConnections {

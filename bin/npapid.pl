@@ -28,7 +28,7 @@ if(defined($otherPid) && $otherPid) {
 $SIG{'ALRM'} = \&alarmHandler;
 
 my %opts;
-getopts('c:qDh?', \%opts);
+getopts('c:U:qDh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 my $D = 0;
@@ -38,25 +38,20 @@ if (exists $opts{'D'}) {
     daemonize("npapid", "/var/run/netpass");
 }
 
-$np     = new NetPass(-config => (exists $opts{'c'} && defined $opts{'c'}) ? $opts{'c'} :
-			         "/opt/netpass/etc/netpass.conf");
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-die ("Unable to access netpass object") if (!$np);
-my $cfg = $np->cfg();
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
+		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-$dbh = new NetPass::DB($cfg->dbSource,
-                       $cfg->dbUsername,
-                       $cfg->dbPassword,
-                       1);
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
-if (!$dbh) {
-   _log("ERROR", "Unable to access NetPass::DB object");
-   die ("Unable to access NetPass::DB object");
-}
 
 _log("DEBUG", "starting SOAP server");
+
 my $daemon = SOAP::Transport::TCP::Server->new(
-						LocalPort       => $cfg->npapiPort(),
+						LocalPort       => $np->cfg->npapiPort(),
 						Listen          => 5,
 						Reuse           => 1,
 				              )->dispatch_to('NetPass::API');

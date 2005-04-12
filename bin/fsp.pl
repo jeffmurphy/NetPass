@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/fsp.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/fsp.pl,v 1.3 2005/04/12 15:23:52 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,9 +12,10 @@
 
 =head1 SYNOPSIS
 
- fsp.pl [-c config] [-D] <macaddr> <ipaddr>
-     -c configFile  [default /opt/netpass/etc/netpass.conf]
-     -D             enable debugging
+ fsp.pl [-c cstr] [-U dbuser/dbpass] [-D] <macaddr> <ipaddr>
+     -c cstr       db connect string
+     -U user/pass  dbuser[/dbpass]
+     -D            enable debugging
 
 =head1 OPTIONS
 
@@ -43,7 +44,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: fsp.pl,v 1.2 2005/03/16 14:28:42 jeffmurphy Exp $
+$Id: fsp.pl,v 1.3 2005/04/12 15:23:52 jeffmurphy Exp $
 
 =cut
 
@@ -60,20 +61,21 @@ require NetPass::Config;
 pod2usage(1) if $#ARGV < 1;
 
 my %opts;
-getopts('c:qDh?', \%opts);
+getopts('c:U:qDh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 NetPass::LOG::init *STDOUT if exists $opts{'D'};
 
 
-my ($ma, $ip) = (shift, shift);
+my ($ma, $ip)         = (shift, shift);
+my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-my $np = new NetPass(-config => defined $opts{'c'} ? $opts{'c'} :
-                                "/opt/netpass/etc/netpass.conf",
+my $np = new NetPass(-config => exists $opts{'c'} ? $opts{'c'} : undef,
+		     -dbuser => $dbuser, -dbpass => $dbpass,
 		     -debug => exists $opts{'D'} ? 1 : 0,
 		     -quiet => exists $opts{'q'} ? 1 : 0);
 
-die "failed to create NetPass object" unless defined $np;
+die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 my $nw = $np->cfg->getMatchingNetwork($ip);
 

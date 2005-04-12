@@ -103,6 +103,7 @@ install.d/tables.sql
 install.d/ldirectord.cf
 install.d/testpm
 install.d/snmptrapd
+lib/Bundle/NetPass/API.pm
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
 lib/NetPass/WWW/Session.pm.file
@@ -119,6 +120,7 @@ lib/NetPass/LOG.pm
 lib/NetPass/Nessus.pm
 lib/NetPass/Network.pm
 lib/NetPass/Stats.pm
+lib/NetPass/.#Config.pm.1.9
 lib/OSS/Template/Templates/Site.pm
 lib/OSS/Template/BoxArea.pm
 lib/OSS/Template/Box.pm
