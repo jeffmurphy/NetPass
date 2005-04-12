@@ -1,7 +1,7 @@
 #!/opt/perl-5.8.6/bin/perl -w
 
 use strict;
-use vars qw($dbh $np $remote_ip);
+use vars qw($np $remote_ip);
 
 use Getopt::Std;
 use Pod::Usage;
@@ -10,7 +10,8 @@ use SOAP::Lite;
 use IO::SessionSet;
 use Socket;
 
-use lib '/opt/netpass/lib';
+#use lib '/opt/netpass/lib';
+use lib '/u1/students/mtbell/NetPass/lib';
 use RUNONCE;
 use NetPass::LOG qw(_log _cont);
 NetPass::LOG::init [ 'npapid', 'local0' ]; #*STDOUT;
@@ -40,10 +41,10 @@ if (exists $opts{'D'}) {
 
 my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
-		     -dbuser => $dbuser, -dbpass => $dbpass,
-		     -debug  => exists $opts{'D'} ? 1 : 0,
-		     -quiet  => exists $opts{'q'} ? 1 : 0);
+$np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+	          -dbuser => $dbuser, -dbpass => $dbpass,
+		  -debug  => exists $opts{'D'} ? 1 : 0,
+		  -quiet  => exists $opts{'q'} ? 1 : 0);
 
 die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
