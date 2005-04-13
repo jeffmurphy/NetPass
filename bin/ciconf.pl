@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/ciconf.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/ciconf.pl,v 1.4 2005/04/13 20:57:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,13 +12,14 @@
 
 =head1 SYNOPSIS
 
- ciconfig.pl [-c cstr] [-U dbuser/dbpass] [-D] [-u] [-f] [-m 'msg']
+ ciconfig.pl [-c cstr] [-U dbuser/dbpass] [-D] [-u] [-f] [-m 'msg'] [-i file]
      -c cstr        db connect string
      -U user/pass   db user[/pass]
      -D             enable debugging
      -u             unlock the config
      -f             force. break an existing lock.
      -m msg         use this log message
+     -i file        config file to read
 
 =head1 OPTIONS
 
@@ -48,7 +49,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: ciconf.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
+$Id: ciconf.pl,v 1.4 2005/04/13 20:57:42 jeffmurphy Exp $
 
 =cut
 
@@ -63,7 +64,7 @@ require NetPass;
 require NetPass::Config;
 
 my %opts;
-getopts('c:m:U:qufDh?', \%opts);
+getopts('c:m:U:i:qufDh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 NetPass::LOG::init *STDOUT if exists $opts{'D'};
@@ -77,12 +78,12 @@ my $np = new NetPass(-cstr  => exists $opts{'c'} ? $opts{'c'} : undef,
 
 die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
-my $fh = new FileHandle $opts{'c'}, "r";
-die qq{cant open $opts{'c'} for reading: $!} unless defined($fh);
+my $fh = new FileHandle $opts{'i'}, "r";
+die qq{cant open $opts{'i'} for reading: $!} unless defined($fh);
 my @c = <$fh>;
 $fh->close;
 
-print "Read ", ($#c+1), " lines from ", $opts{'c'}, "\n";
+print "Read ", ($#c+1), " lines from ", $opts{'i'}, "\n";
 
 my $whoami = `/usr/bin/whoami`;
 chomp($whoami);
@@ -166,15 +167,23 @@ if (ref ($rv) eq "HASH") {
 		exit 255;
 	}
 } else {
-	# else config is not locked. lock it, import it, unlock it (if -u)
+	# else config is not locked. lock it, import it, unlock it (because we acquired 
+	# a temporay lock.
+
+	print "Config is not locked. Acquiring temporary lock.\n";
 
 	$rv = $np->db->getConfig(-user => $whoami, -lock => 1);
 	die "failed to lock config: $rv" if (ref($rv) ne "HASH");
 	my $rev = $rv->{'rev'};
 
-	# if this is an initial import, rev will be undef
+	# if this is an initial import, rev will be undef and no lock will be
+	# acquired.
 
 	$rev ||= 0;
+
+	if ($rv == 0) {
+		print "Initial import. No lock required.\n";
+	}
 
 	$rv = $np->db->putConfig(-config => \@c, -user => $whoami, -log => \@log);
 	if ($rv) {
@@ -182,16 +191,15 @@ if (ref ($rv) eq "HASH") {
 		if ($rev > 0) {
 			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to unlock config: $rv" if $rv;
+			print "Successfully unlocked config.\n";
 		}
-		print "Successfully unlocked config.\n";
 		exit 255;
 	}
 	print "Successfully stored config.\n";
-	if (exists $opts{'u'}) {
-		if ($rev > 0) {
-			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
-			die "failed to unlock config: $rv" if $rv;
-		}
+
+	if ($rev > 0) {
+		$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
+		die "failed to unlock config: $rv" if $rv;
 		print "Successfully unlocked config.\n";
 	}
 }

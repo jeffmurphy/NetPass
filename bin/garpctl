@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/garpctl,v 1.4 2005/04/12 20:53:43 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/garpctl,v 1.5 2005/04/13 20:57:43 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -72,7 +72,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: garpctl,v 1.4 2005/04/12 20:53:43 jeffmurphy Exp $
+$Id: garpctl,v 1.5 2005/04/13 20:57:43 jeffmurphy Exp $
 
 =cut
 
@@ -307,8 +307,9 @@ sub status {
 
     my $running = 0;
 
+    $~ = 'STATUS'; $^ = "STATUS_TOP";
+
     foreach my $process (@$pt) {
-	#print $process->pid, " ";
 	my $pp      = $process->pid;
 
 	if ( grep ( /^$pp$/ ,  @pidList ) ) {
@@ -324,12 +325,10 @@ sub status {
 	    $uid     = $process->uid;
 	    $ifn     = $pids->{$pp};
 	    $name    = $process->cmndline;
-	    $~ = 'STATUS'; write; $~ = 'STDOUT';
-	} else {
-	    #print "skip";
-	}
-	#print "\n";
+	    write;
+	} 
     }
+    $~ = 'STDOUT'; $^ = "";
 
     if (!$running) { 
 	print "No garp daemons are running.\n";

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.18 2005/04/12 21:12:28 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.19 2005/04/13 20:57:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1727,7 +1727,7 @@ sub lockConfig {
     return "db failure ".$self->dbh->errstr unless (ref($rv) eq "ARRAY");
 
     if ($#{$rv} > -1) {
-	    return "lock failed rev=".$rv->[0]->[1];
+	    return "lock failed alreadyLockedRev=".$rv->[0]->[1];
     }
     $sql = "UPDATE config SET xlock = 1 WHERE rev = ".$self->dbh->quote($r);
     $rv  = $self->dbh->do($sql);
@@ -1787,7 +1787,7 @@ sub unlockConfig {
 
 
 
-=head2 fetchConfigs( )
+=head2 listConfigs( )
 
 Fetch a listing of all of the stored configs. The listing will contain
 the rev, timestamp, lock status, and user. If you want the log and
@@ -1805,9 +1805,9 @@ oldest) is  $hr->{'rev'}->[0]
 =cut
 
 
-sub fetchConfigs {
+sub listConfigs {
     my $self = shift;
-    my $sql  = "SELECT rev, unix_timestamp(dt) AS timestamp, xlock, user FROM config";
+    my $sql  = "SELECT rev, unix_timestamp(dt) AS timestamp, xlock, user FROM config ORDER BY rev ASC";
     my $rv   = $self->dbh->selectall_arrayref($sql);
 
     if (ref($rv) ne "ARRAY" || ($#{$rv} == -1)) {
@@ -1877,7 +1877,7 @@ sub appendLogToConfig {
 
     $rv->[0]->[0] ||= "";
 
-    my $l2  = join(' ', scalar(localtime), $u, "\n", @$l, "\n", $rv->[0]->[0]);
+    my $l2  = join('', scalar(localtime)." $u\n", @$l, "\n", $rv->[0]->[0]);
 
     $sql = "UPDATE config SET log = ".$self->dbh->quote($l2). " WHERE rev = ".
       $self->dbh->quote($r);
@@ -1922,7 +1922,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.18 2005/04/12 21:12:28 mtbell Exp $
+$Id: DB.pm,v 1.19 2005/04/13 20:57:45 jeffmurphy Exp $
 
 =cut
 

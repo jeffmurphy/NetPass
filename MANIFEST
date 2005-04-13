@@ -2,6 +2,7 @@ bin/test/snmp_time_test.pl
 bin/test/snmptt_Net::SNMP.pl
 bin/test/snmptt_SNMP.pl
 bin/test/snmptt_shell.pl
+bin/test/getMatchingNetwork.pl
 bin/import_nessus_scans.pl
 bin/appstarter.pl
 bin/bulk_moveport.pl
@@ -26,6 +27,7 @@ bin/ciconf.pl
 bin/rm_stale_cookies.pl
 bin/import_snort_rules.pl
 bin/getresults.pl
+bin/lsconf.pl
 doc/cron.monthly/mysql_binlog_rotate
 doc/logrotate.d/apache
 doc/logrotate.d/netpass
@@ -106,8 +108,8 @@ install.d/snmptrapd
 lib/Bundle/NetPass/API.pm
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
-lib/NetPass/WWW/Session.pm.file
 lib/NetPass/WWW/Session.pm.mysql
+lib/NetPass/WWW/Session.pm.file
 lib/NetPass/Auth/Radius.pm
 lib/NetPass/Auth/DB.pm
 lib/NetPass/Auth/LDAP.pm

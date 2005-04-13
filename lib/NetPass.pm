@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.15 2005/04/12 20:53:44 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.16 2005/04/13 20:57:43 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -594,9 +594,9 @@ sub search_topology {
 	if (defined($next_switch) && ($next_switch ne "")) {
 		_log("DEBUG", "$mac it's another switch ($next_switch). searching that one.\n");
 
-                if($next_switch !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\.$/) {
+                if($next_switch !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
                         _log ("DEBUG", "$mac next_switch is $next_switch which doesnt look like an IP\n");
-                        next;
+                        return (undef, undef, undef, undef);
                 }
 
 		return $self->search_topology($next_switch,
@@ -977,7 +977,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.15 2005/04/12 20:53:44 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.16 2005/04/13 20:57:43 jeffmurphy Exp $
 
 =cut
 

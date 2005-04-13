@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/coconf.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/coconf.pl,v 1.4 2005/04/13 20:57:43 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -16,6 +16,7 @@
      -c configFile  [default /opt/netpass/etc/netpass.conf]
      -D             enable debugging
      -l             lock the configuration
+     -u             unlock the configuration
      -r rev         export a specific revision
      -f             force the lock if someone else holds it
      -o file        write config to file (default STDOUT)
@@ -44,7 +45,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: coconf.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
+$Id: coconf.pl,v 1.4 2005/04/13 20:57:43 jeffmurphy Exp $
 
 =cut
 
@@ -59,7 +60,7 @@ require NetPass;
 require NetPass::Config;
 
 my %opts;
-getopts('o:c:U:qflr:Dh?', \%opts);
+getopts('o:c:U:qfulr:Dh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 NetPass::LOG::init *STDOUT if exists $opts{'D'};
@@ -74,6 +75,9 @@ my $np = new NetPass(-cstr  => exists $opts{'c'} ? $opts{'c'} : undef,
 
 die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
+die "-l and -u are mutually exclusive.\n" if (exists $opts{'l'} && 
+					      exists $opts{'u'});
+
 my $whoami = `/usr/bin/whoami`;
 chomp($whoami);
 
@@ -81,13 +85,13 @@ my $rv;
 my $rev = exists $opts{'r'} ? $opts{'r'} : 0;
 
 if (exists $opts{'l'}) {
-	if ($rev ne "") {
+	if ($rev != 0) {
 		if (exists $opts{'f'}) {
 			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
 			die "failed to force unlock config: $rv" if $rv;
 		}
 		$rv = $np->db->lockConfig(-rev  => $rev,
-					 -user => $whoami);
+					  -user => $whoami);
 		die "failed to lock config: $rv" if $rv;
 	} else {
 		my $hv = $np->db->getConfig();
@@ -99,11 +103,74 @@ if (exists $opts{'l'}) {
 			}
 
 			$rv = $np->db->lockConfig(-rev  => $rev,
-						 -user => $whoami);
+						  -user => $whoami);
 			die "failed to lock config: $rv" if $rv;
+		} else {
+			die "failed to getConfig (trying to figure out 'rev'): $hv\n";
 		}
 	}
 	print "# Configuration revision $rev locked for editing.\n";
+}
+
+if (exists $opts{'u'}) {
+	if ($rev != 0) {
+		my $hv = $np->db->isConfigLocked();
+		
+		if (ref($hv) ne "HASH" && ($hv =~ /db/)) {
+			die "failed to query lock status: $hv\n";
+		}
+
+		if (ref($hv) ne "HASH" && ($hv == 0)) {
+			print "# -u given but config is not locked.\n";
+		} 
+		elsif ($whoami ne $hv->{'user'}) {
+			if (exists $opts{'f'}) {
+				$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
+				die "failed to force unlock config: $rv" if $rv;
+				print "# Configuration revision $rev unlocked.\n";
+			} else {
+				die $hv->{'user'}. " holds the lock. use -f to force the unlock.\n";
+			}
+		}
+		else {
+			$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
+			die "failed to unlock config: $rv" if $rv;
+			print "# Configuration revision $rev unlocked.\n";
+		}
+	} else {
+		# we dont know what the rev is
+
+		my $hv = $np->db->getConfig();
+		if ( (ref($hv) eq "HASH") && ($hv->{'rev'} > 0) ) {
+			$rev = $hv->{'rev'};
+
+			my $hv = $np->db->isConfigLocked();
+		
+			if (ref($hv) ne "HASH" && ($hv =~ /db/)) {
+				die "failed to query lock status: $hv\n";
+			}
+
+			if (ref($hv) ne "HASH" && ($hv == 0)) {
+				print "# -u given but config is not locked.\n";
+			} 
+			elsif ($whoami ne $hv->{'user'}) {
+				if (exists $opts{'f'}) {
+					$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
+					die "failed to force unlock config: $rv" if $rv;
+					print "# Configuration revision $rev unlocked.\n";
+				} else {
+					die $hv->{'user'}. " holds the lock. use -f to force the unlock.\n";
+				}
+			}
+			else {
+				$rv = $np->db->unlockConfig(-rev => $rev, -user => $whoami);
+				die "failed to unlock config: $rv" if $rv;
+				print "# Configuration revision $rev unlocked.\n";
+			}
+		} else {
+			die "failed to getConfig (trying to figure out 'rev'): $hv\n";
+		}
+	}
 }
 
 $rv = $np->db->getConfig(-rev => $rev);

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.16 2005/04/12 20:53:44 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.17 2005/04/13 20:57:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -742,7 +742,7 @@ sub getMatchingNetwork {
     my ($ip, $sw, $po) = $parms->get('-ip', '-switch', '-port');
 
     return "invalid params (if !ip then sw/po both reqd)"
-      if (($ip ne "") && (($sw eq "") || ($po eq "")));
+      if (($ip eq "") && (($sw eq "") || ($po eq "")));
 
     if ($ip ne "") {
 	    my $ip_ = ip2int(host2addr($ip));
@@ -756,8 +756,19 @@ sub getMatchingNetwork {
     } 
     else {
 	    # fetch the vlans for the given switch port
+
+	    my ($uqvl1, $qvl1) = $self->availableVlans(-switch => $sw, -port => $po);
+
+	    return "none" if !defined($uqvl1);
+
 	    # look thru each network until you find one that matches
 	    # the vlans
+
+	    foreach my $n ($self->{'cfg'}->keys('network')) {
+		    my ($uqvl2, $qvl2) = $self->availableVlans(-network => $n);
+		    next if ($uqvl2 eq "" || $qvl2 eq "");
+		    return $n if ( ($uqvl1 == $uqvl2) && ($qvl1 == $qvl2) );
+	    }
     }
 
     return "none";
@@ -1247,7 +1258,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.16 2005/04/12 20:53:44 jeffmurphy Exp $
+$Id: Config.pm,v 1.17 2005/04/13 20:57:45 jeffmurphy Exp $
 
 =cut
 
