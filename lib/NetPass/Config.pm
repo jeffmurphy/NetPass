@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.18 2005/04/14 13:41:36 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.19 2005/04/14 18:32:13 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -84,7 +84,10 @@ sub xxAUTOLOAD {
 sub debug {
     my $self = shift;
     my $val  = shift;
+    $self->{'dbb'} ||= 0;
+    return $self->{'dbg'} unless defined($val);
     $self->{'dbg'} = $val;
+    return $self->{'dbg'};
 }
 
 sub reloadIfChanged {
@@ -623,18 +626,25 @@ sub getSwitches {
     $self->reloadIfChanged();
 
     my @switches;
+    my %switches;
 
     if (defined($network) && ($network ne "")) {
 	    # exclude the "bsw" keyword
 	    @switches = grep { !/^bsw$/i } $self->{'cfg'}->obj('network')->obj($network)->keys('switches');
+	    foreach my $sw (@switches) {
+		    $switches{$sw} = 1;
+	    }
     } else {
 	    my $nws = $self->getNetworks();
 	    foreach my $nw (@$nws) {
 		    push @switches, grep { !/^bsw$/i } $self->{'cfg'}->obj('network')->obj($nw)->keys('switches');
+		    foreach my $sw (@switches) {
+			    $switches{$sw} = 1;
+		    }
 	    }
     }
 
-    return \@switches;
+    return [ keys %switches ];
 }
 
 =head2 my $comment = $cfg-E<gt>getNetComment($network)
@@ -665,7 +675,7 @@ Given a key (a policy/configuration variable name) return the associated value
 or undef if the variable doesnt exist in the C<netpass.conf> file's 
 E<lt>policyE<gt> section. Networks can have E<lt>policyE<gt> sections too.
 If we're given a network, we'll search there first. If we don't find
-anything useful, we'll try the global policy.
+anything useful, we'll try the network's group and finally the global policy.
 
 =cut
 
@@ -674,6 +684,8 @@ sub policy {
 	my $pvar = shift;
 	my $nw   = shift;
 
+
+	_log("DEBUG", "policy($pvar)\n") if $self->debug;
 
 	$nw ||= "";
 
@@ -687,16 +699,43 @@ sub policy {
 	$pvar =~ tr [A-Z] [a-z]; # because of AutoLowerCase
 
 	if ($nw ne "" || $nw !~ /\//) { # not CIDR, bare IP
+		_log("DEBUG", "policy($pvar): resolve nw=$nw\n") if $self->debug;
 		$nw = $self->getMatchingNetwork(-ip => $nw);
+		_log("DEBUG", "policy($pvar): resolved to nw=$nw\n") if $self->debug;
 	}
 
+	# if the network has a <policy> section, check it for the given
+	# pvar
+
 	if (recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
+		_log("DEBUG", "policy($pvar): nw=$nw has policy section. returning that.\n") if $self->debug;
 		return $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 	}
 
-	return undef if ! $self->{'cfg'}->exists('policy');
-	return undef if ! $self->{'cfg'}->obj('policy')->exists($pvar);
-	return $self->{'cfg'}->obj('policy')->value($pvar);
+
+	# if the network has a group name, check the group
+
+	my $netgroup = "";
+	if (recur_exists ($self->{'cfg'}, "network", $nw, "group")) {
+		$netgroup =  $self->{'cfg'}->obj('network')->obj($nw)->value('group');
+		_log("DEBUG", "policy($pvar): nw=$nw is member of group $netgroup\n") if $self->debug;
+		if (recur_exists ($self->{'cfg'}, "group", $netgroup, "policy", $pvar)) {
+			_log("DEBUG", "policy($pvar): (nw=$nw) group=$netgroup has policy section. returning that.\n") if $self->debug;
+			return $self->{'cfg'}->obj('group')->obj($netgroup)->
+			  obj('policy')->value($pvar);
+		}
+	}
+
+	# finally, look in the global policy
+
+	_log("DEBUG", "policy($pvar): looking in global policy.\n") if $self->debug;
+
+	return $self->{'cfg'}->obj('policy')->value($pvar)
+	  if (recur_exists ($self->{'cfg'}, "policy", $pvar));
+
+	_log("DEBUG", "policy($pvar): no global policy. $pvar not found.\n") if $self->debug;
+
+	return undef;
 }
 
 =head2 my $network = $cfg-E<gt>getMatchingNetwork(-ip => $ip, -switch => $ip, -port => $port)
@@ -745,16 +784,28 @@ sub getMatchingNetwork {
       if (($ip eq "") && (($sw eq "") || ($po eq "")));
 
     if ($ip ne "") {
+	    _log("DEBUG", qq{ip="$ip"\n}) if $self->debug;
+
+	    if ($ip =~ /\//) { # looks like a network already
+		    if (recur_exists($self->{'cfg'}, "network", $ip)) {
+			    return $ip;
+		    } else {
+			    return "none";
+		    }
+	    }
+
 	    my $ip_ = ip2int(host2addr($ip));
 	    
 	    foreach my $n ($self->{'cfg'}->keys('network')) {
 		    my ($n_, $m_) = cidr2int($n);
 		    _log("DEBUG", sprintf("%x & %x ? %x (%x)\n", $ip_, $m_, $n_,
-					  ($ip_ & $m_))) if $self->{'dbg'} > 1;
+					  ($ip_ & $m_))) if $self->debug > 1;
 		    return $n if ( ($ip_ & $m_) == $n_);
 	    }
     } 
     else {
+	    _log("DEBUG", qq{sw=$sw port=$po\n}) if $self->debug;
+
 	    # fetch the vlans for the given switch port
 
 	    my ($uqvl1, $qvl1) = $self->availableVlans(-switch => $sw, -port => $po);
@@ -1011,10 +1062,10 @@ sub availableVlansRE_switch_and_port {
     
     # first, determine if we have a mapping for the specified hostname
     
-    _log "DEBUG", "try to match VLANMAP by hostname\n" if $self->{'dbg'};
+    _log("DEBUG", "try to match VLANMAP by hostname\n") if $self->debug;
     
     if ($self->{'cfg'}->obj('vlanmap')->exists($h)) {
-	_log "DEBUG", "matched.\n" if $self->{'dbg'};
+	_log("DEBUG", "matched.\n") if $self->debug;
 	my $tagList = expandTagList($self->{'cfg'}->obj('vlanmap')->value($h));
 	return $tagList->{$p} if (exists $tagList->{$p});
 	return undef;
@@ -1023,10 +1074,10 @@ sub availableVlansRE_switch_and_port {
     # otherwise, see if we can match on the IP
     
     else {
-	_log "DEBUG", "try to match VLANMAP by IP\n" if $self->{'dbg'};
+	_log("DEBUG", "try to match VLANMAP by IP\n") if $self->debug;
 	
 	if ($self->{'cfg'}->obj('vlanmap')->exists($a)) {
-	    _log "DEBUG", "matched.\n" if $self->{'dbg'};
+	    _log("DEBUG", "matched.\n") if $self->debug;
 	    my $tagList = expandTagList($self->{'cfg'}->obj('vlanmap')->value($a));
 	    return $tagList->{$p} if (exists $tagList->{$p});
 	    return undef;
@@ -1035,28 +1086,28 @@ sub availableVlansRE_switch_and_port {
     
     # finally, see if we can match by network
     
-    _log "DEBUG", "try to match VLANMAP by network\n" if $self->{'dbg'};
+    _log("DEBUG", "try to match VLANMAP by network\n") if $self->debug;
     
     my $a_ = ip2int($a);
     my $nw;
     
     foreach my $nw_ ( $self->{'cfg'}->keys('vlanmap') ) {
-	_log "DEBUG", "is $a on $nw_?\n" if $self->{'dbg'};
+	_log("DEBUG", "is $a on $nw_?\n") if $self->debug;
 	my ($n, $m) = cidr2int($nw_);
 	if ( ($a_ & $m) == $n ) {
-	    _log "DEBUG", "yes.\n" if $self->{'dbg'};
+	    _log("DEBUG", "yes.\n") if $self->debug;
 	    $nw = $nw_; #perlism
 	    last;
 	}
-	_log "DEBUG", "no.\n" if $self->{'dbg'};
+	_log("DEBUG", "no.\n") if $self->debug;
     }
     
     if( defined($nw) ) {
-	_log "DEBUG", "net is $nw\n" if $self->{'dbg'};
+	_log("DEBUG", "net is $nw\n") if $self->debug;
 	my $tagList =  expandTagList($self->{'cfg'}->obj('vlanmap')->value($nw));
 	return $tagList->{$p} if (exists $tagList->{$p});
     } else {
-	_log "DEBUG", "no matching network for $a\n" if $self->{'dbg'};
+	_log("DEBUG", "no matching network for $a\n") if $self->debug;
     }
     
     return undef;
@@ -1258,7 +1309,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.18 2005/04/14 13:41:36 jeffmurphy Exp $
+$Id: Config.pm,v 1.19 2005/04/14 18:32:13 jeffmurphy Exp $
 
 =cut
 

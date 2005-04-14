@@ -3,6 +3,7 @@ bin/test/snmptt_Net::SNMP.pl
 bin/test/snmptt_SNMP.pl
 bin/test/snmptt_shell.pl
 bin/test/getMatchingNetwork.pl
+bin/test/policy.pl
 bin/import_nessus_scans.pl
 bin/appstarter.pl
 bin/bulk_moveport.pl

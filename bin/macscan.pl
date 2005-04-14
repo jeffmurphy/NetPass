@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.5 2005/04/12 20:53:43 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.6 2005/04/14 18:32:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,12 +15,13 @@ as ports with multiple MACs.
 
 =head1 SYNOPSIS
 
- macscan.pl [-q] [-D] [-c cstr] [-U dbuser/dbpass] [-t thread-queue-size]
+ macscan.pl [-q] [-D] [-c cstr] [-U dbuser/dbpass] [-t thread-queue-size] [-s secs]
      -q             be quiet. exit status only.
      -D             enable debugging
      -c             db connect string
      -U             db user[/pass]
      -t             thread queue size
+     -s             thread sleep time
 
 =head1 OPTIONS
 
@@ -51,6 +52,18 @@ The default is 20. If you have 100 switches in your NetPass configuration,
 multi-mac violations. Each thread requires a connection to the database, 
 so don't set this number too low or you'll needless use DB resources.
 
+=item B<-s thead-sleep-time> 
+
+After a thread has finished all of its work, it sleeps for a time. If you don't
+have many switches, or don't want to be overly aggressive about checking for 
+unknown MAC addresses, you can make this time long. If you want to be more 
+aggressive, or have a lot of switches (meaning that the time for each thread
+to come back to the first switch again is long) then you can shorten this
+time. The default is 300 seconds (5 minutes). So if you only have one switch,
+we'll check it every 5 minutes. If you have 2 switches, the check time will
+be somewhat (but not much) longer. You can estimate about 30 seconds to check 
+a switch.
+
 =back
 
 =head1 DESCRIPTION
@@ -71,7 +84,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.5 2005/04/12 20:53:43 jeffmurphy Exp $
+$Id: macscan.pl,v 1.6 2005/04/14 18:32:12 jeffmurphy Exp $
 
 =cut
 
@@ -91,12 +104,8 @@ BEGIN {
     $Config{useithreads} or die "Recompile Perl with threads to run this program.";
 }
 
-NetPass::LOG::init [ 'macscan', 'local0' ];
-
-#pod2usage(1) if $#ARGV != 0;
-
 my %opts : shared;
-getopts('c:U:qt:Dh?', \%opts);
+getopts('c:U:qt:s:Dh?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 # foreach network in <switchmap> {
@@ -112,6 +121,16 @@ pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 #
 
 my $D : shared = exists $opts{'D'} ? 1 : 0;
+
+NetPass::LOG::init *STDOUT if $D;
+NetPass::LOG::init [ 'macscan', 'local0' ] unless $D;
+
+print "Running in foreground (debugging mode)..\n" if $D;
+daemonize("macscan", "/var/run/netpass") unless $D;
+
+my $threadSleep : shared = 300;
+
+$threadSleep = $opts{'s'} if exists $opts{'s'};
 
 my $dbuser : shared;
 my $dbpass : shared;
@@ -205,10 +224,27 @@ sub thread_entry {
 			
 			my ($mp, $pm) = $snmp{$switch}->get_mac_port_table();
 			
-			# foreach port, if port contains unknown mac -> quarantine
-			
+			# foreach port:
+			#      if port's network has macscan=on AND multi_mac=all_ok then
+			#              if port contains unknown mac -> quarantine
+			#      fi
+			# end
 
 			foreach my $p (keys %$pm) {
+
+				my $nw = $np->cfg->getMatchingNetwork(-switch => $switch,
+								      -port   => $p);
+
+				next if ($nw eq "none"); # port is not managed by netpass
+
+				_log("DEBUG", "getMatchingNetwork($switch, $p) = $nw\n") if $D;
+
+				my $macscan   = $np->cfg->policy('MACSCAN', $nw);
+				my $multi_mac = $np->cfg->policy('MULTI_MAC', $nw);
+
+				next if ($macscan == 0);
+				next if ($multi_mac ne "ALL_OK");
+
 				if (!exists $ports{$p}) {
 					#print "skipping port $p\n";
 				} else {
@@ -262,6 +298,36 @@ sub thread_entry {
 				}
 			}
 		}
-		sleep (10);
+		sleep ($threadSleep);
 	}
+}
+
+
+# borrowed from mailgraph.pl
+
+sub daemonize
+{
+    use POSIX 'setsid';
+
+    my ($myname, $pidDir) = (shift, shift);
+    chdir $pidDir or die "$myname: can't chdir to $pidDir: $!";
+    -w $pidDir or die "$myname: can't write to $pidDir\n";
+
+    open STDIN, '/dev/null' or die "$myname: can't read /dev/null: $!";
+    open STDOUT, '>/dev/null'
+      or die "$myname: can't write to /dev/null: $!";
+
+    defined(my $pid = fork) or die "$myname: can't fork: $!";
+    if($pid) {
+	# parent
+	my $pidFile = $pidDir . "/" . $myname . ".pid";
+	open PIDFILE, "> " . $pidFile
+	  or die "$myname: can't write to $pidFile: $!\n";
+	print PIDFILE "$pid\n";
+	close(PIDFILE);
+	exit 0;
+    }
+    # child
+    setsid                  or die "$myname: can't start a new session: $!";
+    open STDERR, '>&STDOUT' or die "$myname: can't dup stdout: $!";
 }

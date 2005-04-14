@@ -58,9 +58,9 @@ start() {
 	echo 
         #[ $RETVAL -eq 0 ] && exit $RETVAL
 
-        #echo -n $"Starting macscan: "
-	#daemon ${B}/bin/macscan.pl 
-	#echo 
+        echo -n $"Starting macscan: "
+	daemon ${B}/bin/macscan.pl 
+	echo 
         #[ $RETVAL -eq 0 ] && exit $RETVAL
 
 	return 0	
