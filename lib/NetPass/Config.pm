@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.17 2005/04/13 20:57:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.18 2005/04/14 13:41:36 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -674,6 +674,7 @@ sub policy {
 	my $pvar = shift;
 	my $nw   = shift;
 
+
 	$nw ||= "";
 
 	$self->reloadIfChanged();
@@ -682,21 +683,20 @@ sub policy {
 	  if (! exists $self->{'cfg'}) || 
 	    (ref $self->{'cfg'} ne "Config::General::Extended");
 	
-	my $k = shift;
-	return undef unless defined $k;
-	$k =~ tr [A-Z] [a-z]; # because of AutoLowerCase
+	return undef unless defined $pvar;
+	$pvar =~ tr [A-Z] [a-z]; # because of AutoLowerCase
 
-	if ($nw !~ /\//) { # not CIDR, bare IP
+	if ($nw ne "" || $nw !~ /\//) { # not CIDR, bare IP
 		$nw = $self->getMatchingNetwork(-ip => $nw);
 	}
 
-	if (recurs_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
+	if (recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
 		return $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 	}
 
 	return undef if ! $self->{'cfg'}->exists('policy');
-	return undef if ! $self->{'cfg'}->obj('policy')->exists($k);
-	return $self->{'cfg'}->obj('policy')->value($k);
+	return undef if ! $self->{'cfg'}->obj('policy')->exists($pvar);
+	return $self->{'cfg'}->obj('policy')->value($pvar);
 }
 
 =head2 my $network = $cfg-E<gt>getMatchingNetwork(-ip => $ip, -switch => $ip, -port => $port)
@@ -1258,7 +1258,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.17 2005/04/13 20:57:45 jeffmurphy Exp $
+$Id: Config.pm,v 1.18 2005/04/14 13:41:36 jeffmurphy Exp $
 
 =cut
 

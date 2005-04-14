@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/ciconf.pl,v 1.4 2005/04/13 20:57:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/ciconf.pl,v 1.5 2005/04/14 13:41:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -49,7 +49,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: ciconf.pl,v 1.4 2005/04/13 20:57:42 jeffmurphy Exp $
+$Id: ciconf.pl,v 1.5 2005/04/14 13:41:35 jeffmurphy Exp $
 
 =cut
 
@@ -80,7 +80,9 @@ die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 
 my $fh = new FileHandle $opts{'i'}, "r";
 die qq{cant open $opts{'i'} for reading: $!} unless defined($fh);
-my @c = <$fh>;
+my $l;
+while( ($l = <$fh>) =~ /^#/ ){}
+my @c = ($l, <$fh>);
 $fh->close;
 
 print "Read ", ($#c+1), " lines from ", $opts{'i'}, "\n";
