@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.19 2005/04/14 18:32:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.20 2005/04/14 18:38:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -84,7 +84,7 @@ sub xxAUTOLOAD {
 sub debug {
     my $self = shift;
     my $val  = shift;
-    $self->{'dbb'} ||= 0;
+    $self->{'dbg'} ||= 0;
     return $self->{'dbg'} unless defined($val);
     $self->{'dbg'} = $val;
     return $self->{'dbg'};
@@ -1309,7 +1309,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.19 2005/04/14 18:32:13 jeffmurphy Exp $
+$Id: Config.pm,v 1.20 2005/04/14 18:38:08 jeffmurphy Exp $
 
 =cut
 
