@@ -122,7 +122,7 @@ while (1) {
 	foreach my $ip (keys %data) {
 		my $res = eval {$soap->processIP($secret, $ip, keys(%{$data{$ip}}))->result};
 		if (!$res) {
-			warn "Wasn't Able to process $ip";
+			warn "Unknown Error Occured While tryin to process $ip";
 			next;
 		}
 		print "processing $ip sids = ".join(',', keys(%{$data{$ip}}))." resulted in $res\n";
