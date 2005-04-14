@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.6 2005/04/14 18:32:12 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.7 2005/04/14 19:36:36 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -84,7 +84,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.6 2005/04/14 18:32:12 jeffmurphy Exp $
+$Id: macscan.pl,v 1.7 2005/04/14 19:36:36 jeffmurphy Exp $
 
 =cut
 
@@ -242,8 +242,15 @@ sub thread_entry {
 				my $macscan   = $np->cfg->policy('MACSCAN', $nw);
 				my $multi_mac = $np->cfg->policy('MULTI_MAC', $nw);
 
-				next if ($macscan == 0);
-				next if ($multi_mac ne "ALL_OK");
+				if ($macscan == 0) {
+					_log("INFO", "macscan is disabled for this port: $switch/$p ($nw)\n");
+					next;
+				}
+
+				if ($multi_mac ne "ALL_OK") {
+					_log("INFO", "multi_mac is $multi_mac for this port: $switch/$p ($nw)\n");
+					next;
+				}
 
 				if (!exists $ports{$p}) {
 					#print "skipping port $p\n";
