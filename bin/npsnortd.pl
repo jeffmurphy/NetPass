@@ -53,6 +53,8 @@ use IO::SessionSet;
 use Socket;
 use FileHandle;
 use File::Tail;
+use Sys::HostIP;
+use Digest::MD5 qw(md5_hex);
 use threads;
 use SOAP::Transport::TCP;
 use SOAP::Lite;
@@ -82,6 +84,7 @@ if (exists $opts{'D'}) {
 
 my $tid = threads->create(\&soapServer, \%opts);
 die "Unable to spawn soap server thread." unless $tid;
+$tid->detach;
 
 # process snort logs from here on in
 my $logfile = (exists $opts{'l'}) ? $opts{'l'} : $DEFAULTSNORTLOG;
@@ -95,17 +98,54 @@ my $fh = new File::Tail (
 
 die "Cannot open file $logfile" unless defined ($fh);
 
+my $secret = md5_hex(hostip.$opts{'S'});
+
 while (1) {
-	my @lines = ();
+	my %data;
 
         while ($fh->predict == 0) {
-                push @lines, $fh->read;
+                my $l = $fh->read;	
+		chomp $l;
+		my($sid, $ip) = split(/\,/, $l);
+		next unless defined($ip) && defined($sid);
+		$data{$ip}{$sid} = $sid;
         }
 
-	print @lines;
+	next if (keys(%data) == 0);
+
+	my $soap = createSoapConnection();
+	if (!$soap) {
+		warn "Unable to Connect to npapid server";
+		next;
+	}
+
+	foreach my $ip (keys %data) {
+		my $res = eval {$soap->processIP($secret, $ip, keys(%{$data{$ip}}))->result};
+		if (!$res) {
+			warn "Wasn't Able to process $ip";
+			next;
+		}
+		print "processing $ip sids = ".join(',', keys(%{$data{$ip}}))." resulted in $res\n";
+	}
 }
 
 exit 0;
+
+sub createSoapConnection {
+	foreach my $server (split(/\,/, $opts{'s'})) {
+		my $proxy = "tcp://$server:20003";
+		my $soap  = SOAP::Lite->new(
+					    uri   => 'tcp://netpass/NetPass/API',
+					    proxy => $proxy,
+					   );
+
+		return undef unless defined $soap;
+		my $rv = eval {$soap->echo()->result};
+		return $soap if $rv;
+	}
+
+	return undef;
+}
 
 sub soapServer {
 	my $opts = shift;

@@ -117,8 +117,8 @@ sub processIP {
 
 	return undef unless ($self->$check_soap_auth($secret)); 
 
-	my $network = $np->cfg->getMatchingNetwork($ip);
-	if (!$network) {
+	my $network = $np->cfg->getMatchingNetwork(-ip => $ip);
+	if ($network eq "none") {
 		_log("ERROR", "Unable to determine network for $ip");
 		return undef;
 	}
@@ -129,22 +129,22 @@ sub processIP {
 		return ("nothing");
 	}
 
-	my $ip2mac = getRegisterInfo(-ip => $ip);
-	if (ref($ip2mac) ne 'HASHREF') {
+	my $ip2mac = $np->db->getRegisterInfo(-ip => $ip);
+	if (ref($ip2mac) ne 'HASH') {
 		_log("ERROR", "Unable to retrieve ip to mac mapping");
 		return undef;
 	}
 
 	my $mac = $ip2mac->{$ip}->{'macAddress'};
 	if (!defined $mac) {
-		_log("ERROR", "Cannot determine mac address");
+		_log("ERROR", "Cannot determine mac address for $ip");
 		return undef;
 	}
 
 	push @msgs, map("snort quarantined $ip $mac for violation of $_ snort rule.",
 		        @sids); 
 
-	$np->db->alert (
+	$np->db->audit (
 			 severity	=> 'NOTICE',
 			 mac		=> $mac,
 			 ip		=> $ip,
