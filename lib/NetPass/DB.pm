@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.19 2005/04/13 20:57:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.20 2005/04/14 04:19:18 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -439,7 +439,7 @@ sub getRegisterInfo {
 	    $kfield = "macAddress";
     }
     elsif ($ip ne "") {
-	    $sql .= " ipAddress = ".$self->dbh->quote($mac);
+	    $sql .= " ipAddress = ".$self->dbh->quote($ip);
 	    $kfield = "ipAddress";
     }
     elsif ($#{$macs} > -1) {
@@ -1922,7 +1922,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.19 2005/04/13 20:57:45 jeffmurphy Exp $
+$Id: DB.pm,v 1.20 2005/04/14 04:19:18 mtbell Exp $
 
 =cut
 
