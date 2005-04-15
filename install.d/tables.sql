@@ -146,6 +146,7 @@ CREATE TABLE `nessusScans` (
 
 CREATE TABLE `snortRules` (
   `snortID` int(10) unsigned NOT NULL default '0',
+  `name` varchar(255) default NULL,
   `category` varchar(255) default NULL,
   `classtype` varchar(64) default NULL,
   `short_desc` varchar(255) default NULL,
