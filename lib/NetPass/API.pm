@@ -9,6 +9,7 @@ use lib qw("/opt/netpass/lib);
 use NetPass::LOG qw(_log _cont);
 use NetPass::Config;
 use Digest::MD5 qw(md5_hex);
+use Class::ParmList qw(simple_parms parse_parms);
 
 =head1 NAME
 
@@ -97,25 +98,52 @@ sub snortEnabled {
 	return $np->cfg->snortEnabled($nw);
 }
 
-=head2 my $results = processIP($secret, $ip, $sid, ...)
+=head2 my $results = quarantineByIP(-secret => $secret, -ip => $ip, -id => $id, -type => $type)
 
-Arguments includes an ip address of the machine to process along with 
-an array of snort sids. This method will then determine and take
-necessary actions against the specified ip address. Returns C<quarantined>
-if the ip will be quarantined, C<nothing> if no action is taken, and 
-C<undef> on failure.
+Arguments to this function include a secret key, ip address to be
+quarantined, an id associated to either a Nessus or Snort ID, and
+a type corresponding to what exactly quarantined this ip. The type
+and id flags can also be ARRAY references for multiple id's with
+their corresponding types, however there must be an equal number
+of elements in each of the ARRAY or an error will occur. This
+function returns either C<quarantined> if the ip as been quarantined,
+C<nothing> if nothing has been done or C<undef> on failure.
 
 =cut
 
-sub processIP {
+sub quarantineByIP {
 	my $self   = shift;
-	my $secret = shift;
-	my $ip	   = shift;
-	my @sids   = @_;
 	my $np	   = $::np;
+	my $arrays = 0;
 	my @msgs;
+    	my $parms = parse_parms({
+                             	  -parms    => \@_,
+                             	  -legal    => [ qw(-secret -type -id -ip) ],
+                             	  -defaults => { -secret  => '',
+						 -type    => '',
+						 -id	  => '',
+						 -ip	  => '',
+                                               }
+                            	});
+
+    	return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
+    	my ($secret, $type, $id, $ip) = $parms->get('-secret', '-type', '-id', '-ip');
 
 	return undef unless ($self->$check_soap_auth($secret)); 
+
+	if (ref($type) eq 'ARRAY' && ref($id) eq 'ARRAY') {
+		$arrays = 1;
+	}
+
+	if (!$arrays && (ref($type) eq 'ARRAY' || ref($id) eq 'ARRAY')) {
+		_log("ERROR", "Invalid Paramaters passed");
+		return undef;	
+	}
+
+	if ($arrays && $#$type != $#$id) {
+		_log("ERROR", "LIST Paramaters type and id do not have the same number of elements");
+		return undef;
+	}
 
 	my $network = $np->cfg->getMatchingNetwork(-ip => $ip);
 	if ($network eq "none") {
@@ -141,23 +169,29 @@ sub processIP {
 		return undef;
 	}
 
-	push @msgs, map("snort quarantined $ip $mac for violation of $_ snort rule.",
-		        @sids); 
+	if ($arrays) { 
+		for (my $i = 0; $i <= $#$type; $i++) {
+			push @msgs, sprintf("%s quarantine of %s %s for violation of %d plugin.",
+		                    	    $type->[$i], $ip, $mac, $id->[$i]);
+		}
+	} else {
+		push @msgs, "$type quarantine of $ip $mac for violation of $id plugin.";
+	}
 
 	$np->db->audit (
 			 severity	=> 'NOTICE',
 			 mac		=> $mac,
 			 ip		=> $ip,
-			 user		=> 'snort',
+			 user		=> 'npapi',
 			 @msgs
 		       );
 	return ("nothing") if $mode eq "not_really"; 
 
-	foreach my $sid (@sids) {
+	foreach my $npid (($arrays) ? @$id : $id) {
 		my $rv = $np->db->addResult (
 				      		-mac	=> $mac,
-				      		-type	=> 'snort',
-				      		-id	=> $sid 
+				      		-id	=> $npid,
+						-type	=> ($arrays) ? shift @$type : $type 
 				    	    );
 
 		if ($rv eq "invalid mac") {

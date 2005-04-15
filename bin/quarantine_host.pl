@@ -6,11 +6,12 @@
 
 =head1 SYNOPSIS
 
- quarantine_host.pl <-i snortid> <-S secret> <-s npapi server> [-p port] ipaddress
-     -i snortid	   	  snort id to quarantines ipaddress over
+ quarantine_host.pl <-S secret> <-s npapi server> <-i id,...> <-t type,...> [-p port] ipaddress
+     -i id	   	  snort id to quarantines ipaddress over
      -S secret		  secret required to connect to npapi server       	 
      -s server		  npapi server
      -p port		  port of npapi server (default 20003)
+     -t type		  what exactly quarantined this ip 
      -h                   this message
 
 
@@ -43,21 +44,39 @@ use SOAP::Lite;
 my $DEFAULTPORT	= 20003;
 
 my %opts;
-getopts('i:S:s:p:h', \%opts);
+getopts('i:S:s:t:p:h', \%opts);
 pod2usage(2) if exists $opts{'h'} || !exists $opts{'S'} ||
-	       !exists $opts{'i'} || !exists $opts{'s'};
+	       !exists $opts{'i'} || !exists $opts{'s'} ||
+	       !exists $opts{'t'};
 
 pod2usage(2) if ($opts{'s'} !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
 pod2usage(2) unless ($opts{'i'} =~ /\d+/);
 
 my $ip = shift;
-pod2usage(2) if ($ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
+pod2usage(2) if (!defined $ip || $ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
+
+my $id		= ();
+my $type	= ();
+
+if ($opts{'t'} =~ /\,/ || $opts{'i'} =~ /\,/) {
+	@$id 	= split(',', $opts{'i'});
+	@$type	= split(',', $opts{'t'});
+	die "Number of types doesnt correspond with the number of ids"
+		if ($#$id != $#$type);
+} else {
+	$id 	= $opts{'i'};
+	$type	= $opts{'t'};
+}
 
 my $soap = createSoapConnection($opts{'s'});
 die "Unable to connect to npapi server at $ip" unless defined $soap;
 
 my $secret = md5_hex(hostip.$opts{'S'});
-my $res    = eval {$soap->processIP($secret, $ip, $opts{'i'})->result};
+my $res    = eval {$soap->quarantineByIP( 
+				    -secret	=> $secret,
+				    -ip		=> $ip,
+				    -type	=> $type,
+				    -id		=> $id)->result};
 die "Unable to quarantine $ip" unless defined $res;
 
 exit 0;
