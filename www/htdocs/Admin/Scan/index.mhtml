@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.2 2005/04/12 19:52:18 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.3 2005/04/15 05:35:01 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -10,6 +10,7 @@
 <%args>
 $id      => '';
 $key     => '';
+$service => '';
 $status  => '';
 $type    => 'AND';
 $search  => '';
@@ -38,10 +39,9 @@ if (! $m->comp('/Admin/MemberOf', 'group' => [ @reqGroups ]) ) {
         return;
 }
 
+$service = "Nessus" unless ($service eq "Snort") || ($service eq "Nessus");
 
-
-
-my $msgs = getMsgs($dbh);
+my $msgs = getMsgs($dbh, $service);
 
 print $q->h2("Scan Configuration");
 
@@ -60,6 +60,16 @@ print $q->table({-border=>0, -width=>600},
 				)
 			)
 		).
+                $q->TR(
+                        $q->td({-class=>"gray"}, "Service:") .
+                        $q->td({-class=>"gray"},
+                                $q->radio_group(
+                                                -name    => "service",
+                                                -values  => ['Nessus', 'Snort'],
+						-default => $service,
+                                )
+                        )
+                ).
 		$q->TR(
 			$q->td({-class=>"gray"}, "Status:") .
 			$q->td({-class=>"gray"},
@@ -109,7 +119,11 @@ return if(!$submit && !$search && !$update);
 
 if ($update) {
         if ($readOnly eq "") {
-		$np->db->reqAppAction('reload_nessus_plugins', 'start', '');
+		if ($service eq "Nessus") {
+			$np->db->reqAppAction('reload_nessus_plugins', 'start', '');
+		} else {
+			$np->db->reqAppAction('reload_snort_plugins', 'start', '');
+		}
         } else {
                 # this really shouldnt happen. we dont give them a Refresh Plugins button
                 $np->db->audit(  -user => $m->session->{'logged_in'},
@@ -130,7 +144,7 @@ if($submit) {
         }
 }
 
-my ($results, $count, $result_set, $next_link, $prev_link) = getResults($dbh,$key,$status,$type, $start);
+my ($results, $count, $result_set, $next_link, $prev_link) = getResults($dbh, $key, $service, $status, $type, $start);
 
 if($count<0) {
 	print $q->error("Sorry, there was an error while processing your request!");
@@ -159,11 +173,12 @@ push(@rows, $q->TR(
 	    )
 );
 
+my $n = ($service eq "Nessus") ? $q->th("Plugin Id") : $q->th("Snort Id");
+
 push(@rows, 	$q->TR(
-			$q->th("Family") .
-			$q->th("Name") .
+			$q->th({-colspan=>2}, "Name") .
 			$q->th("Revision") .
-			$q->th("Plugin Id") .
+			$n.
 			$q->th("Enabled") .
 			$q->th("Message") .
 			$q->th("More Information") 
@@ -179,40 +194,41 @@ while (my $row = $results->fetchrow_hashref() ) {
 	$row->{revision} =~ s/\$//g;
 	$row->{revision} =~ s/\s*Revision:\s*//g;
 
-	my $href = "info.mhtml?id=" . $row->{pluginID};
+	my $nsid   = ($service eq "Nessus") ? 'pluginID' : 'snortID';
+	my $nsname = ($service eq "Nessus") ? 'nessus:'  : 'snort:'; 
+	my $href = "info.mhtml?id=" . $nsname . $row->{$nsid};
 
 	push( @rows,	$q->TR( {-class=> $class },
-				$q->td({-align=>'center'}, $row->{family})         .
-				$q->td({-align=>'center'}, $row->{name})           .
+				$q->td({-align=>'center', -colspan=>2}, $row->{name})           .
 				$q->td({-align=>'center'}, $row->{revision})       .
-				$q->td({-align=>'center'}, $row->{pluginID})       .
+				$q->td({-align=>'center'}, $row->{$nsid})       .
 				$q->td({-align=>'center'}, 
 					$q->checkbox(
-							-name    => "status:" .$row->{pluginID},
+							-name    => "status:" .$row->{$nsid},
 							-label	 => "",
 							-checked => ($row->{status} eq "enabled"),
 							$readOnly
 					) .
 					$q->hidden(
-							-name	=> "statusOrig:".$row->{pluginID},
+							-name	=> "statusOrig:".$row->{$nsid},
 							-value  => $row->{status}
 					) .
 					$q->hidden(
 							-name	 => "ids",
-							-value	 => $row->{pluginID}
+							-value	 => $row->{$nsid}
 					)
 				)         .
 				$q->td({-align=>'center'}, 
 					$q->popup_menu(
-							-name    => "message:" . $row->{pluginID},
+							-name    => "message:" . $row->{$nsid},
 							-values  => $msgs,
 							-labels	 => {
-									"nessus:" => "Default Description"	
+									$nsname => "Default Description"
 							    	     },
 							-default => $row->{info},
 							$readOnly 
 					).
-					$q->hidden(	-name => "messageOrig:".$row->{pluginID},
+					$q->hidden(	-name => "messageOrig:".$row->{$nsid},
 							-value => $row->{info}
 					)
 				) .
@@ -234,12 +250,13 @@ return;
 #######################
 
 sub getResults {
-	my $dbh	   = shift;
-	my $key	   = shift;
-	my $status = shift;
-	my $type   = shift;
-	my $start  = shift;
-	my $limit  = 250;
+	my $dbh	    = shift;
+	my $key	    = shift;
+	my $service = shift;
+	my $status  = shift;
+	my $type    = shift;
+	my $start   = shift;
+	my $limit   = 250;
 
 	# double check the value, make sure noone can sneak an insertion attack in here ;)
 	$type = ($type eq "OR")?"OR":"AND";
@@ -247,9 +264,10 @@ sub getResults {
 	
 	my @clause = ();
 	my @params = ();
+	my $nsid   = ($service eq "Nessus") ? 'pluginID' : 'snortID';
 
 	if($key) {
-		push(@clause, "(name LIKE ? OR pluginID = ?)");
+		push(@clause, "(name LIKE ? OR $nsid = ?)");
 		push(@params, "%$key%");
 		push(@params, $key);
 	}
@@ -259,13 +277,19 @@ sub getResults {
 		push(@params, $status);
 	}
 
-	my $query = "SELECT DATE_FORMAT(addedOn, '%Y-%m-%d %H:%i:%s') as addedOn, DATE_FORMAT(lastModifiedOn, '%Y-%m-%d %H:%i:%s') as lastModifiedOn, pluginID, name, family, revision, addedBy, lastModifiedBy, status, info FROM nessusScans";
+	my $query = "SELECT DATE_FORMAT(addedOn, '%Y-%m-%d %H:%i:%s') as addedOn, DATE_FORMAT(lastModifiedOn, '%Y-%m-%d %H:%i:%s') as lastModifiedOn, $nsid, name, revision, addedBy, lastModifiedBy, status, info FROM ";
+
+	if ($service eq "Nessus") {
+		$query .= "nessusScans";
+	} else {
+		$query .= "snortRules";
+	}
 	
 	if($#clause>-1) {
 		$query .= " WHERE " . join(" $type ", @clause)
 	}
 
-	$query .= " ORDER BY family LIMIT $start,$limit";
+	$query .= " ORDER BY $nsid LIMIT $start,$limit";
 
 	my $sth = $dbh->prepare($query);
 
@@ -297,13 +321,16 @@ sub getResults {
 }
 
 sub getMsgs {
-	my $dbh = shift;
+	my $dbh     = shift;
+	my $service = shift;
+
+	my $n = ($service eq "Nessus") ? 'nessus:' : 'snort:';
 	
 	my $query = "SELECT distinct(name) FROM pages order by name";
 	my $sth = $dbh->prepare($query);
 	$sth->execute();
 	
-	my @msgs = ('nessus:', 'http://');
+	my @msgs = ($n, 'http://');
 
 	while(my $m = $sth->fetchrow_arrayref) {
 		push(@msgs, $m->[0]);
@@ -356,15 +383,21 @@ sub saveChanges {
 		push(@clause, "info=?");
 		push(@params, $args->{"message:$id"});
 
-		my $query = "UPDATE nessusScans SET " . join(", ", @clause) . " WHERE pluginID = ?";
+		my $query;
+
+		if ($args->{"service"} eq "Nessus") {
+			$query .= "UPDATE nessusScans SET " . join(", ", @clause) . " WHERE pluginID = ?";
+		} elsif ($args->{"service"} eq "Snort") {
+			$query .= "UPDATE snortRules SET " . join(", ", @clause) . " WHERE snortID = ?";
+		} else {
+			return;
+		}
 
 		my $sth   = $dbh->prepare($query);
 
 		push(@params, $id);
 		$sth->execute(@params);		
 	}
-
-
 }
 
 

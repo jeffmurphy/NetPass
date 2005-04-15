@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/info.mhtml,v 1.1 2004/09/24 01:05:21 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/info.mhtml,v 1.2 2005/04/15 05:35:14 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -13,7 +13,18 @@ $id      => '';
 
 <%perl>
 
-my ($results, $count) = getInfo($dbh,$id);
+my $service;
+my $nsid;
+
+if ($id =~ /^(nessus|snort)\:(\d+)$/ ) {
+	$service = $1;
+	$nsid	 = $2;
+} else {
+	print $q->error("Unexpected input $id");
+	return;
+}
+
+my ($results, $count) = getInfo($dbh, $nsid, $service);
 
 if($count<=0) {
 	print $q->p("hmm...");
@@ -35,11 +46,37 @@ push(@rows,
 		).
 		$q->TR(
 			$q->td({-colspan=>2, -align=>'center'}, $row->{copyright})
-		).
+		)
+);
+
+push(@rows,
+	$q->TR( {-class=>'gray'},
+		$q->td("Service:") .
+		$q->td($service)
+	)
+);
+
+
+if($row->{family}) {
+	push(@rows,
 		$q->TR( {-class=>'gray'},
 			$q->td("Family:") .
 			$q->td($row->{family})
-		).
+		)
+	);
+}
+
+if($row->{classtype}) {
+        push(@rows,
+                $q->TR( {-class=>'gray'},
+                        $q->td({-width=>'100'}, "Classtype:") .
+                        $q->td($row->{classtype})
+                )
+        );
+}
+
+
+push(@rows,
 		$q->TR( {-class=>'gray'},
 			$q->td({-width=>'100'}, "Added:") .
 			$q->td($row->{addedOn} . " by " . $row->{addedBy})
@@ -72,9 +109,28 @@ if($row->{cve}) {
 
 push(@rows,
 		$q->TR( {-class=>'gray'},
+			$q->td({-width=>'100'}, "Description:") .
 			$q->td({-colspan=>2}, $q->p($row->{description}))
 		)
 );
+
+if($row->{rule}) {
+	push(@rows,
+                $q->TR( {-class=>'gray'},
+                        $q->td({-width=>'100'}, "Snort Rule:") .
+                        $q->td($row->{rule})
+                )
+	);
+}
+
+if($row->{other_refs}) {
+        push(@rows,
+                $q->TR( {-class=>'gray'},
+                        $q->td({-width=>'100'}, "References:") .
+                        $q->td($row->{other_refs})
+                )
+        );
+}
 
 
 print $q->table( {-border=>0, -width=>'100%'}, @rows);
@@ -87,10 +143,16 @@ return;
 #######################
 
 sub getInfo {
-	my $dbh	   = shift;
-	my $id	   = shift;
+	my $dbh	    = shift;
+	my $id	    = shift;
+	my $service = shift;
+	my $query;
 
-	my $query = "SELECT DATE_FORMAT(addedOn, '%Y-%m-%d %H:%i:%s') as addedOn, DATE_FORMAT(lastModifiedOn, '%Y-%m-%d %H:%i:%s') as lastModifiedOn, pluginID, name, family, short_desc, addedBy, lastModifiedBy, status, revision, copyright, bugtraq, cve, description FROM nessusScans WHERE pluginID=?";
+	if ($service eq "nessus") {
+		$query .= "SELECT DATE_FORMAT(addedOn, '%Y-%m-%d %H:%i:%s') as addedOn, DATE_FORMAT(lastModifiedOn, '%Y-%m-%d %H:%i:%s') as lastModifiedOn, pluginID, name, family, short_desc, addedBy, lastModifiedBy, status, revision, copyright, bugtraq, cve, description FROM nessusScans WHERE pluginID=?";
+	} else {
+		$query .= "SELECT DATE_FORMAT(addedOn, '%Y-%m-%d %H:%i:%s') as addedOn, DATE_FORMAT(lastModifiedOn, '%Y-%m-%d %H:%i:%s') as lastModifiedOn, snortID, name, addedBy, lastModifiedBy, status, revision, description, rule, classtype, other_refs FROM snortRules WHERE snortID=?";
+	}
 
 	my $sth = $dbh->prepare($query);
 
