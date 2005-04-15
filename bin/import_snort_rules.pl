@@ -96,21 +96,21 @@ foreach my $file (readdir(DIR)) {
 			while (my $l = $sidfh->getline) {
 				last if ($l =~ /^\-\-/ && $b == 1); 
 				if ($b) {
-					$data->{$sid}{fulldesc} .= $l;
+					$data->{$sid}{desc} .= $l;
 				}
 				$b = 1 if ($l =~ /^Detailed Information:/) 
 			}
 			$sidfh->close;
 
 		} else {
-			$data->{$sid}{fulldesc} = "none";
+			$data->{$sid}{desc} = "none";
 		}
 
 		$data->{$sid}{rule} = $line;
 
 		if ($line =~ /msg\:\"([\w-]+)\s+([^";]+)\"\;/) {
 			$data->{$sid}{category} = $1;
-			$data->{$sid}{desc}     = $2;
+			$data->{$sid}{name}     = $2;
 		}
 
 		if ($line =~ /rev\:(\d+)\;/) {
@@ -131,7 +131,7 @@ foreach my $file (readdir(DIR)) {
 closedir(DIR);
 
 my $sql = qq{INSERT IGNORE INTO snortRules (
-				     snortID, category, classtype, short_desc, 
+				     snortID, name, category, classtype, 
 				     description, rule, addedBy, lastModifiedBy,
 				     revision, other_refs
 				    ) VALUES (?,?,?,?,?,?,'import', 'import',?,?)};
@@ -139,10 +139,10 @@ my $sql = qq{INSERT IGNORE INTO snortRules (
 my $sth = $dbh->prepare($sql);
 
 foreach my $sid (sort keys %$data) {
-	$sth->execute($sid, $data->{$sid}{category},
+	$sth->execute($sid, $data->{$sid}{name},
+			    $data->{$sid}{category},
 			    $data->{$sid}{classtype},
 			    $data->{$sid}{desc},
-			    $data->{$sid}{fulldesc},
 			    $data->{$sid}{rule},
 			    $data->{$sid}{rev},
 			    $data->{$sid}{reference});
