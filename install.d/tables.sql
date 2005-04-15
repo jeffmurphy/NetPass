@@ -156,6 +156,7 @@ CREATE TABLE `snortRules` (
   `lastModifiedBy` varchar(32) NOT NULL default '',
   `lastModifiedOn` timestamp(14) NOT NULL,
   `status` enum('enabled','disabled') default 'disabled',
+  `info` varchar(255) NOT NULL default 'snort:',
   `revision` varchar(255) default NULL,
   `other_refs` varchar(255) default NULL,
   PRIMARY KEY  (`snortID`),
