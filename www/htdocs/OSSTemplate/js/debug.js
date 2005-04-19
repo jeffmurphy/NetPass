@@ -37,12 +37,12 @@ function dbg(l, msg) {
         }
 }
 
-function objDump(o, b) {
+function DBG_objDump(o, b) {
 	for (var x in o) {
 		if (typeof o[x] == "object") {
-			reDump(o[x], "uh."+x);
+			DBG_objDump(o[x], b+"."+x);
 		} else {
-			document.writeln(b + "." + x + "=" + o[x] + "<BR>");
+			dbg(1, "objDump: " + b + "." + x + "=" + o[x]);
 		}
 	}
 }

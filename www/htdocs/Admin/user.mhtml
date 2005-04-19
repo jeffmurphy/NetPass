@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.7 2005/04/19 01:40:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.8 2005/04/19 19:17:55 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,31 +57,6 @@ var userhash = {
 	}
 </%perl>
 };
-/*
-var userhash = {
-	'jcmurphy' : {
-		'128.205.10.0/24' : {
-			'Reports' : 1,
-			'UserEditor' : 1
-		},
-		'NetAdmin' : 1,
-		'Test Network' : {
-			'NetAdmin' : 1
-		}
-	},
-	'netpass' : {
-		'128.205.12.64/28' : {
-			'Admin' : 1,
-		},
-		'128.205.12.80/28' : {
-			'Admin' : 1,
-		},
-		'Admin' : 1
-	}
-};
-*/
-
-dbg(1, "userhash init");
 </script>
 
 <form method="post">
@@ -196,21 +171,21 @@ dbg(1, "userhash init");
 <tr><th>User</th><th>Groups</th><th>Access Type</th></tr>
 <tr><td style='vertical-align:top;'>
 	    <select size="25" id="UserList" name="UserList" 
-		onchange="userform_changeToUser(this);">
+		onchange="userform_changeToUser(this); return false;">
 			<option disabled name='width'><%$widthHolder%>
 %			foreach my $user (sort keys %$users) {
 			<option value="<%$user%>"> <%$user%>
 %			}
     </select>
     <P><center><input id='addUser' 
-		onfocus='userform_onfocus_addUser(this);'
-		onblur='userform_onblur_addUser(this);'
+		onfocus='userform_onfocus_addUser(this); return false;'
+		onblur='userform_onblur_addUser(this); return false;'
 	        size=10 maxlength=16 value="Add user..."><BR>
        <button id='deleteUser' disabled>Delete User</button></center>
     </td>
     <td style='vertical-align:top;'>
 	    <select multiple size="15" id="GroupList" name="GroupList" multiple
-		onchange="userform_showACLforGroup(this);">
+		onchange="userform_showACLforGroup(this); return false;">
 		<option disabled name='width'><%$widthHolder%>
 	    </select>
 	    <BR><center><button onClick="userform_addGroupToUser(); return false;">^</button> 
@@ -219,7 +194,7 @@ dbg(1, "userhash init");
 		</center>
 
 	    <select multiple size="15" id="AvailableGroupList" name="AvailableGroupList" multiple
-		onchange="userform_onchange_availableGroups();">
+		onchange="userform_onchange_availableGroups(); return false;">
 		<option disabled name='width'><%$widthHolder%>
 <%perl>
 		my %groupsList;
@@ -238,7 +213,7 @@ dbg(1, "userhash init");
 </td>
 <td style='vertical-align:top;'>
 <select multiple size="25" id="AccessControlList" name="AccessControlList" multiple
- onchange="userform_editACL(this);">
+ onchange="userform_editACL(); return false;">
 <option disabled name='width'><%$widthHolder%>
 %		foreach my $gl (sort @groups) {
 	<option value="<%$gl%>"> <%$gl%>

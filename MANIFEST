@@ -74,6 +74,7 @@ doc/perlmods
 doc/user_overview.txt
 doc/squidguard.txt
 doc/apachehowto.txt
+doc/mysqlcluster.txt
 doc/nessus-install.txt
 doc/npsnort.txt
 etc/netpass-example.conf
@@ -218,7 +219,7 @@ www/htdocs/loading.gif
 www/htdocs/mason2.html
 www/htdocs/netpass.mhtml
 www/htdocs/survey.mhtml
-www/htdocs/snmptrapd-netpass-check.mhtml
+www/htdocs/snmptrapd-netpass-check.cgi
 CHANGES
 LICENSE
 MANIFEST

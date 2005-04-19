@@ -81,13 +81,55 @@ function userform_changeToUser(o) {
 	}
 }
 
-function userform_editACL(o) {
-	if (o) {
-		var user = userform_lookupSelectedUser();
-		if (o.selected) {
-			// add o.value to user
+function userform_editACL() {
+	var RN = "userform_editACL";
+	dbg (1, RN);
+
+	var user  = userform_lookupSelectedUser();
+	var group = userform_lookupSelectedGroup();
+	
+	if (user == undefined) {
+		dbg (1, RN + ": problem figuring out which user is being editted");
+		return;
+	}
+
+	if (group == undefined) {
+		dbg (1, RN + ": problem figuring out which group is being editted");
+		return;
+	}
+
+	if (group == "__multiple") {
+		// if there are multiple groups selected,
+		// we dont do anything. they need to click
+		// the 'add to all' or 'rem from all' button
+		// to process multiple groups at once
+		return;
+	}
+
+	if (userhash[user] == undefined) {
+		dbg (1, RN + ": userhash["+user+"] == undefined");
+		return;
+	}
+
+	if (userhash[user][group] == undefined) {
+		dbg (1, RN + ": userhash["+user+"]["+group+"] == undefined");
+		return;
+	}
+
+	var acl = document.getElementById("AccessControlList");
+	if (acl) {
+		for (var i = 1 ; i < acl.options.length ; i++) {
+			var val = acl.options[i].value;
+			if (acl.options[i].selected) {
+				//dbg (1, RN + ": userhash["+user+"]["+group+"]["+val+"] = 1");
+				userhash[user][group][val] = 1;
+			} else {
+				//dbg (1, RN + ": userhash["+user+"]["+group+"]["+val+"] = undef");
+				delete userhash[user][group][val];
+			}					
 		}
 	}
+	DBG_objDump(userhash, "userhash");
 }
 
 /* determine who the currently selected user is */
@@ -115,7 +157,27 @@ function userform_lookupSelectedUser() {
 	} else {
 		dbg (1, RN + ": error, cant find UserList object");
 	}
-	return undef;
+	return undefined;
+}
+
+function userform_lookupSelectedGroup() {
+	var RN = "userform_lookupSelectedGroup";
+	var gl = document.getElementById('GroupList');
+	if (gl) {
+		var group  = "";
+		var numsel = 0;
+		for (var i = 1 ; i < gl.length ; i++) {
+			if (gl.options[i].selected) {
+				numsel++;
+				group = gl.options[i].value;
+			}
+		}
+		if (numsel  > 1) return "__multiple";
+		return group;
+	} else {
+		dbg (1, RN + ": error, cant find GroupList object");
+	}
+	return undefined;
 }
 
 function userform_unHighLight(oname, item) {
@@ -278,6 +340,8 @@ function userform_addGroupToUser() {
 	var agl = document.getElementById('AvailableGroupList');
 	var gl  = document.getElementById('GroupList');
 	if (agl && gl) {
+		userform_unHighLight("GroupList");
+		userform_unHighLight("AccessControlList");
 		for (var i = agl.options.length-1 ; i > 0 ; i--) {
 			dbg (1, RN + ": move agl/" + i + " to gl");
 			if (agl.options[i].selected) {
@@ -286,6 +350,7 @@ function userform_addGroupToUser() {
 				userhash[su][opt.value] = new Object;
 			}
 		}
+		userform_enableList("AccessControlList");
 	} else {
 		dbg (1, RN + ": cant find AvailableGroupList and/or GroupList object");
 	}
@@ -306,6 +371,8 @@ function userform_remGroupFromUser() {
 				delete userhash[su][opt.value];
 			}
 		}
+		userform_unHighLight("AccessControlList");
+		userform_disableList("AccessControlList");
 	} else {
 		dbg (1, RN + ": cant find AvailableGroupList and/or GroupList object");
 	}
