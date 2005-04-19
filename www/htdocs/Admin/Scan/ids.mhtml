@@ -1,7 +1,7 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.2 2005/04/19 04:31:04 mtbell Exp $
-
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.3 2005/04/19 19:03:28 mtbell Exp $
+#
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
@@ -14,6 +14,7 @@ $alloptions  => '';
 $ruledel     => '';
 $rulesave    => '';
 $rule	     => '';
+$desc	     => '';
 </%args>
 
 <script><!--
@@ -61,6 +62,9 @@ setWhereAmI('IDS Config');
 
 		var opt = new Option(str, str)
 		option.options[option.options.length] = opt
+
+		document.form.optarg.value           = null
+		document.form.optparam.selectedIndex = 0	
 	}
 
 	function prepareOption() {
@@ -108,7 +112,7 @@ if ($ruledel eq "Delete") {
 	}
 } elsif ($rulesave eq "Save") {
 	if ($raw) {
-		addRawRule($dbh, $rule, $sid);
+		addRawRule($dbh, $rule, $desc, $sid);
 	}
 	
 
@@ -118,7 +122,7 @@ print $q->h2("IDS Configuration");
 
 print $q->start_form(-method=>"POST", -name=>"form",  action => "ids.mhtml");
 
-print "all options = $alloptions";
+print "username = ".$m->session->{'username'};
 push @table, $q->TR( $q->th({-colspan=>9}, "Edit IDS Rules"));
 push @table, $q->TR(
 			$q->td({-class=>"gray", -align=>"center", -colspan=>1}, "Snort ID") .
@@ -126,7 +130,7 @@ push @table, $q->TR(
 
 push @table,
 	$q->TR(
-		$q->td({-class=>"gray", -align=>"center", -colspan=>1, -rowspan=>4, -width=>"15%"},
+		$q->td({-class=>"gray", -align=>"center", -valign=>"top", -colspan=>1, -rowspan=>6, -width=>"15%"},
 			$q->textfield(
 					-name		=> 'newsid',
 					-style		=> "width:80%"
@@ -135,7 +139,7 @@ push @table,
 			$q->scrolling_list(
 					    -name	=> 'sid',	
 					    -values	=> getSids($dbh),
-					    -size	=> 6,
+					    -size	=> 10,
 					    -default	=> $sid,
 					    -style	=> "width:80%;",
 					    -onchange	=> "submit();"
@@ -159,8 +163,8 @@ push @table,
 		)
 	);
 
+my $r = getRule($dbh, $sid);
 if (!$raw) {
-	my $r = getRule($dbh, $sid);
 	push @table, 
 	$q->TR(
 		$q->td({-class=>"gray", -align=>"center", -colspan=>1},
@@ -221,8 +225,10 @@ if (!$raw) {
 		)
 	);
 
-	my $opt =  $r->{options};
-	$opt	=~ s/[()]//g;
+	my $opt     =  $r->{options};
+	$opt	    =~ s/[()]//g;
+	my @options = split(/\;/, $opt);
+	pop @options;
 
 	push @otable,
        		 $q->TR(
@@ -234,7 +240,7 @@ if (!$raw) {
        		         $q->td({-class=>"gray", -align=>"center", -colspan=>1, -rowspan=>3, -width=>"50%"},
        		                 $q->scrolling_list(
        		                                     -name       => 'option',
-       		                                     -values     => [split(/\;/, $opt)],
+       		                                     -values     => \@options,
        		                                     -size       => 6,
        		                                     -style      => "width:95%;",
        		                                   )
@@ -287,7 +293,7 @@ if (!$raw) {
                                		-name           => 'rule',
                                		-columns        => 80,
 					-rows		=> 5,
-					-value		=> ($sid > 0) ? (getRule($dbh, $sid))->{rule} : ""
+					-value		=> (exists $r->{rule}) ? $r->{rule} : ""
                               	     )
 		)
 	);
@@ -305,6 +311,55 @@ push @table,
 					-onclick  => "submit();"
 			)
 		)
+	).
+	$q->TR(
+		$q->td({-class=>"gray", -align=>"left", -colspan=>4, -rowspan=>2},
+			"Description".$q->br().
+			$q->textarea(
+					-name	  => 'desc',
+					-rows	  => 4,
+					-columns  => 40,
+					-default  => (exists $r->{desc}) ? $r->{desc} : ""
+			)
+		).
+		$q->td({-class=>"gray", -align=>"left", -colspan=>2},
+			 "Added By".$q->br().
+			$q->textfield(
+					-name	  => 'addedBy',
+					-size	  => 9,
+					-readonly => 1,
+					-value	  => (exists $r->{addedby}) ? $r->{addedby} : ""
+				     )
+		).
+		$q->td({-class=>"gray", -align=>"left", -colspan=>2},
+			 "Added On".$q->br().
+                        $q->textfield(
+                                        -name     => 'addedOn',
+                                        -size     => 21,
+                                        -readonly => 1,
+                                        -value    => (exists $r->{addedon}) ? $r->{addedon} : ""
+                                     )
+		)
+	).
+	$q->TR(
+                $q->td({-class=>"gray", -align=>"left", -colspan=>2},
+                         "Last Modified By".$q->br().
+                        $q->textfield(
+                                        -name     => 'lastmodifiedby',
+                                        -size     => 9,
+                                        -readonly => 1,
+                                        -value    => (exists $r->{lastmodifiedby}) ? $r->{lastmodifiedby} : ""
+                                     )
+                ).
+                $q->td({-class=>"gray", -align=>"left", -colspan=>2},
+                         "Last Modified On".$q->br().
+                        $q->textfield(
+                                        -name     => 'lastmodifiedon',
+                                        -size     => 21,
+                                        -readonly => 1,
+                                        -value    => (exists $r->{lastmodifiedon}) ? $r->{lastmodifiedon} : ""
+                                     )
+                )
 	).
 	$q->TR(
 		$q->td({-class=>"gray", -align=>"right", -colspan=>8},
@@ -356,11 +411,13 @@ sub getRule {
 	my $sid	    = shift;
 	my $h	    = {};
 	
-	my $query = "SELECT rule FROM snortRules WHERE snortID = ? LIMIT 1";
+	my $query = "SELECT rule,description,addedBy,addedOn,lastModifiedBy,lastModifiedOn
+		     FROM snortRules WHERE snortID = ?";
 	my $sth = $dbh->prepare($query);
 	$sth->execute($sid);
 
-	$h->{rule} = $sth->fetchrow_array();
+	($h->{rule}, $h->{desc}, $h->{addedby}, $h->{addedon},
+	 $h->{lastmodifiedby}, $h->{lastmodifiedon}) = $sth->fetchrow_array();
 	$sth->finish;
 
 	my($action, $proto, $sip, $sport, $dir, $dip, $dport, $options) =
@@ -393,6 +450,7 @@ sub deleteRule {
 sub addRawRule {
         my $dbh     = shift;
         my $rule    = shift;
+	my $desc    = shift;
 	my $sid	    = shift;
 
 	my $data    = {};
@@ -447,7 +505,6 @@ sub addRawRule {
 		return 0;
 	}
 
-	$data->{desc} = "none";
 	my $sql;
 	my $username = $m->session->{'username'};
 
@@ -458,7 +515,7 @@ sub addRawRule {
 						   classtype	= ?,
 						   description	= ?,
 						   rule		= ?,
-						   lastModifiedBy = ?,
+						   lastModifiedBy = "$username",
 						   revision	= ?,
 						   other_refs	= ? 
 						   WHERE snortID = $sid};
@@ -467,7 +524,7 @@ sub addRawRule {
                                      		   snortID, name, category, classtype,
                                      		   description, rule, addedBy, lastModifiedBy,
                                      		   revision, other_refs
-                                  		 ) VALUES (?,?,?,?,?,?,$username,?,?,?)};
+                                  		 ) VALUES (?,?,?,?,?,?,"$username","$username",?,?)};
 	}
 
 	$sth = $dbh->prepare($sql);
@@ -476,14 +533,12 @@ sub addRawRule {
 				$data->{name},
 				$data->{category},
 				$data->{classtype},
-                            	$data->{desc},
+                            	$desc,
                             	$data->{rule},
-				$username,
                             	$data->{rev},
                             	$data->{reference}
 			      );
 
-print "error = ".$dbh->errstr;
 	$sth->finish;
 	if (!$rv) {
 		print $q->p({-class=>'error'}, "ERROR Unable to insert rule into database");
