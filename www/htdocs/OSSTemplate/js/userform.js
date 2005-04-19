@@ -121,20 +121,52 @@ function userform_editACL() {
 		for (var i = 1 ; i < acl.options.length ; i++) {
 			var val = acl.options[i].value;
 			if (acl.options[i].selected) {
-				//dbg (1, RN + ": userhash["+user+"]["+group+"]["+val+"] = 1");
+				dbg (1, RN + ": userhash["+user+"]["+group+"]["+val+"] = 1");
 				userhash[user][group][val] = 1;
 			} else {
-				//dbg (1, RN + ": userhash["+user+"]["+group+"]["+val+"] = undef");
+				dbg (1, RN + ": userhash["+user+"]["+group+"]["+val+"] = undef");
 				delete userhash[user][group][val];
 			}					
 		}
 	}
-	DBG_objDump(userhash, "userhash");
+
+
+	dbg(1, RN + ": HASH  " + userform_genAclHash(userhash, "userhash"));
+	userform_setAclHash();
+}
+
+function userform_setAclHash() {
+	var RN = "userform_setAclHash";
+	var ah = userform_genAclHash(userhash, "userhash");
+	var af = document.getElementById("aclHash");
+	if (af) {
+		dbg (1, "set aclHash to " + ah);
+		af.value = ah;
+	} else {
+		dbg (1, RN + ": cant find aclHash object");
+	}
+}
+
+function userform_genAclHash(o, b) {
+	var branch = "";
+	var SEP = "$";
+	for (var x in o) {
+		if (typeof o[x] == "object") {
+			var btext = userform_genAclHash(o[x], b+SEP+x);
+			if (btext != "") {
+				branch += btext + ";";
+			}
+		} else {
+			branch += b + SEP + x + ";";
+		}
+	}
+	return branch;
 }
 
 /* determine who the currently selected user is */
 
 function userform_saveUserSettings(o) {
+	var RN = "userform_saveUserSettings";
 	dbg(1, "save user");
 	var ul = document.getElementById('UserList');
 	if (o && ul) {
@@ -346,6 +378,7 @@ function userform_addGroupToUser() {
 			dbg (1, RN + ": move agl/" + i + " to gl");
 			if (agl.options[i].selected) {
 				var opt = agl.options[i];
+				if (browserType_IE) agl.options[i] = null;
 				gl.options[gl.options.length] = opt;
 				userhash[su][opt.value] = new Object;
 			}
@@ -367,6 +400,7 @@ function userform_remGroupFromUser() {
 			dbg (1, RN + ": move gl/" + i + " to agl");
 			if (gl.options[i].selected) {
 				var opt = gl.options[i];
+				if (browserType_IE) gl.options[i] = null;
 				agl.options[agl.options.length] = opt;
 				delete userhash[su][opt.value];
 			}
@@ -387,7 +421,7 @@ function userform_onfocus_addUser(o) {
 	if (o && o.value == "Add user...") o.value = "";
 }
 
-function userform_onblur_addUser(o) {
+function userform_onblur_addUser(o) {	
 	var RN = "userform_onblur_addUser";
 	dbg (1, RN);
 

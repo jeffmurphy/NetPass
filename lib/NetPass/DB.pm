@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.22 2005/04/19 04:01:22 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.23 2005/04/19 20:53:04 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -581,17 +581,20 @@ sub getPage {
     else {
 	    # if we were given an IP, then look up the corresponding
 	    # network. 
-	    my $network = $npcfg->getMatchingNetwork(-ip => $ip);
-	    my $netgroup;
-	    if ($network =~ /\//) {
-		    $netgroup = $npcfg->getNetgroup($network);
-		    if ($netgroup ne "") {
-			    $page = $self->getPage2($sql. " AND network = ".$self->dbh->quote($netgroup));
+
+	    if (defined($ip) && ($ip ne "")) {
+		    my $network = $npcfg->getMatchingNetwork(-ip => $ip);
+		    my $netgroup;
+		    if ($network =~ /\//) {
+			    $netgroup = $npcfg->getNetgroup($network);
+			    if ($netgroup ne "") {
+				    $page = $self->getPage2($sql. " AND network = ".$self->dbh->quote($netgroup));
+				    goto done if defined($page);
+			    }
+			    $page = $self->getPage2($sql. " AND network = ".
+						    $self->dbh->quote($network));
 			    goto done if defined($page);
 		    }
-		    $page = $self->getPage2($sql. " AND network = ".
-					    $self->dbh->quote($network));
-		    goto done if defined($page);
 	    }
 	    $page = $self->getPage2($sql. " AND network = 'default'");
     }
@@ -1190,7 +1193,7 @@ sub composeGroupMembership {
 	my $gstring = "";
 	foreach my $g (keys %$gh) {
 		if (ref($gh->{$g}) eq "ARRAY") {
-			$gstring .= "$g+".join('+', @$gh->{$g}).";";
+			$gstring .= "$g+".join('+', @{$gh->{$g}}).";";
 		} else {
 			$gstring .= "$g;";
 		}
@@ -1217,13 +1220,11 @@ sub getUsersAndGroups {
     return $hr;
 }
 
-=head2 setUsersAndGroups($hashref)
+=head2 setUsersAndGroups(-userhash => $hashref, -whoami => username, -ip => ipaddr)
 
-Given a hashref where the keys are the usernames and the values are
-array references, update each user (key) and set the user's groups to
-the values of the corresponding array. If the array is empty (the user
-has no group membership) then the user will be deleted from the
-table. 
+Given a hashref that looks just like what getUsersAndGroups returns,
+update each user (key) and set the user's groups and ACL. If the ACL is
+empty, remove the user from the table.
 
 Returns 
 
@@ -1234,39 +1235,53 @@ Returns
 
 sub setUsersAndGroups {
     my $self   = shift;
-    my $uh     = shift;
-    my $whoami = shift;
-    my $myip   = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-userhash -whoami -ip) ],
+			     -defaults => {
+					   -userhash => undef,
+					   -whoami   => '',
+					   -ip       => ''
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($uh, $whoami, $myip) = $parms->get('-userhash', '-whoami', '-ip');
 
     $whoami ||= "unknown";
     $myip   ||= "unknown";
 
     foreach my $u (keys %$uh) {
-	my $groups = composeGroupMembership($uh->{$u});
+	    my $groups = $self->composeGroupMembership($uh->{$u});
+	    _log ("DEBUG", "u $u  g $groups\n");
 
-	$self->reconnect() || return "db failure database down";
-
-	if ($groups eq "") {
-	    my $sql = qq{DELETE FROM users WHERE username = '$u'};
-	    if (!$self->{'dbh'}->do($sql)) {
-		_log("ERROR", "failed to delete user $u ".$self->{'dbh'}->errstr."\n");
-		return "db failure ".$self->{'dbh'}->errstr;
+	    $self->reconnect() || return "db failure database down";
+	    
+	    if ($groups eq "") {
+		    my $sql = qq{DELETE FROM users WHERE username = '$u'};
+		    if (!$self->{'dbh'}->do($sql)) {
+			    _log("ERROR", "failed to delete user $u ".$self->{'dbh'}->errstr."\n");
+			    return "db failure ".$self->{'dbh'}->errstr;
+		    } else {
+			    _log("INFO", "user $u deleted\n");
+			    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
+					 -msg => [ qq{user $u deleted} ]);
+		    }
 	    } else {
-		_log("INFO", "user $u deleted\n");
-		$self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
-			     -msg => [ qq{user $u deleted} ]);
+		    my $sql = qq{UPDATE users SET groups = '$groups' WHERE username = '$u'};
+		    if (!$self->{'dbh'}->do($sql)) {
+			    _log("ERROR", 
+				 "failed to change groups to ($groups) for $u ".$self->{'dbh'}->errstr."\n");
+			    return "db failure ".$self->{'dbh'}->errstr;
+		    } else {
+			    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
+					 "groups for $u changed to: $groups");
+		    }
 	    }
-	} else {
-	    my $sql = qq{UPDATE users SET groups = '$groups' WHERE username = '$u'};
-	    if (!$self->{'dbh'}->do($sql)) {
-		    _log("ERROR", 
-			 "failed to change groups to ($groups) for $u ".$self->{'dbh'}->errstr."\n");
-		    return "db failure ".$self->{'dbh'}->errstr;
-	    } else {
-		    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
-				 "groups for $u changed to: $groups");
-	    }
-	}
     }
     return 0;
 }
@@ -2356,7 +2371,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.22 2005/04/19 04:01:22 jeffmurphy Exp $
+$Id: DB.pm,v 1.23 2005/04/19 20:53:04 jeffmurphy Exp $
 
 =cut
 

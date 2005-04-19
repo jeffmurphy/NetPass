@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.8 2005/04/19 19:17:55 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.9 2005/04/19 20:53:05 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -14,15 +14,36 @@ functions:
 </%doc>
 
 <%args>
-	$submit => undef
+	$submit  => undef;
+	$aclHash => undef;
 </%args>
 
 <script><!--
 setWhereAmI('User Editor');
 --></script>
 
-To delete a user, remove them from all of the groups.<P>
+<%perl>
+if ($submit eq "Commit Changes") { 
+	print "submit: ".$aclHash."<P>";
+	my $uh = {};
+	foreach my $part (split (';', $aclHash)) {
+		if ($part ne "") {
+			my @ap = split(/\$/, $part);
+			if ($#ap == 3) {
+				if (ref($uh->{$ap[1]}->{$ap[2]}) eq "ARRAY") {
+					push @{$uh->{$ap[1]}->{$ap[2]}}, $ap[3];
+				} else {
+					$uh->{$ap[1]}->{$ap[2]} = [ $ap[3] ];
+				}
+			}
+		}
+	}
+	$np->db->setUsersAndGroups(-userhash => $uh, -whoami => $m->{'session'}->{'username'},
+					-ip => $ENV{'REMOTE_ADDR'});
+}
+</%perl>
 
+<script src="/resources/js/xmlhttp.js" type="text/javascript"></script>
 <script src="/resources/js/userform.js" type="text/javascript"></script>
 <script src="/resources/js/debug.js" type="text/javascript"></script>
 <script language="JavaScript">
@@ -77,91 +98,6 @@ var userhash = {
 
 	my $ldap   = $np->cfg->policy('LDAP_USER_QUERY', $ENV{'REMOTE_ADDR'});
 
-	if (defined($submit)) {
-		# validate all input. if we dont have right group membership -> deny
-		# update database.
-		my $uh = {};
-		my $ok = 1;
-
-		# right off the bat, if you arent at least a member of
-		# Admin, NetAdmin or User we can deny the entire transaction
-
-		if (! ($m->comp('/Admin/MemberOf', 'group' => 'Admin') ||
-		       $m->comp('/Admin/MemberOf', 'group' => 'NetAdmin') ||
-		       $m->comp('/Admin/MemberOf', 'group' => 'User')) ) {
-			$error .= "Sorry, permission denied.<BR>(You aren't Admin or User)";
-		} else {
-			foreach my $user (sort keys %$users) {
-				# if you are trying to add a
-				# user to Admin and you arent an
-				# Admin -> denied.
-
-				if (exists $ARGS{$user."-Admin"} &&
-				    !($m->comp('/Admin/MemberOf', 
-						'group' => 'Admin'))) {
-					$ok = 0;
-					next;
-				}
-
-				foreach my $g (@groups) {
-					next if (!($m->comp('/Admin/MemberOf', 
-						                  'group' => 'Admin')) &&
-						($g eq "Admin"));
-
-					next if (!($m->comp('/Admin/MemberOf',
-						                  'group' => 'Admin')) &&
-						(grep /^Admin$/, @{$users->{$user}}));
-
-					$uh->{$user} = [] unless exists $uh->{$user};
-
-					if(exists $ARGS{$user."-".$g}) {
-						push @{$uh->{$user}}, $g;
-					} 
-				}
-			}
-
-			if ($ok) {
-				# user add. if you arent admin and you 
-				# are trying to add an admin -> denied
-
-				if( exists $ARGS{'_newuser-Admin'} &&
-				   !$m->comp('/Admin/MemberOf', 'group' => 'Admin') ) {
-					$error .= "Sorry, you can't add someone to the Admin group.\n";
-				}
-
-				# if you arent an Admin or you arent a User then you cant
-				# any a new user.
-
-				elsif( exists $ARGS{'_newuser'} && ($ARGS{'_newuser'} ne "")) {
-					if($m->comp('/Admin/MemberOf', 'group' => 'User') ||
-					   $m->comp('/Admin/MemberOf', 'group' => 'Admin')
-					   ) {
-						my @gl;
-						foreach my $g (@groups) {
-							push @gl, $g 
-								if (exists $ARGS{"_newuser-$g"});
-						}
-						if ($ARGS{'_newuser'} eq "_newuser") {
-							$error .= "Sorry, you can't create a user with that username.<BR>";
-						} 
-						elsif ($np->db->createUserWithGroups($ARGS{'_newuser'}, @gl)) {
-							$error .= "Failed to add user $ARGS{_newuser}<BR> If the user doesn't already exist, let us know.<BR>";
-						}
-					} else {
-						$error .= "Sorry, you aren't allowed to add users.<BR>\n";
-					}
-				}
-				if ( (my $rv = $np->db->setUsersAndGroups($uh, $whoami, $myip)) == 0) {
-					$error .= "Changes saved.";
-				} else {
-					$error .= "Sorry, and error occurred. Let us know. ($rv)";
-				}
-			} else {
-				$error .= "Sorry. Permission denied.<BR>Did you try to change an Admin?";
-			}
-		}
-		$users  = $np->db->getUsersAndGroups();
-	}
 
 	if( defined($users) ) {
 		my $widthHolder = "-" x 32;
@@ -180,7 +116,7 @@ var userhash = {
     <P><center><input id='addUser' 
 		onfocus='userform_onfocus_addUser(this); return false;'
 		onblur='userform_onblur_addUser(this); return false;'
-	        size=10 maxlength=16 value="Add user..."><BR>
+	        size=10 maxlength=16 value="Add user..."><P>
        <button id='deleteUser' disabled>Delete User</button></center>
     </td>
     <td style='vertical-align:top;'>
@@ -208,7 +144,9 @@ var userhash = {
 			print qq{<option value="$gl"> $gl\n};
 		}
 </%perl>
-</select>
+</select><P><center>
+<input type='submit' value='Commit Changes' name='submit'></center><P>
+
 
 </td>
 <td style='vertical-align:top;'>
@@ -220,87 +158,16 @@ var userhash = {
 %		}
 </select>
 <P><CENTER>
-<button id='addToAll' disabled>Add To All</button><BR>
+<button id='addToAll' disabled>Add To All</button><P>
 <button id='remFromAll' disabled>Remove From All</button>
+
 </CENTER>
 </td></tr></table>
-<%perl>
 
-		print "<table><tr><th>Username</th>";
-		foreach my $g (@groups) {
-			print "<th>$g</th>";
-		}
-		print "</tr>\n";
+<textarea style="display: NONE;" name="aclHash" id="aclHash" cols=80 rows=24></textarea>
+%	}
 
-		print "<tr><td><input size=8 maxlength=10 name='_newuser'></td>";
-		foreach my $g (@groups) {
-			print "<Td align=center>";
-
-			print "<input type='checkbox' name='_newuser-$g' ";
-
-			print " disabled "
-				if (($g eq "Admin") && 
-				    !($m->comp('/Admin/MemberOf', 
-					'group' => 'Admin')));
-
-			print " disabled "
-				unless $m->comp('/Admin/MemberOf',
-					'group' => 'Admin') ||
-				       $m->comp('/Admin/MemberOf',
-					'group' => 'User') ;
-			print "></td>";
-		}
-		print "</tr>\n";
-    
-		foreach my $user (sort keys %$users) {
-			my $_user = $user;
-			if ($ldap) {
-				$_user = sprintf("<a target='new' href='$ldap'>$user</a>",
-					$user);
-				my ($lpow, $lpoh) = 
-					($np->cfg->policy('LDAP_POPUP_WIDTH', $ENV{'REMOTE_ADDR'}),
-					 $np->cfg->policy('LDAP_POPUP_HEIGHT', $ENV{'REMOTE_ADDR'}));
-				$lpow ||= 573;
-				$lpoh ||= 734;
-				$_user = sprintf(qq{<a href='javascript:window.open("$ldap", 
-						"NPLDAPQUERY", 
-						"resizable,width=$lpow,height=$lpoh,scrollbars");void 0;'>$user</a>}, $user);
-
-			}
-			print "<tr><td>$_user</td>";
-			foreach my $g (@groups) {
-				my @j = (); #grep /^$g$/, @{$users->{$user}};
-				print "<Td align=center>";
-#	print "\n<!--$g ".join(',', keys %{$m->session->{'my_groups'}})." -->\n";
-
-
-				print "<input type='hidden' name='prev:$user-$g' value=1>\n"
-					if ($#j != -1);
-
-				print "<input type='checkbox' name='$user-$g' ";
-				if($#j != -1) {
-					print "checked ";
-				} 
-				print " disabled "
-					if (($g eq "Admin") && 
-					    !($m->comp('/Admin/MemberOf', 
-						'group' => 'Admin')));
-
-				print " disabled "
-					unless $m->comp('/Admin/MemberOf',
-						'group' => 'Admin') ||
-					       $m->comp('/Admin/MemberOf',
-						'group' => 'User') ;
-				print "></td>";
-			}
-			print "</tr>\n";
-		}
-		print "</table>";
-	}
-</%perl>
-</td></tr>
-<tr><td><%$error%>
-</td><td align=right><input type='submit' value='Commit Changes' name='submit'></td></tr></table>
+<script>userform_setAclHash();</script>
 
 <dl>
  <dt> Admin </dt>

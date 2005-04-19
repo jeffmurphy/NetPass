@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/WelcomePage,v 1.5 2005/04/19 04:01:24 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/WelcomePage,v 1.6 2005/04/19 20:53:05 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,7 +12,7 @@
 
 <%perl>
 	my $ip = $ENV{'REMOTE_ADDR'};
-	print $np->db->getPage(-name => 'msg:welcome', -nohtml => 1, -ip => $ip, -nocfg => $np->cfg);
+	print $np->db->getPage(-name => 'msg:welcome', -nohtml => 1, -ip => $ip, -npcfg => $np->cfg);
 
 	print '<P><center><iframe src="eula.mhtml?printable=1" marginwidth=0 marginheight=0 align=top width=550 height=150></iframe>';
 	

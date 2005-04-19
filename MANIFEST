@@ -205,6 +205,7 @@ www/htdocs/OSSTemplate/images/progress.gif
 www/htdocs/OSSTemplate/js/OSSTemplate.js
 www/htdocs/OSSTemplate/js/userform.js
 www/htdocs/OSSTemplate/js/debug.js
+www/htdocs/OSSTemplate/js/xmlhttp.js
 www/htdocs/OSSTemplate/.htaccess
 www/htdocs/load-test.mhtml
 www/htdocs/autohandler
