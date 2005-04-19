@@ -42,7 +42,7 @@ CREATE TABLE policy (
 CREATE TABLE users (
 	username	VARCHAR(128) NOT NULL,
 	groups          VARCHAR(128) NOT NULL,
-	PRIMARY KEY(username)
+	INDEX(username)
 ) TYPE=NDBCLUSTER;
 
 create table networkAdmins (
@@ -80,10 +80,11 @@ INSERT INTO users VALUES ('netpass', 'Admin');
 INSERT INTO passwd VALUES ('netpass', ENCRYPT('netpass', 'xx'));
 	
 CREATE TABLE pages (
-	networkId       integer not null default '0',
+	network         VARCHAR(128) NOT NULL default 'default',
 	name		VARCHAR(128) NOT NULL,
 	content		TEXT,
-	PRIMARY KEY(name)
+	PRIMARY KEY(name),
+	UNIQUE INDEX (name, network)
 ) TYPE=NDBCLUSTER;
 
 

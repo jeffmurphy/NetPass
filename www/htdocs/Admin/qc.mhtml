@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.12 2005/04/12 20:53:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.13 2005/04/19 01:40:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -28,10 +28,11 @@ setWhereAmI('Quarantine Control');
 my @rwGroups = ('Admin', 'QuarAdmin');
 my @roGroups = ('Reports');
 my $readOnly = "disabled";
+my @aclGroups = ();
 
-if ($m->comp('/Admin/MemberOf', 'group' => [ @rwGroups ])) {
+if (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ])) {
 	$readOnly = "";
-} elsif ($m->comp('/Admin/MemberOf', 'group' => [ @roGroups ])) {
+} elsif (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ])) {
 	$readOnly = "disabled";
 } else {
         print $q->p({-class=>'error'},
@@ -174,7 +175,7 @@ if($submit) {
 		}
 	} else {
 		# this really shouldnt happen. we dont give them a submit button
-		$np->db->audit(  -user => $m->session->{'logged_in'},
+		$np->db->audit(  -user => $m->session->{'username'},
 				-severity => "ALERT",
                                 -msg => [ "tried to change QuarControl but is ReadOnly" ]);
 
@@ -442,6 +443,9 @@ sub saveQuarChanges {
 		return "Failed to prepare sql: ".$dbh->errstr;
 	}
 
+	#my $results   = { 'mac' => [], type => [], id => [] };
+	my $resultsRV = '';
+
         foreach my $mac (@$ids) {
 		# if nothing's changed, then dont bother with the db transaction
 
@@ -525,6 +529,8 @@ sub saveQuarChanges {
 				return "Error: $mac PQUAR requires that you specify a message.";
 			} else {
 				push @params, $args->{"message:$mac"};
+				$resultsRV = $np->db->addResult(-mac => $mac, -type => 'manual', 
+								   -id => $args->{"message:$mac"});
 			}
 		}
 
@@ -533,13 +539,15 @@ sub saveQuarChanges {
 				push @params, undef;
 			} else {
 				push @params, $args->{"message:$mac"};
+				$resultsRV = $np->db->addResult(-mac => $mac, -type => 'manual', 
+								   -id => $args->{"message:$mac"});
 			}
 		}
 
 		elsif ($args->{"status:$mac"} =~ /^(UNQUAR|PUNQUAR)$/) {
 			push @params, undef;
 		} else {
-			LA("ERROR", $m->session->{'logged_in'}, 
+			LA("ERROR", $m->session->{'username'}, 
 				" invalid status specified for $mac ",
 				$args->{"status:$mac"});
 			print "Bad 'Status' setting. Skipping <code>$mac</code>.<BR>\n";
@@ -550,7 +558,7 @@ sub saveQuarChanges {
 			push @params, $args->{"uqlinkup:$mac"};
 		} else {
 			LA("ERROR", 
-				$m->session->{'logged_in'},
+				$m->session->{'username'},
 				" invalid uqlinkup specified for $mac " .
 				$args->{"uqlinkup:$mac"});
 			print "Bad 'Unquar When?' setting. Skipping <code>$mac</code>.<BR>\n";
@@ -560,19 +568,19 @@ sub saveQuarChanges {
                 push(@params, $mac);
 
 
-		LA("DEBUG", $m->session->{'logged_in'}." is changing $mac - ".
+		LA("DEBUG", $m->session->{'username'}." is changing $mac - ".
 			 join(',', @params));
 
 		if ($args->{"message:$mac"} ne $args->{"messageOrig:$mac"}) {
 			$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
-				-user => $m->session->{'logged_in'},
+				-user => $m->session->{'username'},
 			      	-msg => [ "QC: message changed to", $args->{"message:$mac"},
 					  "from", $args->{"messageOrig:$mac"} ]);
 		}
 
 		if ($args->{"status:$mac"} ne $args->{"statusOrig:$mac"}) {
 			$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
-				-user => $m->session->{'logged_in'},
+				-user => $m->session->{'username'},
 			      	-msg => [ "QC: status changed to", $args->{"status:$mac"},
 					  "from",  $args->{"statusOrig:$mac"} ]);
 		}
@@ -607,7 +615,7 @@ sub saveQuarChanges {
 
 				_log("DEBUG", "$mac $ipAddr $rv\n");
 				$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
-					-user => $m->session->{'logged_in'},
+					-user => $m->session->{'username'},
 			      		-msg => [ "QC: $rv " ]);
 
 				$rv = qq{mac address "$mac" $rv};
@@ -621,7 +629,7 @@ sub saveQuarChanges {
 					_log("ERROR", "$rv\n");
 
 					$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
-						-user => $m->session->{'logged_in'},
+						-user => $m->session->{'username'},
 			      			-msg => [ "QC: $rv " ]);
 				}
 
@@ -630,8 +638,15 @@ sub saveQuarChanges {
 			$rv = "$mac failed to update database: ".$sth->errstr;
 			_log("ERROR", "$rv\n");
 			$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
-					-user => $m->session->{'logged_in'},
+					-user => $m->session->{'username'},
 		      			-msg => [ "QC: $rv " ]);
+		}
+
+
+		if ($resultsRV) {
+			my $ipAddr = $args->{"ipAddr:$mac"};
+			_log("ERROR", "$mac $ipAddr failed to addResult: $resultsRV\n");
+			push @rv, "$mac failed to update database: $resultsRV";
 		}
 
 		# if any of the above failed, clean up and return a message

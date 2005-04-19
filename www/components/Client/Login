@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Login,v 1.2 2005/04/12 16:17:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Login,v 1.3 2005/04/19 01:40:34 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -40,9 +40,14 @@
 	$m->session->{'logged_in'} = 1;
 	$m->session->{'my_groups'} = $np->db->getUserGroups($username);
 
-	$m->session->{'phase'}     = 'SCAN';
+	my $scanEnabled = $np->cfg->policy('nessus', $ip);
+	_log("INFO", "$mac $ip scanEnabled=$scanEnabled\n");
 
-	_log("DEBUG", "$mac $ip /Client/Login authentication for $username succeeded, Phase=SCAN ".$m->session->{'_session_id'}."\n");
+	$m->session->{'phase'}     = 'SCAN';
+	$m->session->{'phase'}     = 'COMPLETE'	if (defined($scanEnabled) && ($scanEnabled == 0));
+
+	_log("DEBUG", "$mac $ip /Client/Login authentication for $username succeeded, Phase= "
+		.$m->session->{'phase'}." ".$m->session->{'_session_id'}."\n");
 
 	$m->comp('/Audit', msg => [ 'authentication successful' ] );
 

@@ -4,6 +4,7 @@ bin/test/snmptt_SNMP.pl
 bin/test/snmptt_shell.pl
 bin/test/getMatchingNetwork.pl
 bin/test/policy.pl
+bin/test/getUsersGroups.pl
 bin/import_nessus_scans.pl
 bin/appstarter.pl
 bin/bulk_moveport.pl
@@ -28,6 +29,7 @@ bin/ciconf.pl
 bin/rm_stale_cookies.pl
 bin/import_snort_rules.pl
 bin/getresults.pl
+bin/quarantine_host.pl
 bin/lsconf.pl
 doc/cron.monthly/mysql_binlog_rotate
 doc/logrotate.d/apache
@@ -153,6 +155,7 @@ www/components/Client/SideLinks
 www/components/Client/Survey
 www/components/Client/Validate
 www/components/Client/WelcomePage
+www/components/Client/ShowResults
 www/components/style/back/start_sidebar
 www/components/style/back/end_content
 www/components/style/back/end_sidebar
@@ -166,6 +169,7 @@ www/htdocs/Admin/Editor/index.mhtml
 www/htdocs/Admin/Editor/view.mhtml
 www/htdocs/Admin/Scan/index.mhtml
 www/htdocs/Admin/Scan/info.mhtml
+www/htdocs/Admin/Scan/ids.mhtml
 www/htdocs/Admin/reports/byclient.mhtml
 www/htdocs/Admin/reports/bynet.mhtml
 www/htdocs/Admin/reports/byos.mhtml
@@ -181,6 +185,7 @@ www/htdocs/Admin/mr.mhtml
 www/htdocs/Admin/qc.mhtml
 www/htdocs/Admin/user.mhtml
 www/htdocs/Admin/sq.mhtml
+www/htdocs/Admin/test.html
 www/htdocs/OSSTemplate/css/OSSTemplate.css.cgi
 www/htdocs/OSSTemplate/css/.htaccess
 www/htdocs/OSSTemplate/css/calendar.css
@@ -197,6 +202,8 @@ www/htdocs/OSSTemplate/images/corner.gif
 www/htdocs/OSSTemplate/images/ossLogo2.gif
 www/htdocs/OSSTemplate/images/progress.gif
 www/htdocs/OSSTemplate/js/OSSTemplate.js
+www/htdocs/OSSTemplate/js/userform.js
+www/htdocs/OSSTemplate/js/debug.js
 www/htdocs/OSSTemplate/.htaccess
 www/htdocs/load-test.mhtml
 www/htdocs/autohandler

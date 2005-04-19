@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.5 2005/04/14 13:41:36 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.6 2005/04/19 01:40:34 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -17,14 +17,21 @@ my $mac   = $m->session->{'remote_mac'};
 
 # if they have a message waiting, it's due to a manual quarantine.
 
-my $msg = $np->db->getMessage($mac);
-if($msg) {
-	_log("DEBUG", "$mac $ip this client has a message waiting ($msg). we'll display it and return. there is no way for this client to get out of the quarantine.\n");
-	print $np->db->getPage($msg);
+# if the client is PQUAR, then we suppress the message telling them how to remediate
+# and ONLY show them the results (with no "fix" buttons and no "re-scan" option).
+# they can read all of the pending message, but can't do anything else.
+
+
+if ($m->session->{'regStatus'} eq "PQUAR") {
+	_log("DEBUG", "$mac $ip this client is PQUAR. we'll display pending results and return. there is no way for this client to get out of the quarantine.\n");
+	$m->comp('/Client/ShowResults', 'mac' => $mac, 'ip' => $ip, 'pquar' => 1);
 	return;
 }
 
-$msg = $np->db->getPage('msg:remediate_directions', 1);
+# otherwise we give them a header which explains the remediation process, followed
+# by the results.
+
+my $msg = $np->db->getPage('msg:remediate_directions', 1);
 
 if($msg) {
 	print $msg;
@@ -44,75 +51,29 @@ foreach my $sid (keys %ARGS) {
 	}
 }
 
-my @vulns = @{$m->session->{'nessus'}};
+my $results = $np->db->getResults(-mac => $mac);
+if (ref($results) ne "HASH") {
+	_log ("ERROR", "$mac $ip db failure: $results");
+	print "A database failure has occurred. An administrator will have to examine the logs to determine precisely what failed.<P>";
+	return;
+}
+my $nres    = $#{$results->{'type'}};
 
 print $q->start_form();
 
-if($#vulns > -1) {
-
-	my $autoexpand = ($#vulns <= ($np->cfg->policy('RESULTS_EXPAND', $ip)-1));
-
-	print qq{<table border=0 cellpadding="0" cellspacing="0" style="border-collapse: collapse" width="100%"><tr><th colspan=3>Detected Security Issues</th></tr>};
-
-	foreach my $sid ( @vulns ) {
-		my ($shortName, $info) = $np->db->getNessusInfo($sid);
-
-		print qq{<tr><td width="3%" align=center>};
-		  if ($m->session->{'js_enabled'} eq "enabled" && !$autoexpand) {
-		      print qq{<a href="#" onclick="showHideObj('nessus-$sid', this); return false;">[+]</a>};
-		  } else {
-		      print qq{[-]};
-		  }
-		  print qq{</td><td>$shortName</td>};
-		  print qq{<td width="1%" align="right">};
-		  print $q->submit(-name=>$sid, -value=>'Fixed');
-		  print qq{</td>};
-		  print qq{</tr><tr><td colspan=3 class="gray">};
-
-		  if ($m->session->{'js_enabled'} eq "enabled" && !$autoexpand) {
-		      print qq{<ul id='nessus-$sid' style='DISPLAY:None;'>};
-		  } else {
-		      print "<ul>";
-		  }
-
-		  _log "DEBUG", "$mac $ip found nessus $sid info=$info\n";
-
-		  if($info eq "nessus:") {
-		      print $q->pre($m->session->{'nessus_defaults'}->{$sid});
-		  } 
-		  elsif($info =~ /^msg:/) {
-		      print $np->db->getPage($info, 1);
-		  }
-		  print qq{</td></tr>};
-		  # URL
-	}
-
+if($nres > -1) {
+	$m->comp('/Client/ShowResults', 'mac' => $mac, 'ip' => $ip, 'pquar' => 0);
 } else {
 
-	my $scanEnabled = $np->cfg->policy('nessus', $ip);
-	_log("INFO", "$mac $ip scanEnabled=$scanEnabled\n");
+	$m->session->{'phase'} = 'SCAN';
+	my $msg = $np->db->getPage('msg:remediate_completed', 1);
 
-	if ($scanEnabled) {
-		$m->session->{'phase'} = 'SCAN';
-		my $msg = $np->db->getPage('msg:remediate_completed', 1);
-
-		if($msg) {
-			print $msg;
-		} else {
-			print $q->p("You have completed all the steps required for remediation. We must now scan your machine once again to confirm that all vulnerabilites have been fixed.");
-		}
-		print $q->submit(-name=>'submit', -value=>'Re-Scan') . $q->br;
+	if($msg) {
+		print $msg;
 	} else {
-		$m->session->{'phase'} = 'COMPLETE';
-		my $msg = $np->db->getPage('msg:remediate_completed', 1);
-
-		if($msg) {
-			print $msg;
-		} else {
-			print $q->p("You have completed all the steps required for remediation. We must now scan your machine once again to confirm that all vulnerabilites have been fixed.");
-		}
-		print $q->submit(-name=>'submit', -value=>'Next>>') . $q->br;
+		print $q->p("You have completed all the steps required for remediation. We must now scan your machine once again to confirm that all vulnerabilites have been fixed.");
 	}
+	print $q->submit(-name=>'submit', -value=>'Re-Scan') . $q->br;
 
 }
 	

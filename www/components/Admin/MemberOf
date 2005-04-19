@@ -1,34 +1,97 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/MemberOf,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/MemberOf,v 1.2 2005/04/19 01:40:34 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 
+	$m->comp(..., 'group' => 'default', 'acl' => 'Admin' )
+	$m->comp(..., 'group' => 'default', 'acl' => [ 'Reports', 'UserEditor' ])
+
 	$m->comp(..., 'group' => 'SomeGroupName')
 	$m->comp(..., 'group' => [ 'SomeGroupName', 'AnotherGroupName' ])
 
-	returns 1 if you are a member of any of the given groups. otherwise
-	returns 0.
+	If 'group' is not specified, then we will indicated whether or not
+	you possess the specified ACl at any priviledge level. We will return
+	a list of groups that match the given ACL in that case. The list (arrayref)
+        will be returned as a second RV. 
+
+	Returns 1 if you have the specified Access Control for the given 
+	group(s). Returns 0 otherwise.
+ 
 </%doc>
 
 <%args>
-	$group => undef
+	$group => '';
+	$acl   => '';
 </%args>
 
 <%perl>
-	#foreach my $g (keys %{$m->session->{'my_groups'}}) {
-	#	print "g=$g<P>\n";
-	#}
-	if ((exists $m->session->{'logged_in'}) && 
-	    (exists $m->session->{'my_groups'}) ) {
-		if (ref($group) eq "ARRAY") {
-			foreach my $gn (@$group) {
-				return 1 if (exists $m->session->{'my_groups'}->{$gn});
+
+	if (0) {
+	use Data::Dumper;
+
+	print "<PRE>", Dumper($m->session->{'my_groups'}), "\n</PRE>";
+	print "<PRE>group $group\n</PRE>";
+	print "<PRE>acl $acl\n</PRE>" if (ref($acl) ne "ARRAY");
+	print "<PRE>acl ",join(',', @$acl), "\n</PRE>" if (ref($acl) eq "ARRAY");
+	}
+
+	my @grpList = ();
+
+	if ((exists $m->session->{'logged_in'}) && (exists $m->session->{'my_groups'}) ) {
+
+		# if ACL is an ARRAY, iterate foreach of its values.
+
+		if (ref($acl) eq "ARRAY") {
+			foreach my $ac (@$acl) {
+
+				# if group was defined, we know precisely where to look
+
+				if (defined($group) && ($group ne "")) {
+					if (exists $m->session->{'my_groups'}->{$group} &&
+				     		grep /^$ac$/, @{$m->session->{'my_groups'}->{$group}}) {
+							return 1;
+					}
+				} 
+
+				# otherwise, we need to find all groups that match the acl
+				# so we can return them
+
+				else {
+
+					foreach my $grp (keys %{$m->session->{'my_groups'}}) {
+						push @grpList, $grp 
+							if grep /^$ac$/, @{$m->session->{'my_groups'}->{$grp}};
+					}
+				}
 			}
-		} else {
-			return 1 if (exists $m->session->{'my_groups'}->{$group});
+		} 
+
+		# otherwise, the ACL was pass in as a string (a single ACL) so 
+		# check it directly. 
+
+		else {
+
+			# if $group was given, check it directly
+
+			if (defined($group) && ($group ne "")) {
+				if (exists $m->session->{'my_groups'}->{$group} &&
+					grep /^$acl$/, @{$m->session->{'my_groups'}->{$group}}) {
+						return 1;
+				}
+			} 
+
+			# else find all groups that match the acl so we can return them
+
+			else {
+				foreach my $grp (keys %{$m->session->{'my_groups'}}) {
+					push @grpList, $grp 
+						if grep /^$acl$/, @{$m->session->{'my_groups'}->{$grp}};
+				}
+			}
 		}
 	}
-	return 0;
+	return (1, \@grpList) if ($#grpList > -1);
+	return (0, []);
 </%perl>

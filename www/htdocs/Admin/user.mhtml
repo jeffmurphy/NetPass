@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.6 2005/04/12 20:53:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.7 2005/04/19 01:40:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -23,14 +23,82 @@ setWhereAmI('User Editor');
 
 To delete a user, remove them from all of the groups.<P>
 
+<script src="/resources/js/userform.js" type="text/javascript"></script>
+<script src="/resources/js/debug.js" type="text/javascript"></script>
+<script language="JavaScript">
+DBG_init();
+var userhash = {
+<%perl>
+	my $users  = $np->db->getUsersAndGroups();
+	my ($comma1, $comma2, $comma3) = ("", "", "");
+	foreach my $user (sort keys %$users) {
+		print "$comma1\n\t'$user' : {\n";
+		$comma2 = "";
+		foreach my $group (sort keys %{$users->{$user}}) {
+			print "$comma2\n\t\t'$group' : ";
+			if (ref($users->{$user}->{$group}) ne "ARRAY") {
+				print "1";
+				$comma2 = ",";
+			} else {
+				print "{\n";
+				$comma3 = "";
+				#for(my $i = 0 ; $i < $#{$users->{$user}->{$group}} ; $i++) {
+				foreach my $acl (sort @{$users->{$user}->{$group}}) {
+					print "$comma3\n\t\t\t'$acl' : 1";
+					$comma3 = ",";
+				}
+
+				print "\t\t}";
+				$comma2 = ",";
+			}
+		}
+		print "\t}";
+		$comma1 = ",";
+	}
+</%perl>
+};
+/*
+var userhash = {
+	'jcmurphy' : {
+		'128.205.10.0/24' : {
+			'Reports' : 1,
+			'UserEditor' : 1
+		},
+		'NetAdmin' : 1,
+		'Test Network' : {
+			'NetAdmin' : 1
+		}
+	},
+	'netpass' : {
+		'128.205.12.64/28' : {
+			'Admin' : 1,
+		},
+		'128.205.12.80/28' : {
+			'Admin' : 1,
+		},
+		'Admin' : 1
+	}
+};
+*/
+
+dbg(1, "userhash init");
+</script>
+
 <form method="post">
 
 <table>
 <tr><td colspan=2>
 <%perl>
-	my @groups = ('Admin', 'ScanAdmin', 'Editor', 'Reports', 'User', 'QuarAdmin');
-	my $users  = $np->db->getUsersAndGroups();
+	# these are reserved group names.
+
+	my %groups = ( 'Admin' => 1, 'ScanAdmin' => 1, 'Editor' => 1, 'Reports' => 1,
+			'UserEditor' => 1, 'QuarAdmin' => 1, 'NetAdmin' => 1 );
+	my @groups = (keys %groups);
+
 	my $error  = "";
+
+	my $whoami = $m->session->{'username'};
+	my $myip   = $ENV{'REMOTE_ADDR'};
 
 	my $ldap   = $np->cfg->policy('LDAP_USER_QUERY', $ENV{'REMOTE_ADDR'});
 
@@ -41,9 +109,10 @@ To delete a user, remove them from all of the groups.<P>
 		my $ok = 1;
 
 		# right off the bat, if you arent at least a member of
-		# Admin or User we can deny the entire transaction
+		# Admin, NetAdmin or User we can deny the entire transaction
 
 		if (! ($m->comp('/Admin/MemberOf', 'group' => 'Admin') ||
+		       $m->comp('/Admin/MemberOf', 'group' => 'NetAdmin') ||
 		       $m->comp('/Admin/MemberOf', 'group' => 'User')) ) {
 			$error .= "Sorry, permission denied.<BR>(You aren't Admin or User)";
 		} else {
@@ -100,17 +169,17 @@ To delete a user, remove them from all of the groups.<P>
 						if ($ARGS{'_newuser'} eq "_newuser") {
 							$error .= "Sorry, you can't create a user with that username.<BR>";
 						} 
-						elsif (!$np->db->createUserWithGroups($ARGS{'_newuser'}, @gl)) {
+						elsif ($np->db->createUserWithGroups($ARGS{'_newuser'}, @gl)) {
 							$error .= "Failed to add user $ARGS{_newuser}<BR> If the user doesn't already exist, let us know.<BR>";
 						}
 					} else {
 						$error .= "Sorry, you aren't allowed to add users.<BR>\n";
 					}
 				}
-				if ($np->db->setUsersAndGroups($uh)) {
+				if ( (my $rv = $np->db->setUsersAndGroups($uh, $whoami, $myip)) == 0) {
 					$error .= "Changes saved.";
 				} else {
-					$error .= "Sorry, and error occurred. Let us know.";
+					$error .= "Sorry, and error occurred. Let us know. ($rv)";
 				}
 			} else {
 				$error .= "Sorry. Permission denied.<BR>Did you try to change an Admin?";
@@ -120,6 +189,68 @@ To delete a user, remove them from all of the groups.<P>
 	}
 
 	if( defined($users) ) {
+		my $widthHolder = "-" x 32;
+</%perl>
+
+<table id='userEditor'>
+<tr><th>User</th><th>Groups</th><th>Access Type</th></tr>
+<tr><td style='vertical-align:top;'>
+	    <select size="25" id="UserList" name="UserList" 
+		onchange="userform_changeToUser(this);">
+			<option disabled name='width'><%$widthHolder%>
+%			foreach my $user (sort keys %$users) {
+			<option value="<%$user%>"> <%$user%>
+%			}
+    </select>
+    <P><center><input id='addUser' 
+		onfocus='userform_onfocus_addUser(this);'
+		onblur='userform_onblur_addUser(this);'
+	        size=10 maxlength=16 value="Add user..."><BR>
+       <button id='deleteUser' disabled>Delete User</button></center>
+    </td>
+    <td style='vertical-align:top;'>
+	    <select multiple size="15" id="GroupList" name="GroupList" multiple
+		onchange="userform_showACLforGroup(this);">
+		<option disabled name='width'><%$widthHolder%>
+	    </select>
+	    <BR><center><button onClick="userform_addGroupToUser(); return false;">^</button> 
+		        <button onClick="userform_remGroupFromUser(); return false;">v</button><BR>
+			Available Groups:
+		</center>
+
+	    <select multiple size="15" id="AvailableGroupList" name="AvailableGroupList" multiple
+		onchange="userform_onchange_availableGroups();">
+		<option disabled name='width'><%$widthHolder%>
+<%perl>
+		my %groupsList;
+		foreach my $user (sort keys %$users) {
+			foreach my $nw (sort keys %{$users->{$user}}) {
+				next if exists $groups{$nw};
+				$groupsList{$nw} = 1;
+			}
+		}
+		foreach my $gl (sort keys %groupsList) {
+			print qq{<option value="$gl"> $gl\n};
+		}
+</%perl>
+</select>
+
+</td>
+<td style='vertical-align:top;'>
+<select multiple size="25" id="AccessControlList" name="AccessControlList" multiple
+ onchange="userform_editACL(this);">
+<option disabled name='width'><%$widthHolder%>
+%		foreach my $gl (sort @groups) {
+	<option value="<%$gl%>"> <%$gl%>
+%		}
+</select>
+<P><CENTER>
+<button id='addToAll' disabled>Add To All</button><BR>
+<button id='remFromAll' disabled>Remove From All</button>
+</CENTER>
+</td></tr></table>
+<%perl>
+
 		print "<table><tr><th>Username</th>";
 		foreach my $g (@groups) {
 			print "<th>$g</th>";
@@ -163,7 +294,7 @@ To delete a user, remove them from all of the groups.<P>
 			}
 			print "<tr><td>$_user</td>";
 			foreach my $g (@groups) {
-				my @j = grep /^$g$/, @{$users->{$user}};
+				my @j = (); #grep /^$g$/, @{$users->{$user}};
 				print "<Td align=center>";
 #	print "\n<!--$g ".join(',', keys %{$m->session->{'my_groups'}})." -->\n";
 

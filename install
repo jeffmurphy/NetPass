@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.17 2005/04/07 20:50:41 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.18 2005/04/19 01:40:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -16,10 +16,12 @@ install - installation / upgrade script
 
 =head1 SYNOPSIS
 
- install.pl [/dest/dir]
+ install.pl [-ucD] [--exclude pattern] [/dest/dir]
      -u             uninstall
      -s             stage #
      -D             enable debugging
+     -c             copy only 
+     --exclude pat  when copying, exclude matching files
 
 =head1 OPTIONS
 
@@ -35,8 +37,16 @@ Uninstall
 
 =item B<-D> 
 
-Enable debugging output. Runs script in the foreground. Otherwise script will
-run in the background.
+Enable debugging output.
+
+=item B<-c> 
+
+Copy only. This means "just copy the source tree into the destination directory
+and stop, don't download, install or configure anything else".
+
+=item B<--exclude pat>
+
+When copying the source tree, exclude matching files.
 
 =back
 
@@ -57,24 +67,37 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.17 2005/04/07 20:50:41 jeffmurphy Exp $
+$Id: install,v 1.18 2005/04/19 01:40:33 jeffmurphy Exp $
 
 =cut
 
 use strict;
 use FileHandle;
-use Getopt::Std;
+use Getopt::Long;
 use Carp;
+use Pod::Usage;
 
 BEGIN {
 	delete $ENV{'DISPLAY'};
 }
 
-my %opts;
-getopts('s:cDuh?', \%opts);
 
-my $STAGE    = $opts{'s'} || 0;
-my $copyOnly = exists $opts{'c'};
+my $STAGE     = 0;
+my $copyOnly  = 0;
+my $D         = 0;
+my $uninstall = 0;
+my $help      = 0;
+my @exclude   = ();
+
+GetOptions ("s=i" => \$STAGE,
+	    "c"   => \$copyOnly,
+	    "D"   => \$D,
+	    "u"   => \$uninstall,
+	    "h"   => \$help,
+	    "exclude=s" => \@exclude) or pod2usage(2);
+
+pod2usage(1) if $help;
+
 
 my $PKGDIR = $0;
 $PKGDIR =~ s/\/[^\/]+$//;
@@ -98,7 +121,7 @@ welcome($VERSION);
 my $TARGET = shift;
 
 my $un = "install into:";
-   $un = "uninstall from: " if exists $opts{'u'};
+   $un = "uninstall from: " if $uninstall;
 
 if (!defined($TARGET)) {
 	print "Directory to $un ";
@@ -112,7 +135,7 @@ my $APACHE   = "apache-1.3.33.tar.bz2";
 my $PERL     = "perl-5.8.6.tar.bz2";
 my $SQUIDG   = "sg.tar.bz2";
 
-if (exists $opts{'u'}) {
+if ($uninstall) {
 	lprint("Uninstalling NetPass ..\n");
 	foreach my $etcf ('services', 'syslog.conf') {
 		depatchConf("/etc", $etcf);
@@ -169,7 +192,7 @@ mkdir "$TARGET/log" || die "cant mkdir $TARGET/log $!";
 touch("$TARGET/log/netpass.log");
 touch("$TARGET/log/snmptraps.log");
 
-copyTree($PKGDIR, $TARGET, $copyOnly);
+copyTree($PKGDIR, $TARGET, $copyOnly, \@exclude);
 print "\n";
 
 sub lprint;
@@ -911,7 +934,13 @@ sub removeTree {
 }
 
 sub copyTree {
-	my ($src, $dst, $copyOnly) = (shift, shift, shift);
+	my ($src, $dst, $copyOnly, $excludes) = (shift, shift, shift, shift);
+
+	my $exre = "";
+	if ( (ref($excludes) eq "ARRAY") && ($#{$excludes} > -1) ) {
+		$exre = "(".join('|', @$excludes).")";
+	}
+
 	my $DH;
 	opendir($DH, $src) || ldie "cant open $src $!";
 	while(my $f = readdir($DH)) {
@@ -919,9 +948,14 @@ sub copyTree {
 		next if ($f =~ /^\.{1,2}$/);
 		next if ($f eq "install.d");
 		next if ($f eq "CVS");
+		next if ($f =~ /~$/);
+		if ("$src/$f" =~ /$exre/) {
+			print "\nexcluding file $src/$f\n";
+		} 
+		next if ( ($exre ne "") && ($f =~ /$exre/) );
 		if (-d "$src/$f") {
 			mkdir "$dst/$f" || ldie "cant mkdir $dst/$f";
-			copyTree("$src/$f", "$dst/$f");
+			copyTree("$src/$f", "$dst/$f", $copyOnly, $excludes);
 		} else {
 			print lt80("$src/$f"), "\r";
 			unlink ("$dst/$f");

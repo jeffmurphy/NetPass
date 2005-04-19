@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.20 2005/04/14 04:19:18 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.21 2005/04/19 01:40:34 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -776,29 +776,87 @@ sub registerHost {
     return 1;
 }
 
-=head2 ($shortName, $info) = getNessusInfo($pluginID)
+=head2 ($shortName, $info, $description) = getNessusInfo($pluginID)
 
-Retrieve the name and info fields from the nessusScans database table for the given
-plugin ID. Returns C<undef> on failure.
+Retrieve the name, info and description fields from the nessusScans database table for 
+the given plugin ID. Returns C<undef> on failure.
 
 =cut
 
 sub getNessusInfo {
     my $self = shift;
     my $pid  = shift;
-    my $sql  = qq{SELECT name, info FROM nessusScans WHERE pluginID = $pid};
+    my $sql  = qq{SELECT name, info, description FROM nessusScans WHERE pluginID = $pid};
 
     $self->reconnect() || return undef;
 
     my $a    = $self->{'dbh'}->selectrow_arrayref($sql);
 
     if (defined($a) && (ref($a) eq "ARRAY")) {
-	return ($a->[0], $a->[1]);
+	return ($a->[0], $a->[1], $a->[2]);
     }
-
-    _log "ERROR", "select failed: ".$self->{'dbh'}->errstr."\n";
+    
+    _log("ERROR", "select failed: ".$self->{'dbh'}->errstr."\n");
     return undef;
 }
+
+=head2 ($shortName, $info, $description) = getSnortInfo($pluginID)
+
+Retrieve the name, info and description fields from the snortRules database table for 
+the given snort ID. Returns C<undef> on failure.
+
+=cut
+
+sub getSnortInfo {
+    my $self = shift;
+    my $pid  = shift;
+    my $sql  = qq{SELECT name, info, description FROM snortRules WHERE snortID = $pid};
+
+    $self->reconnect() || return undef;
+
+    my $a    = $self->{'dbh'}->selectrow_arrayref($sql);
+
+    if (defined($a) && (ref($a) eq "ARRAY")) {
+	return ($a->[0], $a->[1], $a->[2]);
+    }
+    
+    _log("ERROR", "select failed: ".$self->{'dbh'}->errstr."\n");
+    return undef;
+}
+
+=head2 addGroupToUser($username)
+
+A convenience routine. 
+
+Returns:
+
+               0 on success
+"nosuch user"    named user does not exist
+"invalid params" routine called improperly
+"db failure"     on error
+
+=cut
+
+sub addGroupToUser {
+    my $self  = shift;
+    my $user  = shift;
+
+    return "invalid params" if (!defined($user) || ($user eq ""));
+    return "invalid params" if ($#_ == -1);
+
+    my $groups = $self->getUserGroups($user);
+    return "nosuch user" if (!defined($groups));
+
+    while(my $group = shift) {
+          $groups->{$group} = 1;
+    }
+
+    my $uh;
+    $uh->{$user} = [ keys %$groups ];
+    
+    return $self->setUsersAndGroups($uh);
+}
+
 
 
 =head2 $groups = getUserGroups($username)
@@ -821,11 +879,7 @@ sub getUserGroups {
 
 	my $sql = qq{SELECT groups FROM users WHERE username = '$u'};
 	my $a   = $self->{'dbh'}->selectrow_arrayref($sql);
-	my $hr = {};
-	foreach my $f ( split(/\;/, $a->[0]) ) {
-	    $hr->{$f} = 1;
-	}
-	return $hr;
+	return $self->decomposeGroupMembership($a->[0]);
     }
     return undef;
 }
@@ -851,11 +905,64 @@ sub getUsers {
 
 Fetch the list of configured users and the groups that each user belongs too. This
 routine is just here for efficiency to avoid calling GetUsers and GetUserGroups
-multiple times. Returns a hash ref on success, C<undef> on failure. Hash
-is keyed on username and the value is an array ref containing the list
-of groups that the user is in.
+multiple times. 
+
+Returns 
+
+HASHREF         on success
+"db failure"    on failure
+
+Hash is keyed on username and looks like this:
+
+ $hr->{'joesmith'}->{'NetAdmin'};
+ $hr->{'joesmith'}->{'Test Network'} = [ 'NetAdmin' ];
+ $hr->{'joesmith'}->{'128.205.10.0/24'} = [ 'Reports', 'Users' ];
+
+The above shows joesmith is a NetAdmin. Specifically, he's a NetAdmin
+for the "Test Network" group of networks. He's also has access to
+Reports and Users screens for the "128.205.10.0/24" network.
 
 =cut
+
+# go from NetAdmin;Test Network+NetAdmin;128.205.10.0/24+Reports+Users
+# to the hash
+
+sub decomposeGroupMembership {
+	my $self = shift;
+	my $gm   = shift;
+	return {} unless ($gm ne "");
+	my $rv = {};
+	foreach my $c (split(/\;/, $gm)) {
+		if ($c =~ /^([^\+]+)\+(.*)/) {
+			my $network   = $1;
+			my $netgroups = $2;
+			$rv->{$network} = [ split(/\+/, $netgroups) ];
+		} else {
+			$rv->{$c} = 1;
+		}
+	}
+	return $rv;
+}
+
+# go from the hash back to 
+# NetAdmin;Test Network+NetAdmin;128.205.10.0/24+Reports+Users
+
+sub composeGroupMembership {
+	my $self = shift;
+	my $gh   = shift;
+	return "" unless (ref($gh) eq "HASH");
+
+	my $gstring = "";
+	foreach my $g (keys %$gh) {
+		if (ref($gh->{$g}) eq "ARRAY") {
+			$gstring .= "$g+".join('+', @$gh->{$g}).";";
+		} else {
+			$gstring .= "$g;";
+		}
+	}
+	$gstring =~ s/;$//;
+	return $gstring;
+}
 
 sub getUsersAndGroups {
     my $self = shift;
@@ -870,7 +977,7 @@ sub getUsersAndGroups {
     my $a   = $self->{'dbh'}->selectall_arrayref($sql);
     my $hr  = undef;
     foreach my $row (@$a) {
-	$hr->{$row->[0]} = [ split(/\;/, $row->[1]) ];
+	$hr->{$row->[0]} = $self->decomposeGroupMembership($row->[1]);
     }
     return $hr;
 }
@@ -881,44 +988,64 @@ Given a hashref where the keys are the usernames and the values are
 array references, update each user (key) and set the user's groups to
 the values of the corresponding array. If the array is empty (the user
 has no group membership) then the user will be deleted from the
-table. Returns 0 on failure, 1 on success.
+table. 
 
-XX AUDIT
+Returns 
+
+           0 on success
+"db failure" on failure
 
 =cut
 
 sub setUsersAndGroups {
-    my $self = shift;
-    my $uh   = shift;
+    my $self   = shift;
+    my $uh     = shift;
+    my $whoami = shift;
+    my $myip   = shift;
+
+    $whoami ||= "unknown";
+    $myip   ||= "unknown";
 
     foreach my $u (keys %$uh) {
-	my $groups = join(';', @{$uh->{$u}});
+	my $groups = composeGroupMembership($uh->{$u});
 
-	$self->reconnect() || return 0;
+	$self->reconnect() || return "db failure database down";
 
 	if ($groups eq "") {
 	    my $sql = qq{DELETE FROM users WHERE username = '$u'};
 	    if (!$self->{'dbh'}->do($sql)) {
-		_log "ERROR", "failed to delete user $u ".$self->{'dbh'}->errstr."\n";
-		return 0;
+		_log("ERROR", "failed to delete user $u ".$self->{'dbh'}->errstr."\n");
+		return "db failure ".$self->{'dbh'}->errstr;
 	    } else {
-		_log "INFO", "user $u deleted\n";
+		_log("INFO", "user $u deleted\n");
+		$self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
+			     -msg => [ qq{user $u deleted} ]);
 	    }
 	} else {
 	    my $sql = qq{UPDATE users SET groups = '$groups' WHERE username = '$u'};
 	    if (!$self->{'dbh'}->do($sql)) {
-		_log "ERROR", "failed to change groups to ($groups) for $u ".$self->{'dbh'}->errstr."\n";
-		return 0;
+		    _log("ERROR", 
+			 "failed to change groups to ($groups) for $u ".$self->{'dbh'}->errstr."\n");
+		    return "db failure ".$self->{'dbh'}->errstr;
+	    } else {
+		    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
+				 "groups for $u changed to: $groups");
 	    }
 	}
     }
-    return 1;
+    return 0;
 }
 
 =head2 createUserWithGroups($username, $group1, $group2, ...)
 
-Insert a new record into the C<users> table with the given data. Returns 0 
-on failure, 1 on success. 
+Insert a new record into the C<users> table with the given data. 
+
+
+Returns 
+
+               0 on success
+"invalid params" on failure
+"db failure"     on failure
 
 =cut
 
@@ -928,25 +1055,25 @@ sub createUserWithGroups {
     my @groups = @_;
 
     if (!defined($user) || ($user eq "")) {
-	_log "ERROR", "no username given\n";
-	return 1;
+	_log("ERROR", "no username given\n");
+	return "invalid params (no username given)";
     }
 
     if ($#groups == -1) {
-	_log "ERROR", "no groups given for $user\n";
-	return 0;
+	_log("ERROR", "no groups given for $user\n");
+	return "invalid params (no groups given)";
     }
 
-    $self->reconnect() || return 0;
+    $self->reconnect() || return "db failure";
 
     my $gs = join(';', @groups);
     my $sql = qq{INSERT INTO users VALUES ('$user', '$gs')};
-    _log "DEBUG", "sql=$sql\n";
+    _log("DEBUG", "sql=$sql\n");
     if (!$self->{'dbh'}->do($sql)) {
-	_log "ERROR", "Failed to create user $user with groups $gs ".$self->{'dbh'}->errstr."\n";
-	return 0;
+	_log("ERROR", "Failed to create user $user with groups $gs ".$self->{'dbh'}->errstr."\n");
+	return "db failure ". $self->{'dbh'}->errstr;
     }
-    return 1;
+    return 0;
 }
 
 =head2 getAppAction ()
@@ -1439,6 +1566,8 @@ sub getResults {
     $sql .= " AND ID = ".$self->dbh->quote($i)        if ($i ne "");
     $sql .= " AND status = ".$self->dbh->quote($s)    if ($s ne "any");
 
+    $sql .= " ORDER BY dt DESC";
+
     $self->reconnect() || return "db failure";
 
     my $rv = $self->dbh->selectall_arrayref($sql);
@@ -1922,7 +2051,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.20 2005/04/14 04:19:18 mtbell Exp $
+$Id: DB.pm,v 1.21 2005/04/19 01:40:34 jeffmurphy Exp $
 
 =cut
 

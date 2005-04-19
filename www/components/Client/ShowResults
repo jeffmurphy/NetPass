@@ -1,0 +1,128 @@
+<%doc>
+</%doc>
+<%args>
+	$mac   => '';
+	$ip    => '';
+	$pquar => 0;
+</%args>
+
+<table border=0 cellpadding="0" cellspacing="0" style="border-collapse: collapse" width="100%">
+
+<%perl>
+my $results = $np->db->getResults(-mac => $mac);
+my $nres    = $#{$results->{'type'}};
+
+
+if ($nres > -1) {
+
+	# if there's only one result pending, we forgo the javascript -/+ thing and suppress
+	# the title. if they are pquar, we also suppress the 'fixed' button.
+
+	if ($nres == 0) {
+		my $sid = $results->{'id'}->[0];
+		my ($shortName, $info, $description, $type);
+		$type = $results->{'type'}->[0];
+
+		if ($type eq "nessus") {
+			($shortName, $info, $description) = $np->db->getNessusInfo($sid);
+		}
+		elsif ($type eq "snort") {
+			($shortName, $info, $description) = $np->db->getSnortInfo($sid);
+		}
+		else {
+			($shortName, $info) = ("A message for you:", $sid);
+		}
+
+		if (!defined($shortName)) {
+			$type        = "manual";
+			$shortName   = "Database failure.";
+			$info        = "msg:dbfailure";
+			$description = "Sorry, something didn't work out quite right when I was looking at my database.";
+		}
+
+		print qq{<tr><td colspan=3 align="right"> };
+		print $q->submit(-name=>$sid, -value=>'Fixed') unless $pquar;
+		print qq{</td>};
+		print qq{</tr><tr><td colspan=3>};
+
+		print "<ul>";
+
+		_log("DEBUG", "$mac $ip found results ID=$sid type=$type info=$info\n");
+
+		# if no custom message is configured, we'll print the default that 
+		# is supplied by nessus or snort. 
+
+		if($info =~ /^(nessus:|snort:)$/) {
+			print $q->pre($description);
+		} 
+		elsif($info =~ /^msg:/) {
+			print $np->db->getPage($info, 1);
+		}
+		print qq{</td></tr>};
+	}
+	else {
+		print "<tr><th colspan=3>Detected Security Issues</th></tr>\n";
+		my $autoexpand = ($nres <= ($np->cfg->policy('RESULTS_EXPAND', $ip)-1));
+		for(my $resultNum = 0 ; $resultNum <= $nres ; $resultNum++) {
+			my $sid = $results->{'id'}->[$resultNum];
+			my ($shortName, $info, $description, $type);
+			$type = $results->{'type'}->[$resultNum];
+
+			if ($type eq "nessus") {
+				($shortName, $info, $description) = $np->db->getNessusInfo($sid);
+			}
+			elsif ($type eq "snort") {
+				($shortName, $info, $description) = $np->db->getSnortInfo($sid);
+			}
+			else {
+				($shortName, $info) = ("A message for you:", $sid);
+			}
+
+			if (!defined($shortName)) {
+				$type        = "manual";
+				$shortName   = "Database failure.";
+				$info        = "msg:dbfailure";
+				$description = "Sorry, something didn't work out quite right when I was looking at my database.";
+			}
+			
+			print qq{<tr><td width="3%" align=center>};
+
+			if ($m->session->{'js_enabled'} eq "enabled" && !$autoexpand) {
+			    print qq{<a href="#" onclick="showHideObj('nessus-$sid', this); return false;">[+]</a>};
+			} else {
+			    print qq{[-]};
+			}
+			print qq{</td><td>$shortName</td>};
+			print qq{<td width="1%" align="right">};
+			print $q->submit(-name=>$sid, -value=>'Fixed');
+			print qq{</td>};
+			print qq{</tr><tr><td colspan=3 class="gray">};
+
+			if ($m->session->{'js_enabled'} eq "enabled" && !$autoexpand) {
+			    print qq{<ul id='nessus-$sid' style='DISPLAY:None;'>};
+			} else {
+			    print "<ul>";
+			}
+
+			_log("DEBUG", "$mac $ip found results ID=$sid type=$type info=$info\n");
+
+			# if no custom message is configured, we'll print the default that 
+			# is supplied by nessus or snort. 
+
+			if($info =~ /^(nessus:|snort:)$/) {
+				$description =~ s/\\n/\n/g;
+				print $q->pre($description);
+			} 
+			elsif($info =~ /^msg:/) {
+				print $np->db->getPage($info, 1);
+			}
+			print qq{</td></tr>};
+		}
+	}
+} else {
+</%perl>
+<tr><td>You've been quarantined, but there are no results (reasons) to show you.
+This shouldn't have happened.</td></tr>
+%}
+</table>
+
