@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.5 2005/04/14 13:41:37 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.6 2005/04/19 04:01:24 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -51,7 +51,8 @@ if($m->session->{'phase'} eq 'LOGIN') {
 
 	# We can't register b/c no MAC
 
-	my $msg = $np->db->getPage('msg:remote_you_passed', 1);
+	my $msg = $np->db->getPage(-name => 'msg:remote_you_passed', -nohtml => 1, ip => 'default',
+					-npcfg => $np->cfg);
         my $msg2 = (defined($msg) && ($msg ne "")) ? $msg : "You are a remote user and you passed the scans successfully.";
 	print $msg2;
 
@@ -77,15 +78,15 @@ if($m->session->{'phase'} eq 'LOGIN') {
 	my @msgs = ();
 
 	if($m->session->{'returning_user'}) {
-		push(@msgs, 'welcome_to_resnet');	
+		push(@msgs, 'welcome_to_the_network');	
 	} else {
 		push(@msgs, 'you_passed');	
 	}
-	push(@msgs, 'daily_message');	
+	push(@msgs, 'daily_message');
 
 	foreach my $msg (@msgs) {
-	
-		my $m = $np->db->getPage("msg:$msg", 1);
+		my $m = $np->db->getPage(-name => "msg:$msg", -nohtml => 1, -npcfg => $np->cfg,
+						-ip => $ip );
         	next if (!defined($m));
 		$m =~ s/\$original_destination/$url/g;
 		print $m;

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.21 2005/04/19 01:40:34 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.22 2005/04/19 04:01:22 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -459,12 +459,79 @@ sub getRegisterInfo {
     return undef;
 }
 
-=head2 $msg = getPage($name, $massage)
+=head2 $msg = getPageList(-name => $name, -group => '')
+
+Given a name (SQL wildcards OK) and a group, look up the page list 
+that matches. If 'group' isn't specified, all is assumed. 
+
+
+Returns:
+
+HASHREF->{'name'}->[]
+       ->{'group'}->[]   on success
+"invalid parameters"     on failure
+"db failure"             on failure
+
+=cut
+
+sub getPageList {
+    my $self = shift;
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw() ],
+			     -defaults => {
+					   -name   => '',
+					   -group  => ''
+					  }
+			    }
+			   );
+
+    if (!defined($parms)) {
+	    return "invalid parameters: ".
+		 Carp::longmess (Class::ParmList->error)."\n";
+    }
+    
+    my ($name, $group) = $parms->get('-name', '-group');
+
+    my $sql = "SELECT network, name FROM pages ";
+    if ($name ne "") {
+           $sql .= " WHERE name LIKE ".$self->dbh->quote($name."%");
+    } 
+    if ($group ne "") {
+           $sql .= " AND network LIKE ".$self->dbh->quote($group."%");
+    }
+
+    $self->reconnect() || return undef;
+
+    my $ar = $self->dbh->selectall_arrayref($sql);
+
+    if (defined($ar)) {
+         my $rv = { 'name' => [], 'group' => [] };
+
+         foreach my $row (@$ar) {
+                push @{$rv->{'name'}}, $row->[1];
+                push @{$rv->{'group'}}, $row->[0];
+         }
+         return $rv;
+    }
+
+    return "db failure ". $self->dbh->errstr;
+}
+
+
+=head2 $msg = getPage(-name => $name, -nohtml => $massage, -ip => '', -group => '')
 
 Give a page name (e.g. 'msg:welcome') retrieve the page from the database. If
 C<massage> is "1", then we'll strip any C<head>, C<body> and C<html> tags
 (openning and closing) out of the HTML before returning it. This is useful
 when we want to embed the page inside of another page.
+
+Using the IP parameter, we can lookup the network and determine if it's 
+part of a group. If it is, we will look up the page for that group. If 
+that doesn't exist, we'll look up the page for the network. If that
+does not exist, we'll use the default page.
+
+If we are given the group explicitly, we'll use it.
 
 Returns a scalar string on success, C<undef> on failure.
 
@@ -472,30 +539,198 @@ Returns a scalar string on success, C<undef> on failure.
 
 sub getPage {
     my $self = shift;
-    my $name = shift;
-    my $massageHTML = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-name -npcfg) ],
+			     -defaults => {
+					   -name   => '',
+					   -npcfg  => undef,
+					   -ip     => 'default',
+					   -nohtml => 0,
+					   -group  => ''
+					  }
+			    }
+			   );
+
+    if (!defined($parms)) {
+	    _log("ERROR", "invalid parameters: ".
+		 Carp::longmess (Class::ParmList->error)."\n");
+	    return undef;
+    }
+    
+    my ($name, $massageHTML, $ip, $npcfg, $group) = $parms->get('-name', '-nohtml', '-ip', '-npcfg',
+								'-group');
 
     $self->reconnect() || return undef;
 
     return undef unless defined($name) && ($name =~ /^msg:/);
-    my $sql = "SELECT content FROM pages WHERE name = '$name'";
-    my $sth = $self->{'dbh'}->prepare($sql);
-    return undef unless defined $sth;
-    my $rv = $sth->execute;
-    if (!defined($rv)) {
+
+    my $sql  = "SELECT content FROM pages WHERE name = ".$self->dbh->quote($name);
+    my $page = '';
+
+    if ($group ne "") {
+	    $sql .= " AND network = ".$self->dbh->quote($group);
+	    $page = $self->getPage2($sql);
+	    goto done;
+    } 
+    elsif ($ip eq "default") {
+	    $sql .= " AND network = 'default' ";
+	    $page = $self->getPage2($sql);
+    } 
+    else {
+	    # if we were given an IP, then look up the corresponding
+	    # network. 
+	    my $network = $npcfg->getMatchingNetwork(-ip => $ip);
+	    my $netgroup;
+	    if ($network =~ /\//) {
+		    $netgroup = $npcfg->getNetgroup($network);
+		    if ($netgroup ne "") {
+			    $page = $self->getPage2($sql. " AND network = ".$self->dbh->quote($netgroup));
+			    goto done if defined($page);
+		    }
+		    $page = $self->getPage2($sql. " AND network = ".
+					    $self->dbh->quote($network));
+		    goto done if defined($page);
+	    }
+	    $page = $self->getPage2($sql. " AND network = 'default'");
+    }
+
+  done:;
+    if (defined($massageHTML) && $massageHTML) {
+	    $page =~ s/\<\/{0,1}html\>//g;
+	    $page =~ s/\<\/{0,1}body\>//g;
+	    $page =~ s/\<head\>.*<\/head\>//g;
+    }
+    return $page;
+}
+
+sub getPage2 {
+	my $self        = shift;
+	my $sql         = shift;
+
+	my $sth = $self->{'dbh'}->prepare($sql);
+	return undef unless defined $sth;
+
+	my $rv = $sth->execute;
+	if (!defined($rv)) {
+		$sth->finish;
+		return undef;
+	}
+	my $val = $sth->fetchrow_arrayref;
 	$sth->finish;
-	return undef;
-    }
-    my $val = $sth->fetchrow_arrayref;
-    $sth->finish;
+	
+	return $val->[0];
 
-    if (defined($massageHTML) && ($massageHTML)) {
-	$val->[0] =~ s/\<\/{0,1}html\>//g;
-	$val->[0] =~ s/\<\/{0,1}body\>//g;
-	$val->[0] =~ s/\<head\>.*<\/head\>//g;
-    }
+}
 
-    return $val->[0];
+
+=head2 setPage(-name => $name, -group => '', -content => '', -noupdate => 0)
+
+Give a page name (e.g. 'msg:welcome') and a group ("Law School" or "128.205.10.0/24") 
+and some content, save the page to the pages table. "noupdate" means if the INSERT 
+fails, don't try an UPDATE. Useful if you want to save a copy of a page, but want
+to throw an error if the user forgets to change the name or group.
+
+If the page exists, it is updated, if not, it is created (unless noupdate=1)
+
+Returns
+
+                   0 on success
+"invalid parameters" on failure
+"db failure"         on failure
+
+
+=cut
+
+sub setPage {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-name -content) ],
+			     -defaults => {
+					   -name   => '',
+					   -group  => 'default',
+					   -content => '',
+					   -noupdate => 0
+					  }
+			    }
+			   );
+
+    if (!defined($parms)) {
+	    return "invalid parameters: ".Carp::longmess (Class::ParmList->error);
+    }
+    
+    my ($name, $group, $content, $noupdate) = $parms->get('-name', '-group', '-content', '-noupdate');
+
+    $self->reconnect() || return "db failure";
+
+    my $sql  = "INSERT INTO pages (content, network, name) VALUE (";
+    $sql .= $self->dbh->quote($content) . ",";
+    $sql .= $self->dbh->quote($group)   . ",";
+    $sql .= $self->dbh->quote($name)    . ")";
+
+    my $rv = $self->dbh->do($sql);
+    if (!defined($rv)) {
+	    if ($noupdate == 0) {
+		    $sql  = "UPDATE pages SET content = ".$self->dbh->quote($content);
+		    $sql .= " WHERE network = ".$self->dbh->quote($group);
+		    $sql .= " AND name = ".$self->dbg->quote($name);
+		    $rv = $self->dbh->do($sql);
+	    }
+	    if (!defined($rv)) {
+		    return "db failure ".$self->dbh->errstr;
+	    }
+    }
+    return 0;
+}
+
+
+=head2 delPage(-name => $name, -group => '')
+
+Give a page name (e.g. 'msg:welcome') and a group ("Law School" or "128.205.10.0/24") 
+delete it from the database.
+
+Returns
+
+                   0 on success
+"invalid parameters" on failure
+"db failure"         on failure
+
+
+=cut
+
+sub delPage {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-name) ],
+			     -defaults => {
+					   -name   => '',
+					   -group  => 'default'
+					  }
+			    }
+			   );
+
+    if (!defined($parms)) {
+	    return "invalid parameters: ".Carp::longmess (Class::ParmList->error);
+    }
+    
+    my ($name, $group) = $parms->get('-name', '-group');
+
+    $self->reconnect() || return "db failure";
+
+    my $sql  = "DELETE FROM pages WHERE name = ";
+    $sql .= $self->dbh->quote($name) . " AND network = ";
+    $sql .= $self->dbh->quote($group);
+
+    my $rv = $self->dbh->do($sql);
+    if (!defined($rv)) {
+	    return "db failure ".$self->dbh->errstr;
+    }
+    return 0;
 }
 
     
@@ -1366,12 +1601,13 @@ sub addResult {
 
     my $parms = parse_parms({
 			     -parms => \@_,
-			     -required => [ qw(-mac -type) ],
+			     -required => [ qw(-mac -type -npcfg) ],
 			     -defaults => {
 					   -mac       => undef,
 					   -type      => '',
 					   -id        => '',
-					   -force     => 0
+					   -force     => 0,
+                                           -npcfg     => ''
 					  }
 			    }
 			   );
@@ -1379,7 +1615,7 @@ sub addResult {
     return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
       if (!defined($parms));
     
-    my ($m, $t, $i, $f) = $parms->get('-mac', '-type', '-id', '-force');
+    my ($m, $t, $i, $f, $npcfg) = $parms->get('-mac', '-type', '-id', '-force', '-npcfg');
     
     if ($m =~ /REMOTE/) {
 	    _log("WARNING", "cant add result for remote client\n");
@@ -1402,7 +1638,7 @@ sub addResult {
     $i ||= '';
 
     if ($t =~ /^manual$/i) {
-	    $junk = $self->getPage($i);
+	    $junk = $self->getPage(-ip => $i, -npcfg => $npcfg);
 	    if (!defined($junk)) {
 		    _log("ERROR", "$m cant add 'manual' result with invalid ID '$i'\n");
 		    return "invalid manual id";
@@ -1589,6 +1825,75 @@ sub getResults {
     return $hv;
 }
 
+=head2 updateResult(-mac => '', -type => '', -id => '', -status => [fixed|user-fixed|pending])
+
+Set the status of the matching result to whatever you specified. 
+
+Returns:
+ 0                   on success
+"invalid parameters" on failure
+"db failure"         on failure
+
+=cut
+
+sub updateResult {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-mac -type -id -status) ],
+			     -defaults => {
+					   -mac       => undef,
+					   -type      => '',
+					   -id        => '',
+					   -status    => 'user-fixed',
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($m, $t, $i, $s) = $parms->get('-mac', '-type', '-id', '-status');
+    
+    if ($s !~ /^(pending|fixed|user-fixed)$/) {
+	    _log("WARNING", "invalid 'status' of '$s' given\n");
+	    return "invalid paramters (status=$s)";
+    }
+
+    if ($m =~ /REMOTE/) {
+	    _log("WARNING", "cant modify result for remote client\n");
+	    return "invalid mac";
+    }
+
+    $m = NetPass::padMac($m);
+
+    if ($m !~ /^[0-9a-f]+$/) {
+	    _log("WARNING", "$m invalid mac address. not 0-9a-f\n");
+	    return "invalid mac";
+    }
+
+    $t ||= '';
+    $i ||= '';
+
+    my $sql = "UPDATE results SET status = ".$self->dbh->quote($s)." WHERE macAddress = " . $self->dbh->quote($m);
+
+    $sql .= " AND testType = ".$self->dbh->quote($t)  if ($t ne "");
+    $sql .= " AND ID = ".$self->dbh->quote($i)        if ($i ne "");
+
+    $self->reconnect() || return "db failure";
+
+    my $rv = $self->dbh->do($sql);
+
+    #_log("DEBUG", "sql=$sql\n");
+
+    if (!defined($rv)) {
+            _log ("ERROR", qq{$m sql failure sql="$sql" err=}.$self->dbh->errstr);
+            return "db failure\n".$self->dbh->errstr;
+    }
+
+    return 0;
+}
 
 =head2 putConfig(-config => ARRAYREF, -user => "username", -log => ARRAYREF)
 
@@ -2051,7 +2356,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.21 2005/04/19 01:40:34 jeffmurphy Exp $
+$Id: DB.pm,v 1.22 2005/04/19 04:01:22 jeffmurphy Exp $
 
 =cut
 

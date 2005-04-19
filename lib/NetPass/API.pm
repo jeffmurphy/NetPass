@@ -191,7 +191,8 @@ sub quarantineByIP {
 		my $rv = $np->db->addResult (
 				      		-mac	=> $mac,
 				      		-id	=> $npid,
-						-type	=> ($arrays) ? shift @$type : $type 
+						-type	=> ($arrays) ? shift @$type : $type,
+					        -npcfg  => $np->cfg
 				    	    );
 
 		if ($rv eq "invalid mac") {

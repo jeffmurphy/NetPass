@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/index.mhtml,v 1.3 2005/04/19 01:40:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/index.mhtml,v 1.4 2005/04/19 04:01:25 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -12,6 +12,7 @@ $name    => '';
 $network => '';
 $ta      => '';
 $search  => '';
+$group   => '';
 $submit  => '';
 </%args>
 
@@ -28,9 +29,13 @@ my @rwGroups = ('Admin', 'Editor');
 my @roGroups = ('Reports');
 my $readOnly = "disabled";
 
-if ($m->comp('/Admin/MemberOf', 'group' => [ @rwGroups ])) {
+my ($isReadonly, $roGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ]);
+my ($isAdmin, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
+my $isRoot = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+
+if ($isAdmin) {
         $readOnly = "";
-} elsif ($m->comp('/Admin/MemberOf', 'group' => [ @roGroups ])) {
+} elsif ($isReadonly) {
         $readOnly = "disabled";
 } else {
         print $q->p({-class=>'error'},
@@ -40,6 +45,19 @@ if ($m->comp('/Admin/MemberOf', 'group' => [ @rwGroups ])) {
 }
 
 print $q->start_form();
+
+my $pageList = $np->db->getPageList();
+
+my %allGroups = map { $_ => $_ } @{$pageList->{'group'}};
+
+# XXX if you are !default->Admin then strip out groups that you dont 
+# belong too
+
+if (! $isRoot) {
+	foreach my $grp (@$roGroups, @$rwGroups) {
+		print "Strip group: $grp<BR>";
+	}
+}
 
 print $q->table({-border=>0, -width=>600},
 		$q->TR($q->td({-colspan=>2, -align=>"right"}, 
@@ -60,6 +78,15 @@ print $q->table({-border=>0, -width=>600},
 			)
 		).
 		$q->TR(
+			$q->td({-class=>"gray"}, 'Group:') .
+			$q->td({-class=>"gray"},
+				$q->popup_menu(
+						-name 	=> "group",
+						-values => [ sort keys %allGroups ]
+				)
+			)
+		).
+		$q->TR(
 			$q->td({-class=>"gray"}, '&nbsp;') .
 			$q->td({-class=>"gray"},
 				$q->submit(
@@ -68,6 +95,7 @@ print $q->table({-border=>0, -width=>600},
 				)
 			)
 		)
+
 	);
 
 return if(!$submit && !$search);
@@ -78,17 +106,17 @@ if($submit) {
 		print $q->p("Your changes have been saved...");
         } else {
                 # this really shouldnt happen. we dont give them a submit button
-                $np->db->audit(  -user => $m->session->{'logged_in'},
+                $np->db->audit(  -user => $m->session->{'username'},
                                 	-severity => "ALERT",
 	                                -msg => [ "tried to change a Message but is ReadOnly" ]);
 
         }
 }
 
-my ($results, $count) = getMessages($dbh,$name);
+my ($results, $count) = getMessages($dbh, $name, $group);
 
 if($count<0) {
-	print $q->error("Sorry, there was an error while processing your request!");
+	print ("<P class='error'>Sorry, there was an error while processing your request!</P>");
 }
 
 print $q->h4("Your search returned $count result(s)");
@@ -112,13 +140,19 @@ while (my $row = $results->fetchrow_hashref() ) {
 
 	$class = ($class eq "")?"gray":"";
 	
-	my $href = "edit.mhtml?name=" . $row->{name};
+	my $href = "edit.mhtml?name=" . $row->{name}."&group=".$row->{'network'};
 	if ($readOnly eq "disabled") {
-		$href = "view.mhtml?name=" . $row->{name};
+		$href = "view.mhtml?name=" . $row->{name}."&group=".$row->{'network'};
 	}
 
+	my $delLink = "";
+
+	#if ($readOnly eq "") {
+	#	$delLink = $q->td(({-align=>'center'}, $q->submit(-name => 'submit', -value => 'Delete')));
+	#}
+
 	push( @rows,	$q->TR( {-class=> $class },
-				$q->td({-align=>'center'}, $row->{name}) .
+				$q->td({-align=>'center'}, $row->{name}) . 
 				$q->td({-align=>'center'}, $q->a({-href=>$href}, 
 					($readOnly eq "")?"[ edit ]":"[ view ]"
 				))
@@ -139,6 +173,7 @@ return;
 sub getMessages {
 	my $dbh	   = shift;
 	my $name   = shift;
+	my $group  = shift;
 
 	my @clause = ();
 	my @params = ();
@@ -148,7 +183,12 @@ sub getMessages {
 		push(@params, "%$name%");
 	}
 
-	my $query = "SELECT name FROM pages";
+	if($group) {
+		push(@clause, "network = ?");
+		push(@params, $group);
+	}
+
+	my $query = "SELECT name, network FROM pages";
 	
 	if($#clause>-1) {
 		$query .= " WHERE " . join(" AND ", @clause)

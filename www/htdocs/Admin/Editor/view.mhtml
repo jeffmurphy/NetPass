@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/view.mhtml,v 1.2 2005/04/12 19:52:18 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/view.mhtml,v 1.3 2005/04/19 04:01:25 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -8,13 +8,14 @@
 
 
 <%args>
-	$name => undef
+	$name => undef;
+	$group => undef;
 </%args>
 <%perl>
-	if (defined($name)) {
-		my $msg = $np->db->getPage($name);
+	if (defined($name) && defined($group)) {
+		my $msg = $np->db->getPage(-name => $name, -group => $group);
 		if (defined($msg) && ($msg ne "")) {
-			print "Message <B>$name</B> contains:<HR>\n";
+			print "Message <B>$name</B> ($group) contains:<HR>\n";
 			print $msg;
 			print "<HR>\n";
 		} else {

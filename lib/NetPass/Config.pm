@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.20 2005/04/14 18:38:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.21 2005/04/19 04:01:22 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -825,6 +825,19 @@ sub getMatchingNetwork {
     return "none";
 }
 
+sub getNetgroup {
+	my $self    = shift;
+	my $network = shift;
+	my $nw = $self->getMatchingNetwork(-ip => $network);
+	my $netgroup = '';
+
+	if (recur_exists ($self->{'cfg'}, "network", $nw, "group")) {
+		$netgroup =  $self->{'cfg'}->obj('network')->obj($nw)->value('group');
+	}
+
+	return $netgroup;
+}
+
 =head2 my ($r, $w) = $cfg-E<gt>getCommunities(hostname)
 
 Given a hostname (or IP address) lookup return the
@@ -1309,7 +1322,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.20 2005/04/14 18:38:08 jeffmurphy Exp $
+$Id: Config.pm,v 1.21 2005/04/19 04:01:22 jeffmurphy Exp $
 
 =cut
 

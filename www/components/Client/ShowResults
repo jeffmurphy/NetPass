@@ -7,6 +7,7 @@
 </%args>
 
 <table border=0 cellpadding="0" cellspacing="0" style="border-collapse: collapse" width="100%">
+<tr><th colspan=3>Detected Security Issues</th></tr>
 
 <%perl>
 my $results = $np->db->getResults(-mac => $mac);
@@ -41,7 +42,7 @@ if ($nres > -1) {
 		}
 
 		print qq{<tr><td colspan=3 align="right"> };
-		print $q->submit(-name=>$sid, -value=>'Fixed') unless $pquar;
+		print $q->submit(-name=>"fixed:$type:$sid", -value=>'Fixed') unless $pquar;
 		print qq{</td>};
 		print qq{</tr><tr><td colspan=3>};
 
@@ -56,12 +57,12 @@ if ($nres > -1) {
 			print $q->pre($description);
 		} 
 		elsif($info =~ /^msg:/) {
-			print $np->db->getPage($info, 1);
+			print $np->db->getPage(-name => $info, -nohtml => 1, -npcfg => $np->cfg,
+						-ip => $ip);
 		}
 		print qq{</td></tr>};
 	}
 	else {
-		print "<tr><th colspan=3>Detected Security Issues</th></tr>\n";
 		my $autoexpand = ($nres <= ($np->cfg->policy('RESULTS_EXPAND', $ip)-1));
 		for(my $resultNum = 0 ; $resultNum <= $nres ; $resultNum++) {
 			my $sid = $results->{'id'}->[$resultNum];
@@ -93,8 +94,8 @@ if ($nres > -1) {
 			    print qq{[-]};
 			}
 			print qq{</td><td>$shortName</td>};
-			print qq{<td width="1%" align="right">};
-			print $q->submit(-name=>$sid, -value=>'Fixed');
+			print qq{<td width="1%" align="right"> };
+			print $q->submit(-name=>"fixed:$type:$sid", -value=>'Fixed') unless $pquar;
 			print qq{</td>};
 			print qq{</tr><tr><td colspan=3 class="gray">};
 
@@ -114,7 +115,8 @@ if ($nres > -1) {
 				print $q->pre($description);
 			} 
 			elsif($info =~ /^msg:/) {
-				print $np->db->getPage($info, 1);
+				print $np->db->getPage(-name => $info, -nohtml => 1,
+							-npcfg => $np->cfg, -ip => $ip);
 			}
 			print qq{</td></tr>};
 		}
