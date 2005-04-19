@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.1 2005/04/17 05:50:44 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.2 2005/04/19 04:31:04 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -10,11 +10,73 @@
 <%args>
 $raw	     => '';
 $sid	     => '';
+$alloptions  => '';
+$ruledel     => '';
+$rulesave    => '';
+$rule	     => '';
 </%args>
 
 <script><!--
 setWhereAmI('IDS Config');
 --></script>
+
+<script language="Javascript">
+	function remOption() {
+		var i
+		var opt      = document.form.option
+		var param    = document.form.optparam
+		var index    = opt.selectedIndex
+		var str      = opt[index].text
+
+		var vals     = str.split(":")
+
+		for (i = 0; i < param.options.length; i++) {
+			if (param[i].text == vals[0]) {
+				break
+			}
+		}
+
+		if (i >= param.options.length) {
+			alert("Unknown snort option "+vals[0]);
+			return
+		}
+
+		opt[index] = null
+
+		param.selectedIndex        = i	
+		document.form.optarg.value = vals[1]
+	}
+
+	function addOption() {
+		var arg	   = document.form.optarg.value
+		var param  = document.form.optparam.value
+		var option = document.form.option
+
+		if (arg == "") {
+			alert("Undefined Argument")
+			return false
+		}
+
+		var str = param+":"+arg
+
+		var opt = new Option(str, str)
+		option.options[option.options.length] = opt
+	}
+
+	function prepareOption() {
+		var opt      = document.form.option
+		var str	     = "("
+
+		for (i = 0; i < opt.options.length; i++) {
+			str += opt[i].text + "; "
+		}
+		str += ")"
+
+		document.form.alloptions.value = str
+		return true
+	}
+
+</script>
 
 
 <%perl>
@@ -30,18 +92,33 @@ my @snortoptions = (
 			'reference','rev','sid','uricontent'
 		   );
 
-if (! $m->comp('/Admin/MemberOf', 'group' => [ @reqGroups ]) ) {
+#if (! $m->comp('/Admin/MemberOf', 'group' => [ @reqGroups ]) ) {
+#
+#        print $q->p({-class=>'error'},
+#                "Sorry, permission denied.<BR>You must be in one of these groups: ",
+#                join(',', @reqGroups));
+#        return;
+#}
 
-        print $q->p({-class=>'error'},
-                "Sorry, permission denied.<BR>You must be in one of these groups: ",
-                join(',', @reqGroups));
-        return;
+if ($ruledel eq "Delete") {
+	if (!$sid || !deleteRule($dbh, $sid)) {
+		print $q->p({-class=>'error'},
+		 	"Unable to delete SnortID $sid");
+		return;
+	}
+} elsif ($rulesave eq "Save") {
+	if ($raw) {
+		addRawRule($dbh, $rule, $sid);
+	}
+	
+
 }
 
 print $q->h2("IDS Configuration");
 
-print $q->start_form(-method=>"POST", action => "ids.mhtml");
+print $q->start_form(-method=>"POST", -name=>"form",  action => "ids.mhtml");
 
+print "all options = $alloptions";
 push @table, $q->TR( $q->th({-colspan=>9}, "Edit IDS Rules"));
 push @table, $q->TR(
 			$q->td({-class=>"gray", -align=>"center", -colspan=>1}, "Snort ID") .
@@ -105,9 +182,6 @@ if (!$raw) {
 					-name		=> 'srcip',
 					-size		=> 15,
 					-maxlength	=> 255,
-                       			-required	=> 1,
-                       			-filter		=> '/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\$\w+)$/',
-                       			-error		=> 'Invalid Src IP',
 					-value		=> (exists $r->{srcip}) ? $r->{srcip} : "" 
 			)
 		).
@@ -116,9 +190,6 @@ if (!$raw) {
                                         -name           => 'srcport',
                                         -size           => 5,
                                         -maxlength      => 255,
-                                        -required       => 1,
-                                        -filter         => '/^(\d{1,5}|\$\w+)$/',
-                                        -error          => 'Invalid Src Port',
 					-value		=> (exists $r->{srcport}) ? $r->{srcport} : "" 
 			)
 		).
@@ -134,9 +205,6 @@ if (!$raw) {
                                         -name           => 'dstip',
                                         -size           => 15,
                                         -maxlength      => 255,
-                                        -required       => 1,
-                                        -filter         => '/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\$\w+)$/',
-                                        -error          => 'Invalid Dst IP',
 					-value		=> (exists $r->{dstip}) ? $r->{dstip} : "" 
                         )
                 ).
@@ -145,14 +213,11 @@ if (!$raw) {
                                         -name           => 'dstport',
                                         -size           => 5,
                                         -maxlength      => 255,
-                                        -required       => 1,
-                                        -filter         => '/^(\d{1,5}|\$\w+)$/',
-                                        -error          => 'Invalid Dst Port',
 					-value		=> (exists $r->{dstport}) ? $r->{dstport} : "" 
                         )
                 ).
 		$q->td({-class=>"gray", -align=>"center", -colspan=>1},
-			$q->a({-href=>'#', -onclick=> 'showHideObj("options", "");'}, "[ view ]")
+			$q->a({-href=>'#', -onclick=> 'showHideObj("options", this);'}, "[ view ]")
 		)
 	);
 
@@ -161,7 +226,7 @@ if (!$raw) {
 
 	push @otable,
        		 $q->TR(
-	                $q->th({-colspan=>3},
+	                $q->th({-colspan=>4},
        		         "Options for Snort Rule #$sid"
        		         )
       		  ).
@@ -174,10 +239,22 @@ if (!$raw) {
        		                                     -style      => "width:95%;",
        		                                   )
        		         ).
+			 $q->td({-class=>"gray", -align=>"center", -colspan=>1, -rowspan=>3, -width=>"10%"},
+                         	$q->button(
+                               		          -name    => 'right',
+                               		          -value   => '>',
+						  -onclick => "remOption();"
+                               	          ).$q->br().
+                         	$q->button(
+                                         	  -name    => 'left',
+                                         	  -value   => '<',
+						  -onclick => "addOption();"
+                                   	  )
+			 ).
 			 $q->td({-class=>"gray", -align=>"center", -colspan=>1, -width=>"10%"},
 			 "Parameter"
 			 ).
-			 $q->td({-class=>"gray", -align=>"center", -colspan=>1, -width=>"40%"},
+			 $q->td({-class=>"gray", -align=>"center", -colspan=>1, -width=>"30%"},
 			 "Arguments"
 			 )
        		 ).
@@ -197,16 +274,7 @@ if (!$raw) {
 			 )
 		).
 		$q->TR(
-			$q->td({-class=>"gray", -align=>"right", -colspan=>2},
-			$q->button(
-					-name	=> 'optsave',
-					-value	=> 'Save',
-				  ).
-			$q->button(
-					-name	=> 'optdel',
-					-value	=> 'Delete',
-				  )
-			)
+			$q->td({-class=>"gray", -align=>"right", -colspan=>2}, "&nbsp;")
 		);
 
 
@@ -214,10 +282,10 @@ if (!$raw) {
 	push @table,
 	$q->TR(
 		$q->td({-class=>"gray", -align=>"left", -colspan=>8},
-		  	"Snort Rule: (<b><FONT COLOR = red>Warning</FONT></b> Modification of Snort Rules May Result in Discruption of IDS Service.)<BR>".
+		  	"Snort Rule: (<b><FONT COLOR = red>Warning</FONT></b> Modification of Snort Rules May Result in Discription of IDS Service.)<BR>".
         		$q->textarea(
                                		-name           => 'rule',
-                               		-columns        => 90,
+                               		-columns        => 80,
 					-rows		=> 5,
 					-value		=> ($sid > 0) ? (getRule($dbh, $sid))->{rule} : ""
                               	     )
@@ -234,17 +302,18 @@ push @table,
 					-checked  => $raw,
 					-value	  => 1,
 					-label	  => 'Raw Rule',
-					-onChange => "submit();"
+					-onclick  => "submit();"
 			)
 		)
 	).
 	$q->TR(
 		$q->td({-class=>"gray", -align=>"right", -colspan=>8},
-			$q->button(
+			$q->submit(
 					-name	  => 'rulesave',
 					-value	  => 'Save',
+					-onclick  => "return prepareOption();"
 				  ).
-			$q->button(
+			$q->submit(
 					-name	  => 'ruledel',
 					-value	  => 'Delete',
 				  )
@@ -260,6 +329,9 @@ if (!$raw) {
 			$q->table({-border=>0, -width=>800}, @otable)
 	     	     );
 }
+
+print "<INPUT TYPE=\"hidden\" name=\"alloptions\">";
+print $q->end_form();
 
 sub getSids {
         my $dbh     = shift;
@@ -306,7 +378,119 @@ sub getRule {
 	return $h;
 }
 
+sub deleteRule {
+        my $dbh     = shift;
+        my $sid     = shift;
+
+	my $query = "DELETE FROM snortRules WHERE snortID = ?";
+	my $sth = $dbh->prepare($query);
+	my $rv = $sth->execute($sid);
+
+	$sth->finish;
+	return $rv;
+}
+
+sub addRawRule {
+        my $dbh     = shift;
+        my $rule    = shift;
+	my $sid	    = shift;
+
+	my $data    = {};
+
+        if ($rule =~ /sid\:(\d+)\;/) {
+        	$data->{sid} = $1;
+        } else {
+		print $q->p({-class=>'error'}, "ERROR Unknown sid in rule definition");
+		return 0;
+        }
+
+        $data->{rule} = $rule;
+
+        if ($rule =~ /msg\:\"([\w-]+)\s+([^";]+)\"\;/) {
+        	$data->{category} = $1;
+        	$data->{name}     = $2;
+        } else {
+		print $q->p({-class=>'error'}, "ERROR Unknown category and name of rule in rule definition");
+		return 0;
+	}
+
+        if ($rule =~ /rev\:(\d+)\;/) {
+        	$data->{rev} = $1;
+        } else {
+		print $q->p({-class=>'error'}, "ERROR Unknown revision number in rule definition");
+		return 0;
+	}
+
+        if ($rule =~ /classtype\:([^;]+)\;/) {
+        	$data->{classtype} = $1;
+        } else {
+		print $q->p({-class=>'error'}, "ERROR Unknown classtype in rule definition");
+		return 0;
+	}
+
+        if ($rule =~ /reference\:([^;]+)\;/) {
+        	$data->{reference} = $1;
+        }
+
+	my $query = "SELECT revision FROM snortRules WHERE snortID = ?";
+	my $sth = $dbh->prepare($query);
+	if (!$sth->execute($data->{sid})) {
+		print $q->p({-class=>'error'}, "ERROR Unable to check revision number for snortID ".$data->{sid});
+		return 0;
+	}
+
+	my($rev) = $sth->fetchrow_array();
+	$sth->finish;
+
+	if (defined $rev && $rev >= $data->{rev}) {
+		print $q->p({-class=>'error'}, "ERROR Revision $rev is greater than rule being submitted with rev #".$data->{rev});
+		return 0;
+	}
+
+	$data->{desc} = "none";
+	my $sql;
+	my $username = $m->session->{'username'};
+
+	if (defined $rev) {
+		$sql = qq{UPDATE snortRules SET    snortID	= ?,
+						   name		= ?,
+						   category	= ?,
+						   classtype	= ?,
+						   description	= ?,
+						   rule		= ?,
+						   lastModifiedBy = ?,
+						   revision	= ?,
+						   other_refs	= ? 
+						   WHERE snortID = $sid};
+	} else {
+		$sql = qq{INSERT INTO snortRules (
+                                     		   snortID, name, category, classtype,
+                                     		   description, rule, addedBy, lastModifiedBy,
+                                     		   revision, other_refs
+                                  		 ) VALUES (?,?,?,?,?,?,$username,?,?,?)};
+	}
+
+	$sth = $dbh->prepare($sql);
+	my $rv = $sth->execute(
+				$data->{sid},
+				$data->{name},
+				$data->{category},
+				$data->{classtype},
+                            	$data->{desc},
+                            	$data->{rule},
+				$username,
+                            	$data->{rev},
+                            	$data->{reference}
+			      );
+
+print "error = ".$dbh->errstr;
+	$sth->finish;
+	if (!$rv) {
+		print $q->p({-class=>'error'}, "ERROR Unable to insert rule into database");
+		return 0;
+	}
+	return 1;
+}
 
 </%perl>
-
 
