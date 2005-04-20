@@ -17,7 +17,7 @@
 
 =head1 DESCRIPTION
 
-Force quarantine/unquarantine by using the NetPass::API object through SOAP. 
+Force quarantine by using the NetPass::API object through SOAP. 
 
 =head1 AUTHOR
 
