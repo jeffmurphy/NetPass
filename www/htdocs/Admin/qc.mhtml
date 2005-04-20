@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.13 2005/04/19 01:40:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.14 2005/04/20 01:12:00 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -198,7 +198,7 @@ if($count==0) {
 my @rows = ();
 
 push(@rows, $q->TR(
-                   $q->td({-colspan=>7}, '&nbsp;').
+                   $q->td({-colspan=>8}, '&nbsp;').
                    $q->td({-colspan=>1, -align=>"right"},
                           $q->submit(-name  => "submit", -value => "Save Changes", $readOnly)
                    )
@@ -213,6 +213,7 @@ push(@rows, $q->TR(
 			$q->th("Mac Address") .
 			$q->th("Unquar<BR>When?") .
 			$q->th("Status") .
+			$q->th("History") .
 			$q->th("Message")
 	   )
 );
@@ -260,7 +261,11 @@ while (my $row = $results->fetchrow_hashref() ) {
 					$q->hidden( 	-name => 'statusOrig:' . $row->{macAddress},
 							-value =>  $row->{status}
 					),
-                                ) . 
+                                ) .
+				$q->td({-align=>'center'},
+					$q->a({-href => "clienthistory.mhtml?mac=".$row->{macAddress}, -target => "_blank"},
+						 "[ view ]")
+				) . 
                                 $q->td({-align=>'center'},
                                         $q->popup_menu(
                                                         -name    => "message:" . $row->{macAddress},
@@ -273,7 +278,7 @@ while (my $row = $results->fetchrow_hashref() ) {
 $results->finish();
 
 push(@rows, $q->TR(
-                   $q->td({-colspan=>7}, '&nbsp;').
+                   $q->td({-colspan=>8}, '&nbsp;').
                    $q->td({-colspan=>1, -align=>"right"},
                           $q->submit(-name  => "submit", -value => "Save Changes", $readOnly)
                    )
