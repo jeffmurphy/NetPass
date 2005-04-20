@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.25 2005/04/20 05:18:15 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.26 2005/04/20 13:17:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1330,8 +1330,6 @@ sub setUsersAndGroups {
     $whoami ||= "unknown";
     $myip   ||= "unknown";
 
-use Data::Dumper; _log("DEBUG", Dumper($uh)."\n");
-
     foreach my $u (keys %$uh) {
 	    my $groups = $self->composeGroupMembership($uh->{$u});
 	    _log ("DEBUG", "u $u  g $groups\n");
@@ -2456,7 +2454,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.25 2005/04/20 05:18:15 jeffmurphy Exp $
+$Id: DB.pm,v 1.26 2005/04/20 13:17:02 jeffmurphy Exp $
 
 =cut
 

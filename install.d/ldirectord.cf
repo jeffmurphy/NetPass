@@ -48,3 +48,7 @@ virtual=%VIP%:162
         #persistent=600
         protocol=udp
         checktype=negotiate
+        checkport=80
+        service=http
+        request="/snmptrapd-netpass-check.cgi"
+        receive="SNMPTRAPD-OK"

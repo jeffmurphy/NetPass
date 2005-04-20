@@ -33,16 +33,41 @@ iptables -A PREROUTING -t mangle -i eth0 -j RETURN
 #iptables -A PREROUTING -t mangle         -j LOG \
 #	--log-level 6 --log-prefix 'preroute-marked '
 
-iptables -A PREROUTING -t mangle         -j MARK --set-mark 1
+iptables -A PREROUTING -t mangle -p udp --dport 53        -j MARK --set-mark 1
+iptables -A PREROUTING -t mangle -p udp --dport 53        -j RETURN
 
+iptables -A PREROUTING -t mangle -p udp --dport 67        -j MARK --set-mark 1
+iptables -A PREROUTING -t mangle -p udp --dport 67        -j RETURN
+
+iptables -A PREROUTING -t mangle -p udp --dport 161        -j MARK --set-mark 1
+iptables -A PREROUTING -t mangle -p udp --dport 161        -j RETURN
+
+iptables -A PREROUTING -t mangle -p udp --dport 162        -j MARK --set-mark 1
+iptables -A PREROUTING -t mangle -p udp --dport 162        -j RETURN
+
+iptables -A PREROUTING -t mangle -p tcp --dport 80        -j MARK --set-mark 1
+iptables -A PREROUTING -t mangle -p tcp --dport 80        -j RETURN
+
+iptables -A PREROUTING -t mangle -p tcp --dport 443        -j MARK --set-mark 1
+iptables -A PREROUTING -t mangle -p tcp --dport 443        -j RETURN
+
+iptables -A PREROUTING -t mangle        -j DROP
+
+#iptables -A PREROUTING -t mangle         -j MARK --set-mark 1
+
+
+# local system rules here
 
 iptables -A INPUT -s 128.205.1.0/24 -j ACCEPT
 iptables -A INPUT -s 128.205.10.0/24 -j ACCEPT
 
+# end local rules. all else is dropped.
+
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -f -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-iptables -A INPUT -j ACCEPT
-iptables -f -A INPUT -j ACCEPT
+iptables -A INPUT -j DROP
+iptables -f -A INPUT -j DROP
+
 iptables -A INPUT -i lo -j ACCEPT
 iptables -f -A INPUT -i lo -j ACCEPT
 

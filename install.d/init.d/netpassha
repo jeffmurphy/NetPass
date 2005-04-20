@@ -13,6 +13,8 @@
 # Source networking configuration.
 . /etc/sysconfig/network
 
+HASCRIPT="hascript.sh"
+
 [ -f /etc/sysconfig/netpass ] && . /etc/sysconfig/netpass
 
 # Check that networking is up.
