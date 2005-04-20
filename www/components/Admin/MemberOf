@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/MemberOf,v 1.2 2005/04/19 01:40:34 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/MemberOf,v 1.3 2005/04/20 20:57:19 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -8,11 +8,8 @@
 	$m->comp(..., 'group' => 'default', 'acl' => 'Admin' )
 	$m->comp(..., 'group' => 'default', 'acl' => [ 'Reports', 'UserEditor' ])
 
-	$m->comp(..., 'group' => 'SomeGroupName')
-	$m->comp(..., 'group' => [ 'SomeGroupName', 'AnotherGroupName' ])
-
-	If 'group' is not specified, then we will indicated whether or not
-	you possess the specified ACl at any priviledge level. We will return
+	If 'group' is not specified, then we will indicate whether or not
+	you possess the specified ACL at any priviledge level. We will return
 	a list of groups that match the given ACL in that case. The list (arrayref)
         will be returned as a second RV. 
 
@@ -28,13 +25,16 @@
 
 <%perl>
 
+	my $D = 0;
 	if (0) {
-	use Data::Dumper;
+		$D = 1;
+		use Data::Dumper;
 
-	print "<PRE>", Dumper($m->session->{'my_groups'}), "\n</PRE>";
-	print "<PRE>group $group\n</PRE>";
-	print "<PRE>acl $acl\n</PRE>" if (ref($acl) ne "ARRAY");
-	print "<PRE>acl ",join(',', @$acl), "\n</PRE>" if (ref($acl) eq "ARRAY");
+		print "<PRE>mygroups: ", Dumper($m->session->{'my_groups'}), "\n";
+		print "group $group\n";
+		print "acl $acl\n" if (ref($acl) ne "ARRAY");
+		print "acl ",join(',', @$acl), "\n" if (ref($acl) eq "ARRAY");
+		print "</PRE>";
 	}
 
 	my @grpList = ();
@@ -43,15 +43,20 @@
 
 		# if ACL is an ARRAY, iterate foreach of its values.
 
-		if (ref($acl) eq "ARRAY") {
-			foreach my $ac (@$acl) {
+		print "you are logged in..<BR>" if $D;
 
+		if (ref($acl) eq "ARRAY") {
+			print "you gave me an ARRAY of acls to search for..<BR>" if $D;
+			foreach my $ac (@$acl) {
+				print "i'm checking for $ac now..<BR>" if $D;
 				# if group was defined, we know precisely where to look
 
 				if (defined($group) && ($group ne "")) {
+					print "you gave me a specific group ($group) to check..<BR>" if $D;
 					if (exists $m->session->{'my_groups'}->{$group} &&
 				     		grep /^$ac$/, @{$m->session->{'my_groups'}->{$group}}) {
-							return 1;
+							print "yes, you have $ac perms on $group<BR>" if $D;
+							push @grpList, $group;
 					}
 				} 
 
@@ -59,10 +64,14 @@
 				# so we can return them
 
 				else {
-
+					print "you didnt give me a specific group, so i have to check each one..<BR>" if $D;
 					foreach my $grp (keys %{$m->session->{'my_groups'}}) {
-						push @grpList, $grp 
-							if grep /^$ac$/, @{$m->session->{'my_groups'}->{$grp}};
+						print "im checking $grp for $ac in: ", join(',', @{$m->session->{'my_groups'}->{$grp}}), "<BR>" if $D;
+
+						if(grep /^$ac$/,  @{$m->session->{'my_groups'}->{$grp}}) {
+							print "yes you have that<BR>" if $D;
+							push @grpList, $grp;
+						}
 					}
 				}
 			}
@@ -72,26 +81,36 @@
 		# check it directly. 
 
 		else {
+			print "you gave me a specific ACL (not a list of them)<BR>" if $D;
 
 			# if $group was given, check it directly
 
 			if (defined($group) && ($group ne "")) {
+				print "and you gave me a specific group<BR>" if $D;
 				if (exists $m->session->{'my_groups'}->{$group} &&
 					grep /^$acl$/, @{$m->session->{'my_groups'}->{$group}}) {
-						return 1;
+						print "yes, you have $acl perms for $group<BR>" if $D;
+						push @grpList, $group;
 				}
 			} 
 
 			# else find all groups that match the acl so we can return them
 
 			else {
+				print "you didnt give me a specific group, ill check all of them <BR>" if $D;
 				foreach my $grp (keys %{$m->session->{'my_groups'}}) {
-					push @grpList, $grp 
-						if grep /^$acl$/, @{$m->session->{'my_groups'}->{$grp}};
+					print "im checking $grp for $acl in: ". join(',',@{$m->session->{'my_groups'}->{$grp}})."<BR>" if $D;
+					if(grep /^$acl$/, @{$m->session->{'my_groups'}->{$grp}}) {
+						print "yes you have that<BR>" if $D;
+						push @grpList, $grp 
+					}
 				}
 			}
 		}
 	}
+
+	print "<PRE>grpList: ", join(',', @grpList), "</PRE>" if $D;
+
 	return (1, \@grpList) if ($#grpList > -1);
 	return (0, []);
 </%perl>

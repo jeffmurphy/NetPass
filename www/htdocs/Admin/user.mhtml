@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.12 2005/04/20 18:32:34 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.13 2005/04/20 20:57:20 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -24,19 +24,31 @@ setWhereAmI('User Editor');
 
 <%perl>
 
+use Data::Dumper;
+
 # there is no RO access to this form.
 
-my @rwGroups = ('Admin', 'UserEditor');
+my @rwACLs = ('Admin', 'UserEditor');
 
-my ($isAdmin, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
-my $isRoot = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+my ($isAdmin, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwACLs ]);
+my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
 
-if (!$isRoot || !$isAdmin) {
+if (!$isRoot && !$isAdmin) {
         print $q->p({-class=>'error'},
-                "Sorry, permission denied.<BR>You must be in one of these groups: ",
-                join(',', @rwGroups));
+                "Sorry, permission denied.<BR>You must have one of: ".
+                join(', ', @rwACLs). " permissions on at least one group to use this form.");
         return;
 }
+
+# these are reserved group names.
+
+my %groups = ( 'Admin' => 1, 'ScanAdmin' => 1, 'Editor' => 1, 'Reports' => 1,
+		'UserEditor' => 1, 'QuarAdmin' => 1 ); #, 'NetAdmin' => 1 );
+my @groups = (keys %groups);
+my $error  = "";
+my $whoami = $m->session->{'username'};
+my $myip   = $ENV{'REMOTE_ADDR'};
+my $ldap   = $np->cfg->policy('LDAP_USER_QUERY', $ENV{'REMOTE_ADDR'});
 
 # get a list of all networks
 
@@ -50,8 +62,26 @@ foreach my $nw (@$allNetworks) {
 	push @$allNetgroups, $ng if ($ng ne "");
 }
 
+my $users  = $np->db->getUsersAndGroups();
+
+my %groupsList;
+my $gl;
+my $user;
+
+# come up with a uniq list of groups to present
+
+foreach $user (sort keys %$users) {
+	foreach my $nw (sort keys %{$users->{$user}}) {
+		next if exists $groups{$nw};
+		$groupsList{$nw} = 1;
+	}
+}
+
+foreach my $nw (sort @$allNetworks, @$allNetgroups) {
+	$groupsList{$nw} = 1;
+}
+
 if ($submit eq "Commit Changes") { 
-	use Data::Dumper;
 	#print "submit: ".$aclHash."<P>";
 	my $uh = {};
 	foreach my $part (split (';', $aclHash)) {
@@ -80,10 +110,88 @@ if ($submit eq "Commit Changes") {
 	# at this point we have all the edits, but we want to ensure that
 	# an admin for one group cant edit a user's ACL for another group.
 	# we dont trust what is posted back to us, so we do the check here
-	# rather than in the javascript code
+	# rather than in the javascript code. 
+	#	
+	# to accomplish this we make two passes. one for the database 
+	# list of users and one for the list of users submitted via
+	# the web. the first pass adds any users/groups you are not allowed
+	# to edit back into the "uh". the second pass removes any
+	# invalid _new_ users/groups you added from the "uh".
 
-	$np->db->setUsersAndGroups(-userhash => $uh, -whoami => $m->{'session'}->{'username'},
-					-ip => $ENV{'REMOTE_ADDR'});
+	# we extract all users/groups and iterate over
+	# them:
+	#   1. for any user/group that you _do not_ have permissions for,
+	#      we add it back into the userhash if it exists in the db
+	#   2. if it does not exist in the db, we delete it from the
+	#      hash.
+	#
+	# we then repeat using the "uh" to remove new, but invalid, users.
+
+
+	if (!$isRoot) {
+		my $mygrpRE = '^('.join('|', @$rwGroups).')$';
+
+		print "<PRE>mygrpRE = $mygrpRE\n";
+
+		print  Data::Dumper->Dump([$uh], [qw(fromweb)] ), "\n";
+
+		foreach $user (keys %$uh) {
+			print "PASS1 examining $user\n";
+
+			if (! exists($users->{$user}) ) {
+				print "\tthis is a new user. defer to PASS 2\n";
+			}
+			else {
+				foreach my $bdgrp (keys %{$users->{$user}}) {
+					if ($bdgrp !~ /$mygrpRE/) {
+						print "\twe found a group $bdgrp that we arent allowed to edit\n";
+
+						# we found a group we arent allowed to edit. if the group
+						# already exists for $user in the database, then restore
+						# the database data to "uh" just to be safe. if the group
+						# does not exist for the user in the database, then delete
+						# it from "uh".
+
+						if (exists ($users->{$user}->{$bdgrp})) {
+							print "\t\trestoring perms from db copy\n";
+							$uh->{$user}->{$bdgrp} = $users->{$user}->{$bdgrp};
+						} else {
+							print "\t\tdeleting perms\n";
+							delete $uh->{$user}->{$bdgrp};
+						}
+					}
+				}
+			}
+
+			print "PASS2 examining $user\n";
+
+			foreach my $bdgrp (keys %{$uh->{$user}}) {
+				if ($bdgrp !~ /$mygrpRE/) {
+
+					# at this point, any users we inspect should be _new_ users
+					# so if the user exists in the db, we can skip it
+
+					next if exists $users->{$user};
+
+					print "\twe found a group $bdgrp that we arent allowed to edit\n";
+
+					# drop bad groups, leaving only good groups
+
+					print "\t\tdeleting perms from $user for $bdgrp\n";
+					delete $uh->{$user}->{$bdgrp};
+				}
+			}
+		}
+
+		print  Data::Dumper->Dump([$users], [qw(fromdb)] ), "\n";
+		print  Data::Dumper->Dump([$uh], [qw(final)] ), "\n";
+
+		print "</PRE>";
+	}
+
+	
+	#$np->db->setUsersAndGroups(-userhash => $uh, -whoami => $m->{'session'}->{'username'},
+	#				-ip => $ENV{'REMOTE_ADDR'});
 }
 </%perl>
 
@@ -94,7 +202,6 @@ if ($submit eq "Commit Changes") {
 DBG_init();
 var userhash = {
 <%perl>
-	my $users  = $np->db->getUsersAndGroups();
 	my ($comma1, $comma2, $comma3) = ("", "", "");
 	foreach my $user (sort keys %$users) {
 		print "$comma1\n\t'$user' : {\n";
@@ -129,20 +236,6 @@ var userhash = {
 <table>
 <tr><td colspan=2>
 <%perl>
-	# these are reserved group names.
-
-	my %groups = ( 'Admin' => 1, 'ScanAdmin' => 1, 'Editor' => 1, 'Reports' => 1,
-			'UserEditor' => 1, 'QuarAdmin' => 1 ); #, 'NetAdmin' => 1 );
-	my @groups = (keys %groups);
-
-	my $error  = "";
-
-	my $whoami = $m->session->{'username'};
-	my $myip   = $ENV{'REMOTE_ADDR'};
-
-	my $ldap   = $np->cfg->policy('LDAP_USER_QUERY', $ENV{'REMOTE_ADDR'});
-
-
 	if( defined($users) ) {
 		my $widthHolder = "-" x 32;
 </%perl>
@@ -154,7 +247,7 @@ changes to the following groups: <P><UL>
 	if ($isRoot) { 
 		print "<LI> You have full Admin rights: you may edit the ACL for any group.\n";
 	} else {
-		print join("<LI>", @$rwGroups);
+		print "<LI>", join("<LI>", @$rwGroups);
 	}
 </%perl>
 </UL>
@@ -167,7 +260,7 @@ This will be enforced when you commit the changes.<P>
 	    <select size="33" id="UserList" name="UserList" 
 		onchange="userform_changeToUser(this); return false;">
 			<option disabled name='width'><%$widthHolder%>
-%			foreach my $user (sort keys %$users) {
+%			foreach $user (sort keys %$users) {
 			<option value="<%$user%>"> <%$user%>
 %			}
     </select>
@@ -192,19 +285,6 @@ This will be enforced when you commit the changes.<P>
 		onchange="userform_onchange_availableGroups(); return false;">
 		<option disabled name='width'><%$widthHolder%>
 <%perl>
-		my %groupsList;
-
-		# come up with a uniq list of groups to present
-
-		foreach my $user (sort keys %$users) {
-			foreach my $nw (sort keys %{$users->{$user}}) {
-				next if exists $groups{$nw};
-				$groupsList{$nw} = 1;
-			}
-		}
-		foreach my $nw (sort @$allNetworks, @$allNetgroups) {
-			$groupsList{$nw} = 1;
-		}
 		foreach my $gl (sort keys %groupsList) {
 			print qq{<option value="$gl"> $gl\n};
 		}
@@ -218,7 +298,7 @@ This will be enforced when you commit the changes.<P>
 <select multiple size="33" id="AccessControlList" name="AccessControlList" multiple
  onchange="userform_editACL(); return false;">
 <option disabled name='width'><%$widthHolder%>
-%		foreach my $gl (sort @groups) {
+%		foreach $gl (sort @groups) {
 	<option value="<%$gl%>"> <%$gl%>
 %		}
 </select>
@@ -232,7 +312,17 @@ This will be enforced when you commit the changes.<P>
 <textarea style="display: NONE;" name="aclHash" id="aclHash" cols=80 rows=24></textarea>
 %	}
 
-<script>userform_setAclHash();</script>
+<script>
+	userform_setAclHash();	
+	userform_unHighLight("AccessControlList");
+	userform_disableList("AccessControlList");
+</script>
+
+<HR>
+
+If your group is 'default' then you have the specified permissions
+for <I>all</I> groups (default permissions cascade). Otherwise, 
+For the specified groups:
 
 <dl>
  <dt> Admin </dt>
