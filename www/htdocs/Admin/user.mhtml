@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.10 2005/04/20 04:53:15 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.11 2005/04/20 05:18:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -24,11 +24,13 @@ setWhereAmI('User Editor');
 
 <%perl>
 if ($submit eq "Commit Changes") { 
+	use Data::Dumper;
 	#print "submit: ".$aclHash."<P>";
 	my $uh = {};
 	foreach my $part (split (';', $aclHash)) {
 		if ($part ne "") {
 			my @ap = split(/\$/, $part);
+			#print "ap $#ap<P>";
 			if ($#ap == 3) {
 				if (ref($uh->{$ap[1]}->{$ap[2]}) eq "ARRAY") {
 					push @{$uh->{$ap[1]}->{$ap[2]}}, $ap[3];
@@ -36,8 +38,17 @@ if ($submit eq "Commit Changes") {
 					$uh->{$ap[1]}->{$ap[2]} = [ $ap[3] ];
 				}
 			}
+			elsif ($#ap == 2) {
+				# user, group, but no ACL
+				$uh->{$ap[1]}->{$ap[2]} = "";
+			}
+			elsif ($#ap == 1) {
+				# user, no groups, no ACL (delete user)
+				$uh->{$ap[1]} = "";
+			}
 		}
 	}
+	#print "<PRE>", Dumper($uh), "</PRE>";
 	$np->db->setUsersAndGroups(-userhash => $uh, -whoami => $m->{'session'}->{'username'},
 					-ip => $ENV{'REMOTE_ADDR'});
 }
@@ -103,6 +114,8 @@ var userhash = {
 		my $widthHolder = "-" x 32;
 </%perl>
 
+To delete a user, remove them from all groups.<P>
+
 <table id='userEditor'>
 <tr><th>User</th><th>Groups</th><th>Access Type</th></tr>
 <tr><td style='vertical-align:top;'>
@@ -116,8 +129,9 @@ var userhash = {
     <P><center><input id='addUser' 
 		onfocus='userform_onfocus_addUser(this); return false;'
 		onblur='userform_onblur_addUser(this); return false;'
-	        size=10 maxlength=16 value="Add user..."><P>
-       <button id='deleteUser' disabled>Delete User</button></center>
+	        size=10 maxlength=16 value="Add user...">
+<!--       <P><button id='deleteUser' disabled>Delete User</button>--> 
+	   </center> 
     </td>
     <td style='vertical-align:top;'>
 	    <select multiple size="15" id="GroupList" name="GroupList" multiple

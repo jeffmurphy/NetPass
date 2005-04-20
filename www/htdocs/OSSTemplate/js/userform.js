@@ -159,9 +159,9 @@ function userform_genAclHash(o, b) {
 		for (var x in o) {
 			haskeys = true;
 			if (typeof o[x] == "object") {
-				s += userform_genAclHash(o[x], b + "." + x);
+				s += userform_genAclHash(o[x], b + SEP + x);
 			} else {
-				s += ";" + b + "." + x;
+				s += ";" + b + SEP + x;
 			}
 		}
 		if (haskeys == false) {
@@ -412,9 +412,7 @@ function userform_remGroupFromUser() {
 				var opt = gl.options[i];
 				if (browserType_IE) gl.options[i] = null;
 				agl.options[agl.options.length] = opt;
-				var gobj = userhash[su];
-				//delete userhash[su][opt.value];
-				delete gobj[opt.value];
+				delete userhash[su][opt.value];
 			}
 		}
 		userform_unHighLight("AccessControlList");

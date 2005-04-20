@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.24 2005/04/20 02:58:48 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.25 2005/04/20 05:18:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1330,13 +1330,16 @@ sub setUsersAndGroups {
     $whoami ||= "unknown";
     $myip   ||= "unknown";
 
+use Data::Dumper; _log("DEBUG", Dumper($uh)."\n");
+
     foreach my $u (keys %$uh) {
 	    my $groups = $self->composeGroupMembership($uh->{$u});
 	    _log ("DEBUG", "u $u  g $groups\n");
 
 	    $self->reconnect() || return "db failure database down";
 	    
-	    if ($groups eq "") {
+	    # if groups contains no ACLs, then delete the user.
+	    if ($groups !~ /\+/) {
 		    my $sql = qq{DELETE FROM users WHERE username = '$u'};
 		    if (!$self->{'dbh'}->do($sql)) {
 			    _log("ERROR", "failed to delete user $u ".$self->{'dbh'}->errstr."\n");
@@ -1347,15 +1350,22 @@ sub setUsersAndGroups {
 					 -msg => [ qq{user $u deleted} ]);
 		    }
 	    } else {
-		    my $sql = qq{UPDATE users SET groups = '$groups' WHERE username = '$u'};
-		    if (!$self->{'dbh'}->do($sql)) {
-			    _log("ERROR", 
-				 "failed to change groups to ($groups) for $u ".$self->{'dbh'}->errstr."\n");
-			    return "db failure ".$self->{'dbh'}->errstr;
-		    } else {
-			    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
-					 "groups for $u changed to: $groups");
+		    my $sql = qq{INSERT INTO users (username, groups) VALUES (};
+                    my $msg = "user added.";
+                    $sql .= $self->dbh->quote($u). ",";
+                    $sql .= $self->dbh->quote($groups). ")";
+                    if (!$self->dbh->do($sql)) {
+		            $sql  = qq{UPDATE users SET groups = };
+                            $sql .= $self->dbh->quote($groups);
+                            $sql .= " WHERE username = ".$self->dbh->quote($u);
+	                    if (!$self->{'dbh'}->do($sql)) {
+			            _log("ERROR", 
+				         "failed to change groups to ($groups) for $u ".$self->{'dbh'}->errstr."\n");
+			            return "db failure ".$self->{'dbh'}->errstr;
+                            }
 		    }
+		    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
+					 "$msg groups for $u changed to: $groups");
 	    }
     }
     return 0;
@@ -2446,7 +2456,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.24 2005/04/20 02:58:48 mtbell Exp $
+$Id: DB.pm,v 1.25 2005/04/20 05:18:15 jeffmurphy Exp $
 
 =cut
 
