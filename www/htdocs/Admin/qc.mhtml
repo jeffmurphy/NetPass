@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.14 2005/04/20 01:12:00 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.15 2005/04/20 04:36:11 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -263,7 +263,7 @@ while (my $row = $results->fetchrow_hashref() ) {
 					),
                                 ) .
 				$q->td({-align=>'center'},
-					$q->a({-href => "clienthistory.mhtml?mac=".$row->{macAddress}, -target => "_blank"},
+					$q->a({-href => "clienthistory.mhtml?mac=".$row->{macAddress}},
 						 "[ view ]")
 				) . 
                                 $q->td({-align=>'center'},
