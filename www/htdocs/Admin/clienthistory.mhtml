@@ -1,0 +1,109 @@
+
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/clienthistory.mhtml,v 1.1 2005/04/20 04:15:56 mtbell Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+$mac      => '';
+$notes	  => '';
+$action	  => '';
+</%args>
+
+<%perl>
+
+my @rwGroups = ('Admin', 'QuarAdmin');
+my @roGroups = ('Reports');
+my $readOnly = "disabled";
+my @aclGroups = ();
+
+if (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ])) {
+        $readOnly = "";
+} elsif (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ])) {
+        $readOnly = "disabled";
+} else {
+        print $q->p({-class=>'error'},
+                "Sorry, permission denied.<BR>You must be in one of these groups: ",
+                join(',', @rwGroups, @roGroups));
+        return;
+}
+
+my @rows;
+my @table;
+my $username = $m->session->{'username'};
+
+if ($action eq "Submit" && defined $mac && defined $notes &&
+    defined $username && $readOnly ne "disabled") {
+	my $rv = $np->db->addClientHistory(
+					    -mac     => $mac,
+					    -user    => $username,
+					    -notes   => $notes,
+					  );
+
+	if (!$rv) {
+		print $q->p({-class=>'error'},
+			"Fatal Error Unable to add to History");
+	}
+}
+
+print $q->h3("Client History for mac = $mac");
+
+print $q->start_form(-method=>"POST", action => "clienthistory.mhtml");
+
+push @rows, 
+	$q->TR(
+		$q->th({-colspan=>1}, "Add Client History")
+	).
+	$q->TR({-class=>'gray', -align=>"center"},
+		$q->td(
+			$q->textarea(
+					-name	 => "notes",
+					-rows	 => 10,
+					-columns => 70,
+			)
+		)
+	).
+	$q->TR({-class=>'gray'},
+		$q->td({-align=>"right"},
+			$q->submit(
+					-name	 => "action",
+					-value	 => "Submit",
+				  )
+		)
+	);
+
+my $history = $np->db->getClientHistory(-mac => $mac) if defined $mac;
+
+push @table,
+        $q->TR(
+                $q->th({-colspan=>1}, "Client History")
+        );
+
+foreach my $dt (sort {$b cmp $a} keys %$history) {
+	my $user	= $history->{$dt}->{username};
+	my $notes	= $history->{$dt}->{notes};
+	my $macaddr	= $history->{$dt}->{macAddress};
+	$notes		=~ s/\n/<BR>/g;
+	push @table, 
+		$q->TR({-class=>'gray'},
+			$q->td({-align=>"left"},
+				"<DL>
+			   	    <DT>$dt: Submitted by $username for mac = $macaddr</DT>
+			       	       <DD>$notes</DD>
+				 </DL>
+				"
+			)
+		);
+}
+
+print $q->hidden(-name=>"mac", -value=>$mac);
+print $q->table( {-border=>0, -width=>600}, @rows);
+print $q->br();
+print $q->table( {-border=>0, -width=>600}, @table);
+print $q->end_form();
+
+</%perl>
+
