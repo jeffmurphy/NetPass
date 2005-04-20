@@ -29,7 +29,8 @@ use FileHandle;
 use File::Copy "move";
 
 my $DEFAULTSNORTRULES   = "/opt/snort/etc/snort.rules";
-my $DEFAULTSNORTPID	= "/var/run/snort_eth0.pid";
+my $DEFAULTSNORTPID	= "/var/run/snort_dag0.pid";
+my $DEFAULTSNORTCMD     = "/etc/init.d/snortd";
 
 my $check_soap_auth = sub {
         my $self         = shift;
@@ -88,6 +89,68 @@ my $createSoapConnection = sub {
 
         return undef;
 };
+
+=head2 $rv = startSnort()
+
+This method starts the snort daemon, it returns C<true> on 
+success C<undef> on failure.
+
+=cut
+
+sub startSnort {
+	my $self	= shift;
+	my $key		= shift;
+	my %opts        = %::opts;
+        my $fh          = new FileHandle;
+
+	return undef unless ($self->$check_soap_auth($key));
+        return undef unless exists $opts{'S'};
+        my $md5          = md5_hex(hostip.$opts{'S'});
+
+        my $soap = $self->$createSoapConnection();
+        return undef unless $soap;
+
+        my $aref = eval {$soap->getSnortRules($md5, "enabled")->result};
+        return undef unless defined($aref) && (ref($aref) eq 'ARRAY');
+
+        my $logfile = (exists $opts{'l'}) ? $opts{'l'} : $DEFAULTSNORTRULES;
+
+        # create a backup copy of the rules file
+        move($logfile, $logfile.'.bkp') if (-e $logfile);
+
+        $fh->open("> $logfile");
+        map(print($fh $_), @$aref);
+        $fh->close;
+
+	my $cmd = (exists $opts{'f'}) ? $opts{'f'} : $DEFAULTSNORTCMD;
+	return undef unless -e $cmd;
+
+	my $rv = system("$cmd start");
+	return undef unless defined $rv;
+
+	return $self->$snortRunning();
+}
+
+=head2 $rv = stopSnort()
+
+This method stops the snort daemon, it returns C<true> on
+success C<undef> on failure.
+
+=cut
+
+sub stopSnort {
+        my $self        = shift;
+        my $key         = shift;
+        my %opts        = %::opts;
+
+        return undef unless ($self->$check_soap_auth($key));
+
+        my $cmd = (exists $opts{'f'}) ? $opts{'f'} : $DEFAULTSNORTCMD;
+        return undef unless -e $cmd;
+
+        my $rv = system("$cmd stop");
+        return $rv;
+}
 
 =head2 $rv = restartSnort()
 

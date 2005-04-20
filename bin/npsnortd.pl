@@ -13,6 +13,7 @@
      -r rulesfile	  the snort rules file
      -P port		  the port npsnortd will run on	  	
      -p pidfile		  snort pid file
+     -f cmd		  command used to start/stop snort
      -h                   this message
 
 
@@ -67,7 +68,7 @@ use vars qw($remote_ip %opts);
 my $DEFAULTPORT		= 20008;
 my $DEFAULTSNORTLOG	= "/opt/snort/logs/snort.log";
 
-getopts('s:S:p:r:l:qDh?', \%opts);
+getopts('s:S:p:r:l:f:qDh?', \%opts);
 pod2usage(2) if exists $opts{'h'}  || exists $opts{'?'};
 pod2usage(2) if !exists $opts{'s'} || !exists $opts{'S'};
 
@@ -120,9 +121,14 @@ while (1) {
 	}
 
 	foreach my $ip (keys %data) {
-		my $res = eval {$soap->processIP($secret, $ip, keys(%{$data{$ip}}))->result};
+		my $res = eval {$soap->quarantineByIP(
+						      -secret  => $secret,
+						      -ip      => $ip,
+						      -type    => [map('snort', keys(%{$data{$ip}}))],
+						      -id      => [keys(%{$data{$ip}})],
+						     )->result};
 		if (!$res) {
-			warn "Unknown Error Occured While tryin to process $ip";
+			warn "Wasn't Able to process $ip";
 			next;
 		}
 		print "processing $ip sids = ".join(',', keys(%{$data{$ip}}))." resulted in $res\n";
