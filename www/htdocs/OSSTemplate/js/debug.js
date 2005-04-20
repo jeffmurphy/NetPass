@@ -38,11 +38,16 @@ function dbg(l, msg) {
 }
 
 function DBG_objDump(o, b) {
+	var haskeys = false;
 	for (var x in o) {
-		if (typeof o[x] == "object") {
+		haskeys = true;
+		if (typeof o[x] == "object")  {
 			DBG_objDump(o[x], b+"."+x);
 		} else {
 			dbg(1, "objDump: " + b + "." + x + "=" + o[x]);
 		}
+	}
+	if (haskeys == false) {
+		dbg(1, "objDump: " + b + "=" + o + " (no keys)");
 	}
 }

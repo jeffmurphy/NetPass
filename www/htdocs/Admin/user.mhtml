@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.9 2005/04/19 20:53:05 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.10 2005/04/20 04:53:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -24,7 +24,7 @@ setWhereAmI('User Editor');
 
 <%perl>
 if ($submit eq "Commit Changes") { 
-	print "submit: ".$aclHash."<P>";
+	#print "submit: ".$aclHash."<P>";
 	my $uh = {};
 	foreach my $part (split (';', $aclHash)) {
 		if ($part ne "") {
