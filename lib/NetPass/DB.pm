@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.23 2005/04/19 20:53:04 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.24 2005/04/20 02:58:48 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -961,6 +961,81 @@ sub getSnortRules {
     my $rules = $self->{'dbh'}->selectcol_arrayref($sql);
     return $rules if (defined($rules) && (ref($rules) eq "ARRAY"));
     return undef;
+}
+
+=head2 $history = getClientHistory(-mac => $mac)
+
+Given a mac address retrieve all the corresponding Client History records
+from the clientHistory table. Returns a HASHREF of all the fields in the
+table on success the hash organized as shown below, C<undef> on failure.
+
+ $history->{'dt'}->{'username'}
+ $history->{'dt'}->{'macAddress'}
+ $history->{'dt'}->{'notes'}
+
+=cut
+
+sub getClientHistory {
+    my $self = shift;
+
+    $self->reconnect() || return undef;
+
+    my $parms = parse_parms({
+                             -parms    => \@_,
+                             -legal    => [ qw(-mac) ],
+                             -defaults => { -mac  => '' }
+                            }
+                           );
+
+    return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
+
+    my ($mac) = $parms->get('-mac');
+    my $sql   = "SELECT * FROM clientHistory WHERE macAddress = ".$self->dbh->quote($mac);
+
+    my $h    = $self->dbh->selectall_hashref($sql, "dt");
+
+    return $h if (defined($h) && (ref($h) eq "HASH"));
+
+    _log "ERROR", "select failed: ".$self->{'dbh'}->errstr."\n";
+    return undef;
+}
+
+=head2 $rv = addClientHistory(-mac => $mac, -user => $username, -notes => $notes)
+
+Create a Client History record for $mac submitted by $username recording history
+described in $notes. Returns C<true> on success, C<undef> on failure.
+
+=cut
+
+sub addClientHistory {
+    my $self = shift;
+
+    $self->reconnect() || return undef;
+
+    my $parms = parse_parms({
+                             -parms    => \@_,
+                             -legal    => [ qw(-mac -user -notes) ],
+                             -defaults => { -mac   => '',
+					    -user  => '',
+					    -notes => ''
+					  }
+                            }
+                           );
+
+    return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
+
+    my ($mac, $user, $notes) = $parms->get('-mac', '-user', '-notes');
+    my $sql = "INSERT INTO clientHistory (macAddress, username, dt, notes) VALUES(?,?,FROM_UNIXTIME(?),?)";
+
+    my $sth = $self->dbh->prepare($sql);
+    my $rv  = $sth->execute($mac, $user, time(), $notes);
+
+    if (!$rv) {
+	_log "ERROR", "insert failed: ".$self->{'dbh'}->errstr."\n";
+	return undef;
+    }
+
+    return 1;
 }
 
 =head2 $rv = registerHost($mac, $ip, $os, $username)
@@ -2371,7 +2446,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.23 2005/04/19 20:53:04 jeffmurphy Exp $
+$Id: DB.pm,v 1.24 2005/04/20 02:58:48 mtbell Exp $
 
 =cut
 
