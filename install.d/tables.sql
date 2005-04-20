@@ -122,6 +122,14 @@ CREATE TABLE audit (
 	INDEX (ts)
 ) TYPE=NDBCLUSTER;
 
+CREATE TABLE clientHistory (
+	macAddress      VARCHAR(32)	NOT NULL,
+	username        VARCHAR(32)	NOT NULL,
+	dt		DATETIME	NOT NULL,
+	notes		TEXT		NOT NULL,
+	INDEX(macAddress),
+	INDEX(dt)
+) TYPE=NDBCLUSTER;
 
 CREATE TABLE `nessusScans` (
   `pluginID` int(10) unsigned NOT NULL default '0',
