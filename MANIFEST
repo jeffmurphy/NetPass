@@ -55,11 +55,14 @@ doc/website/img/rem.png
 doc/website/img/rem.svg
 doc/website/supequip.html
 doc/website/index.html
+doc/website/install.html
 doc/website/site.css
+doc/website/deploy.html
 doc/website/new/images/arrowback.gif
 doc/website/new/images/logo.png
 doc/website/new/images/logo.xcf
 doc/website/new/index.html
+doc/website/roadmap.html
 doc/insert_docs_from_ascit.pl
 doc/Netpass_Overview.txt
 doc/add_new_network
@@ -77,6 +80,7 @@ doc/apachehowto.txt
 doc/mysqlcluster.txt
 doc/nessus-install.txt
 doc/npsnort.txt
+doc/netpass-install.sxw
 etc/netpass-example.conf
 install.d/logrotate.d/apache
 install.d/logrotate.d/netpass
@@ -99,6 +103,7 @@ install.d/init.d/npgarp
 install.d/init.d/npsnortd
 install.d/init.d/apache
 install.d/init.d/swatch
+install.d/init.d/mysqld
 install.d/crontab.netpass
 install.d/httpd.conf
 install.d/fstab
@@ -109,6 +114,7 @@ install.d/tables.sql
 install.d/ldirectord.cf
 install.d/testpm
 install.d/snmptrapd
+install.d/install-ipvs.sh
 lib/Bundle/NetPass/API.pm
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
@@ -187,6 +193,7 @@ www/htdocs/Admin/qc.mhtml
 www/htdocs/Admin/user.mhtml
 www/htdocs/Admin/sq.mhtml
 www/htdocs/Admin/test.html
+www/htdocs/Admin/clienthistory.mhtml
 www/htdocs/OSSTemplate/css/OSSTemplate.css.cgi
 www/htdocs/OSSTemplate/css/.htaccess
 www/htdocs/OSSTemplate/css/calendar.css

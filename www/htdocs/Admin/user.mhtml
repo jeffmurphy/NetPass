@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.11 2005/04/20 05:18:15 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.12 2005/04/20 18:32:34 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -23,6 +23,33 @@ setWhereAmI('User Editor');
 --></script>
 
 <%perl>
+
+# there is no RO access to this form.
+
+my @rwGroups = ('Admin', 'UserEditor');
+
+my ($isAdmin, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
+my $isRoot = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+
+if (!$isRoot || !$isAdmin) {
+        print $q->p({-class=>'error'},
+                "Sorry, permission denied.<BR>You must be in one of these groups: ",
+                join(',', @rwGroups));
+        return;
+}
+
+# get a list of all networks
+
+my $allNetworks = $np->cfg->getNetworks();
+
+# and all netgroups
+
+my $allNetgroups = ();
+foreach my $nw (@$allNetworks) {
+	my $ng = $np->cfg->getNetgroup($nw);
+	push @$allNetgroups, $ng if ($ng ne "");
+}
+
 if ($submit eq "Commit Changes") { 
 	use Data::Dumper;
 	#print "submit: ".$aclHash."<P>";
@@ -49,6 +76,12 @@ if ($submit eq "Commit Changes") {
 		}
 	}
 	#print "<PRE>", Dumper($uh), "</PRE>";
+
+	# at this point we have all the edits, but we want to ensure that
+	# an admin for one group cant edit a user's ACL for another group.
+	# we dont trust what is posted back to us, so we do the check here
+	# rather than in the javascript code
+
 	$np->db->setUsersAndGroups(-userhash => $uh, -whoami => $m->{'session'}->{'username'},
 					-ip => $ENV{'REMOTE_ADDR'});
 }
@@ -99,7 +132,7 @@ var userhash = {
 	# these are reserved group names.
 
 	my %groups = ( 'Admin' => 1, 'ScanAdmin' => 1, 'Editor' => 1, 'Reports' => 1,
-			'UserEditor' => 1, 'QuarAdmin' => 1, 'NetAdmin' => 1 );
+			'UserEditor' => 1, 'QuarAdmin' => 1 ); #, 'NetAdmin' => 1 );
 	my @groups = (keys %groups);
 
 	my $error  = "";
@@ -114,12 +147,24 @@ var userhash = {
 		my $widthHolder = "-" x 32;
 </%perl>
 
-To delete a user, remove them from all groups.<P>
+To delete a user, remove them from all groups. All users and groups are shown (and
+in Internet Explorer they are editable too), however, you are only allowed to make
+changes to the following groups: <P><UL>
+<%perl>
+	if ($isRoot) { 
+		print "<LI> You have full Admin rights: you may edit the ACL for any group.\n";
+	} else {
+		print join("<LI>", @$rwGroups);
+	}
+</%perl>
+</UL>
+
+This will be enforced when you commit the changes.<P>
 
 <table id='userEditor'>
 <tr><th>User</th><th>Groups</th><th>Access Type</th></tr>
 <tr><td style='vertical-align:top;'>
-	    <select size="25" id="UserList" name="UserList" 
+	    <select size="33" id="UserList" name="UserList" 
 		onchange="userform_changeToUser(this); return false;">
 			<option disabled name='width'><%$widthHolder%>
 %			foreach my $user (sort keys %$users) {
@@ -129,8 +174,8 @@ To delete a user, remove them from all groups.<P>
     <P><center><input id='addUser' 
 		onfocus='userform_onfocus_addUser(this); return false;'
 		onblur='userform_onblur_addUser(this); return false;'
-	        size=10 maxlength=16 value="Add user...">
-<!--       <P><button id='deleteUser' disabled>Delete User</button>--> 
+	        size=10 maxlength=16 value="Add user..."><BR>
+           <I>Press TAB after entering username</I>
 	   </center> 
     </td>
     <td style='vertical-align:top;'>
@@ -148,11 +193,17 @@ To delete a user, remove them from all groups.<P>
 		<option disabled name='width'><%$widthHolder%>
 <%perl>
 		my %groupsList;
+
+		# come up with a uniq list of groups to present
+
 		foreach my $user (sort keys %$users) {
 			foreach my $nw (sort keys %{$users->{$user}}) {
 				next if exists $groups{$nw};
 				$groupsList{$nw} = 1;
 			}
+		}
+		foreach my $nw (sort @$allNetworks, @$allNetgroups) {
+			$groupsList{$nw} = 1;
 		}
 		foreach my $gl (sort keys %groupsList) {
 			print qq{<option value="$gl"> $gl\n};
@@ -164,7 +215,7 @@ To delete a user, remove them from all groups.<P>
 
 </td>
 <td style='vertical-align:top;'>
-<select multiple size="25" id="AccessControlList" name="AccessControlList" multiple
+<select multiple size="33" id="AccessControlList" name="AccessControlList" multiple
  onchange="userform_editACL(); return false;">
 <option disabled name='width'><%$widthHolder%>
 %		foreach my $gl (sort @groups) {

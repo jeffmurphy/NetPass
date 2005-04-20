@@ -13,6 +13,8 @@ function userform_changeToUser(o) {
 	var selectedUser = undefined; 
 
 	userform_unHighLight("AvailableGroupList");
+	userform_unHighLight("AccessControlList");
+	userform_disableList("AccessControlList");
 
 	for (var i = 0 ; i < o.options.length ; i++) {
 		if (o.options[i].selected && i == 0) {
@@ -40,14 +42,12 @@ function userform_changeToUser(o) {
 		for (var i = gl.options.length-1 ; i ; i--) {
 			glo = gl.options[i];
 			if (glo) {
-				dbg(1, RN + ": " + gl.options.length + 
-				    " move to availble: options["+i+"] " + glo.value);
 				glo.selected = false;
 				if (browserType_IE) gl.options[i] = null;
 				agl.options[agl.options.length] = glo;
 			} else {
 				dbg(1, RN + ": " + gl.options.length + 
-				    " move to available: NULL options["+i+"]");
+				    " move to available: glo=NULL options["+i+"]");
 			}
 		}
 
@@ -65,7 +65,6 @@ function userform_changeToUser(o) {
 
 			for (var i = agl.options.length-1 ; i ; i--) {
 				if (agl.options[i].value == mygroup) {
-					dbg(1, RN + ": inside "  + gl.options.length );
 					if (browserType_IE) {
 						var old = agl.options[i];
 						agl.options[i] = null;
@@ -132,7 +131,6 @@ function userform_editACL() {
 	}
 
 
-	//dbg(1, RN + ": HASH  " + userform_genAclHash(userhash, "userhash"));
 	userform_setAclHash();
 }
 
@@ -141,7 +139,7 @@ function userform_setAclHash() {
 	var ah = userform_genAclHash(userhash, "userhash");
 	var af = document.getElementById("aclHash");
 	if (af) {
-		dbg (1, "set aclHash to " + ah);
+		dbg (1, RN + ": set aclHash to " + ah);
 		af.value = ah;
 	} else {
 		dbg (1, RN + ": cant find aclHash object");
@@ -394,6 +392,8 @@ function userform_addGroupToUser() {
 			}
 		}
 		userform_enableList("AccessControlList");
+		DBG_objDump(userhash, "userhash");
+		userform_setAclHash();
 	} else {
 		dbg (1, RN + ": cant find AvailableGroupList and/or GroupList object");
 	}
@@ -417,6 +417,8 @@ function userform_remGroupFromUser() {
 		}
 		userform_unHighLight("AccessControlList");
 		userform_disableList("AccessControlList");
+		DBG_objDump(userhash, "userhash");
+		userform_setAclHash();
 	} else {
 		dbg (1, RN + ": cant find AvailableGroupList and/or GroupList object");
 	}
