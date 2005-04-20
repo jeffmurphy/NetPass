@@ -1,14 +1,12 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.7 2005/04/14 19:36:36 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.8 2005/04/20 15:42:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 
 =head1 NAME
-
-DO NOT USE. NOT FINISHED YET. NOT TESTED.
 
 macscan.pl - periodically scan the switches looking for unknown MACs as well
 as ports with multiple MACs.
@@ -84,7 +82,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.7 2005/04/14 19:36:36 jeffmurphy Exp $
+$Id: macscan.pl,v 1.8 2005/04/20 15:42:08 jeffmurphy Exp $
 
 =cut
 
