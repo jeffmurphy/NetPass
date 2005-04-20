@@ -1,0 +1,110 @@
+#!/bin/bash
+#
+# mysqld	This shell script takes care of starting and stopping
+#		the MySQL subsystem (mysqld).
+#
+# chkconfig: - 78 12
+# description:	MySQL database server.
+# processname: mysqld
+# config: /etc/my.cnf
+# pidfile: /var/run/mysqld/mysqld.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+
+prog="MySQL"
+
+datadir="/var/lib/mysql"
+
+start(){
+	# startup mysql cluster stuff
+	cd /var/lib/mysql-cluster
+	/usr/local/mysql/bin/ndb_mgmd
+	/usr/local/mysql/bin/ndbd
+
+	touch /var/log/mysqld.log
+	chown mysql.mysql /var/log/mysqld.log 
+	chmod 0640 /var/log/mysqld.log
+	if [ ! -d $datadir/mysql ] ; then
+	    action $"Initializing MySQL database: " /usr/local/mysql/bin/mysql_install_db
+	    ret=$?
+	    chown -R mysql.mysql $datadir
+	    if [ $ret -ne 0 ] ; then
+	    	return $ret
+	    fi
+	fi
+	chown -R mysql.mysql $datadir
+	chmod 0755 $datadir
+	/usr/local/mysql/bin/mysqld_safe  --defaults-file=/etc/my.cnf >/dev/null 2>&1 &
+	ret=$?
+        # Spin for a maximum of ten seconds waiting for the server to come up
+	if [ $ret -eq 0 ]; then
+            for x in 1 2 3 4 5 6 7 8 9 10; do
+            if [ -n "`/usr/local/mysql/bin/mysqladmin ping 2> /dev/null`" ]; then
+                    break;
+            else
+                    sleep 1;
+            fi
+            done
+            if !([ -n "`/usr/local/mysql/bin/mysqladmin ping 2> /dev/null`" ]); then
+                    echo "Timeout error occurred trying to start MySQL Daemon."
+                    action $"Starting $prog: " /bin/false
+            else
+                    action $"Starting $prog: " /bin/true
+            fi
+	else
+    	    action $"Starting $prog: " /bin/false
+	fi
+	[ $ret -eq 0 ] && touch /var/lock/subsys/mysqld
+	return $ret
+}
+
+stop(){
+        /bin/kill `cat /var/run/mysqld/mysqld.pid  2> /dev/null ` > /dev/null 2>&1
+	ret=$?
+	if [ $ret -eq 0 ]; then
+	    action $"Stopping $prog: " /bin/true
+	else
+    	    action $"Stopping $prog: " /bin/false
+	fi
+	[ $ret -eq 0 ] && rm -f /var/lock/subsys/mysqld
+	[ $ret -eq 0 ] && rm -f $datadir/mysql.sock
+	return $ret
+}
+ 
+restart(){
+    stop
+    start
+}
+
+condrestart(){
+    [ -e /var/lock/subsys/mysqld ] && restart || :
+}
+
+# See how we were called.
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status mysqld
+    ;;
+  restart)
+    restart
+    ;;
+  condrestart)
+    condrestart
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|condrestart|restart}"
+    exit 1
+esac
+
+exit $?
