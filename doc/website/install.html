@@ -1,0 +1,382 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=iso-8859-15">
+	<TITLE></TITLE>
+	<META NAME="GENERATOR" CONTENT="OpenOffice.org 1.1.3  (Linux)">
+	<META NAME="CREATED" CONTENT="20050420;270300">
+	<META NAME="CHANGED" CONTENT="20050420;11295600">
+	<STYLE>
+	<!--
+		@page { size: 8.5in 11in; margin-left: 1.25in; margin-right: 1.25in; margin-top: 1in; margin-bottom: 1in }
+		P { margin-bottom: 0.08in }
+		TD P { margin-bottom: 0.08in }
+		TH P { margin-bottom: 0.08in; font-style: italic }
+		TT { font-family: "Nimbus Mono L", monospace }
+	-->
+	</STYLE>
+</HEAD>
+<BODY LANG="en-US" DIR="LTR">
+<P STYLE="margin-bottom: 0in">Installation will take place in the
+following stages:<BR><BR><BR>1. OS Installation<BR>2. Installation
+and Configuration of Packages not included with NetPass<BR>3.
+Installation and Configuration of Packages included with NetPass<BR>4.
+Configuring NetPass</P>
+<OL START=5>
+	<LI><P STYLE="margin-bottom: 0in">Configuring Redirectors</P>
+	<LI><P STYLE="margin-bottom: 0in">Staying up to date (because this
+	is a Beta release).<BR><BR><BR>
+	</P>
+</OL>
+<P STYLE="margin-bottom: 0in"><BR>The following document uses some
+example machine names and addresses. They are:</P>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<TABLE WIDTH=100% BORDER=1 BORDERCOLOR="#000000" CELLPADDING=4 CELLSPACING=0>
+	<COL WIDTH=85*>
+	<COL WIDTH=85*>
+	<COL WIDTH=85*>
+	<THEAD>
+		<TR VALIGN=TOP>
+			<TH WIDTH=33%>
+				<P>Purpose</P>
+			</TH>
+			<TH WIDTH=33%>
+				<P>Name</P>
+			</TH>
+			<TH WIDTH=33%>
+				<P>Address</P>
+			</TH>
+		</TR>
+	</THEAD>
+	<TBODY>
+		<TR VALIGN=TOP>
+			<TD WIDTH=33%>
+				<P>Redirector #1</P>
+			</TD>
+			<TD WIDTH=33%>
+				<P>npr1-d.cit.buffalo.edu</P>
+			</TD>
+			<TD WIDTH=33%>
+				<P>128.205.10.40</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=33%>
+				<P>Redirector #2</P>
+			</TD>
+			<TD WIDTH=33%>
+				<P>npr2-d.cit.buffalo.edu</P>
+			</TD>
+			<TD WIDTH=33%>
+				<P>128.205.10.62</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=33%>
+				<P>NetPass Server #1</P>
+			</TD>
+			<TD WIDTH=33%>
+				<P>npw1-d.cit.buffalo.edu</P>
+			</TD>
+			<TD WIDTH=33%>
+				<P>128.205.10.27</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=33%>
+				<P>NetPass Server #2</P>
+			</TD>
+			<TD WIDTH=33%>
+				<P>npw2-d.cit.buffalo.edu</P>
+			</TD>
+			<TD WIDTH=33%>
+				<P>128.205.10.37</P>
+			</TD>
+		</TR>
+	</TBODY>
+</TABLE>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<P STYLE="margin-bottom: 0in"><BR><B>1. OS Installation</B><BR><BR>RedHat
+Enterprise Linux 4 or Fedora Core 3 are the recommended OS. While
+other distributions will work, those are the only two we've tested
+on.</P>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<P STYLE="margin-bottom: 0in">A basic OS installation is all that's
+needed. The NetPass installer should pull in anything that is
+missing. You will need to apply the &quot;hidden&quot; patch to your
+NetPass server(s). You will need to apply the NetPass LVS patch to
+the redirector(s). Both patches can be downloaded from
+<A HREF="http://www.sf.net/projects/netpass">www.sf.net/projects/netpass</A><BR><BR>You
+should use the kernel source supplied with your distribution. Do not
+use the generic kernel (<A HREF="http://www.kernel.org/">www.kernel.org</A>).
+Do the following to acquire your kernel source:<BR><BR><B>1a.
+Building the RedHat kernel</B><BR><BR><BR>1a.1. <FONT FACE="Nimbus Mono L">cd
+/usr/src/redhat/SOURCES</FONT><BR>1a.2. <FONT FACE="Nimbus Mono L">up2date
+--get-source kernel</FONT><BR>1a.3. <FONT FACE="Nimbus Mono L">rpm
+-iv /var/spool/up2date/kernel*.src.rpm</FONT><BR>1a.4. <FONT FACE="Nimbus Mono L">rpmbuild
+-bp --target=i386&nbsp; ../SPECS/kernel.spec</FONT><BR>1a.5. <FONT FACE="Nimbus Mono L">vi
+../SOURCES/kernel-2.6.9/linux-2.6.9</FONT><BR>1a.6. <FONT FACE="Nimbus Mono L">patch
+-p1 &lt; hidden.patch</FONT> OR<FONT FACE="Nimbus Mono L"> patch -p1
+&lt; lvs.patch</FONT><BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (downloaded
+from sf.net)<BR>1a.7. <FONT FACE="Nimbus Mono L">cp
+configs/kernel-2.6.9-i686-hugemem.config .config</FONT><BR>1a.8. <FONT FACE="Nimbus Mono L">vi
+.config</FONT><BR>1a.9. set <FONT FACE="Nimbus Mono L">CONFIG_REISERFS_FS=m</FONT><BR>1a.10.
+<FONT FACE="Nimbus Mono L">vi Makefile</FONT><BR>1a.11. set
+<FONT FACE="Nimbus Mono L">EXTRAVERSION = -netpass</FONT><BR>1a.12.<FONT FACE="Nimbus Mono L">
+make bzImage</FONT> and answer:<BR><BR><I>Reiserfs support
+(REISERFS_FS) [M/n/y/?] m<BR>&nbsp; Enable reiserfs debug mode
+(REISERFS_CHECK) [N/y/?] (NEW) n<BR>&nbsp; Stats in /proc/fs/reiserfs
+(REISERFS_PROC_INFO) [N/y/?] (NEW) y<BR>&nbsp; ReiserFS extended
+attributes (REISERFS_FS_XATTR) [N/y/?] (NEW) n<BR></I><BR>1a.13. <FONT FACE="Nimbus Mono L">make
+modules</FONT><BR>1a.14. <FONT FACE="Nimbus Mono L">make
+modules_install</FONT><BR>1a.15. <FONT FACE="Nimbus Mono L">make
+install</FONT><BR>1a.16. Reboot and select the &quot;netpass&quot;
+kernel. Once tested, make<BR>it the default.<BR><BR>Repeat the above
+the all machines in the NetPass cluster.<BR><BR><BR><B>2. Packages
+not included with NetPass</B><BR><BR><B>2a. Nessus</B><BR><BR>2a.1.
+Download Nessus from <A HREF="http://www.nessus.org/download/index.php">http://www.nessus.org/download/index.php</A><BR>2a.2.
+Save the package to /tmp<BR>2a.3. As &quot;root&quot; do the
+following:<BR><BR><FONT FACE="Nimbus Mono L">up2date --nox -i
+openssl-devel bison flex gcc sharutils</FONT><BR>or<BR><FONT FACE="Nimbus Mono L">yum
+install openssl-devel bison flex gcc sharutils</FONT><BR><BR>then<BR><BR><FONT FACE="Nimbus Mono L">sh
+/tmp/nessus</FONT><BR><BR>2a.4. Install nessus into <FONT FACE="Nimbus Mono L">/usr/local</FONT>
+(the default)<BR><BR>2a.5. Create a nessusd certificate using
+<FONT FACE="Nimbus Mono L">/usr/local/sbin/nessus-mkcert</FONT><BR><BR>You
+will be asked for a number of days. Enter a large number. Only the
+local machine will attach to this instance so 10 years should be
+good. Enter all the other info it asks for.<BR><BR>2a.6. Add a
+nessusd user use <FONT FACE="Nimbus Mono L">/usr/local/sbin/nessus-adduser</FONT><BR><BR><I>login:
+netpass<BR>auth: pass<BR>pass: netpass<BR>again: netpass<BR>ok?
+y<BR></I><BR><BR><BR>2a.7. Start the Nessus daemon (nessusd) use
+<FONT FACE="Nimbus Mono L">/usr/local/sbin/nessusd -D</FONT><BR>2a.8.
+Start the Nessus client (nessus) use <FONT FACE="Nimbus Mono L">/usr/local/bin/nessus</FONT><BR>2a.9.
+To uninstall Nessus, use <FONT FACE="Nimbus Mono L">/usr/local/sbin/uninstall-nessus</FONT><BR>2a.10.
+Remember to invoke '<FONT FACE="Nimbus Mono L">/usr/local/sbin/nessus-update-plugins</FONT>'
+periodically to update your list of plugins<BR>2a.11. Run the
+command<BR><BR><FONT FACE="Nimbus Mono L">nessus -q -p 127.0.0.1 1241
+netpass netpass</FONT><BR><BR>and accept the SSL certificate.<BR><BR><B>2b.
+MySQL</B><BR><BR>Rather than a Master/Master replicated instance of
+MySQL, this version of NetPass uses MySQL Cluster. This allows you to
+add more than two machines to the NetPass cluster.<BR><BR>2b.1.
+Download the latest stable &ldquo;Max&rdquo; version of MySQL 4.1
+from <A HREF="http://dev.mysql.com/downloads/mysql/4.1.html">http://dev.mysql.com/downloads/mysql/4.1.html</A>
+ These instructions assume you downloaded the tar file and not the
+RPM. Either should work.<BR>2b.2. <FONT FACE="Nimbus Mono L">groupadd
+mysql</FONT><BR>2b.3. <FONT FACE="Nimbus Mono L">useradd -g mysql
+mysql</FONT><BR>2b.4. <FONT FACE="Nimbus Mono L">cd /usr/local</FONT><BR>2b.5.
+<FONT FACE="Nimbus Mono L">tar -zxvpf
+/PATH/TO/MYSQL-VERSION-OS.tar.gz</FONT><BR>2b.6. <FONT FACE="Nimbus Mono L">ln
+-s FULL-PATH-TO-MYSQL-VERSION-OS mysql</FONT><BR>2b.7. <FONT FACE="Nimbus Mono L">cd
+mysql</FONT><BR>2b.8. <FONT FACE="Nimbus Mono L">chown -R root&nbsp;
+.</FONT><BR>2b.9. <FONT FACE="Nimbus Mono L">chown -R mysql
+data</FONT><BR>2b.10. <FONT FACE="Nimbus Mono L">chgrp -R mysql
+.</FONT><BR>2b.11. <FONT FACE="Nimbus Mono L">mkdir
+/var/lib/mysql-cluster</FONT><BR>2b.12. <FONT FACE="Nimbus Mono L">cd
+/var/lib/mysql-cluster</FONT><BR>2b.13. create <FONT FACE="Nimbus Mono L">config.ini</FONT>
+(ONLY on server with management daemon - select one of the NetPass
+servers. This example uses &quot;npw2-d.cit.buffalo.edu&quot;)<BR><BR><I>[NDBD
+DEFAULT]<BR>NoOfReplicas=2<BR>[MYSQLD DEFAULT]<BR>[NDB_MGMD
+DEFAULT]<BR>[TCP
+DEFAULT]<BR>[NDB_MGMD]<BR>ID=10<BR>HostName=npw2-d.cit.buffalo.edu<BR>[NDBD]<BR>ID=1<BR>HostName=
+npw2-d.cit.buffalo.edu<BR>DataDir=
+/var/lib/mysql-cluster<BR>[NDBD]<BR>ID=2<BR>HostName=
+npw1-d.cit.buffalo.edu<BR>DataDir=
+/var/lib/mysql-cluster<BR>[MYSQLD]<BR>[MYSQLD]<BR>[MYSQLD]<BR></I><BR>2b.14.
+run<FONT FACE="Nimbus Mono L"> /usr/local/mysql/bin/ndb_mgmd</FONT>
+(ONLY on server with management daemon)<BR>2b.15. run
+<FONT FACE="Nimbus Mono L">/usr/local/mysql/bin/ndbd --initial</FONT><BR>2b.16.
+edit <FONT FACE="Nimbus Mono L">my.cnf</FONT><FONT FACE="Nimbus Roman No9 L">
+</FONT>add these lines<BR><BR>
+</P>
+<P STYLE="margin-bottom: 0in"><I>[mysqld]<BR>ndbcluster<BR></I><BR>2b.17
+add the following lines to the MySQL machine(s) NOT running
+management daemon: (note: 128.205.10.37 =
+npw2-d.cit.buffalo.edu)<BR><BR><I>[mysql_cluster]<BR>ndb-connectstring=128.205.10.37</I></P>
+<P STYLE="margin-bottom: 0in"><BR>2b.18. Install a startup script
+(available in <FONT FACE="Nimbus Mono L">NetPass/install.d/init.d/mysqld</FONT>)
+and type <FONT FACE="Nimbus Mono L">/etc/init.d/mysqld start</FONT><BR><BR>2b.16.
+Note: steps 13 and 14 just on management server. Steps 15, 16 on
+both. Step 17 only on the machine(s) that are <I>not</I> the
+management server. Step 18 on both.<BR><BR><BR><B>3. Packages
+included with NetPass</B><BR><BR>This version of NetPass includes
+pre-built versions of Perl, SquidGuard and Apache. These versions
+have been tested and are known to work and included all of the
+recommended options. Use of these is optional, but encouraged. This
+document doesn't discuss how to set up any of these by hand. The
+source distribution includes various scripts (to be documented in the
+future) to assist in, for example, building a new copy of Perl with
+all of the required modules.<BR><BR>This version of NetPass is a
+pre-release (beta) version of 2.0. As such, it is not available as a
+packaged distribution. This document instructs you to extract the
+source from CVS. Doing so allows you do more easily stay in sync with
+changes as features are implemented and bugs fixed in the beta code.
+Instructions for getting the latest updates and installing them are
+given below.<BR><BR><B>3a. Installing NetPass</B><BR><BR>3a.1. Select
+a location where the source code will reside. We'll use
+&quot;<FONT FACE="Nimbus Mono L">/opt/netpass-src</FONT>&quot;.<BR>3a.2.
+<FONT FACE="Nimbus Mono L">sudo mkdir /opt/netpass-src</FONT><BR>3a.3.
+<FONT FACE="Nimbus Mono L">cd /opt/netpass-src</FONT><BR>3a.4. <FONT FACE="Nimbus Mono L">sudo
+chown you:yourgroup .</FONT><BR>3a.5. <TT>cvs
+-d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/netpass login
+</TT><BR>3a.6. <TT>cvs -z3
+-d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/netpass co -P
+</TT><FONT FACE="Nimbus Mono L">NetPass</FONT><BR>3a.7. <FONT FACE="Nimbus Mono L">cd
+NetPass</FONT><BR>3a.8. <FONT FACE="Nimbus Mono L">sudo ./install
+/opt/netpass</FONT><BR><BR>The installation procedure is a bit ugly,
+but will walk you through downloading the pre-built binaries,
+installing them, and configuring them.<BR><BR><B>3b. NetPass
+Installation Procedure</B><BR><BR>The NetPass installation script can
+both install and uninstall NetPass. It will add (and remove) patches
+to various system configuration files. <BR><BR>It will do the
+following (confirmation is prompted for often and a log file is kept
+in <FONT FACE="Nimbus Mono L">/tmp/netpass-install.txt</FONT>):<BR><BR>3b.1.
+Create a netpass user and a netpass group.<BR>3b.2. Create
+<FONT FACE="Nimbus Mono L">/var/run/netpass</FONT> and chown it to
+netpass:netpass<BR>3b.3. Download and unpack pre-built binaries for
+Perl, Apache and SquidGuard. These will be installed into /opt<BR>3b.4.
+Copy the NetPass source into /opt/netpass<BR>3b.5. Download and
+install HTMLArea into /opt/netpass/www<BR>3b.6. Make a /cookies mount
+point, a /var/cookies file. reiserfs will be written to the
+/var/cookies file and /etc/fstab will be modified as needed.<BR>3b.7.
+Configure apache. You will be prompted for all of the options. If you
+answer &quot;Y&quot; to enabling SSL, you must already have your
+certificate files. The Installer will not help you create them. It
+will ask for their location.<BR>3b.8. Configure Swatch for log
+watching<BR>3b.9. Configure Squid. You will be prompted for some
+address ranges.<BR>3b.10. Configure startup scripts.<BR>3b.11. Patch
+system configuration files (services and syslog.conf). <BR>3b.12.
+Install /etc/iptables.sh. You will be prompted for address ranges.
+The file has an area for placing customizations. If you make any,
+place them in the specified area (see comments in that file) then use
+the commands: &quot;sudo /etc/iptables.sh&quot; &quot;sudo
+/etc/init.d/iptables save&quot;&nbsp; to have the changes take
+effect.<BR>3b.13. Load the NetPass database into MySQL<BR>3b.14.
+Install crontab files<BR>3b.15. chown netpass:netpass
+/opt/netpass<BR>3b.16. startup Apache and NetPass<BR><BR><BR><B>4.
+Configuring NetPass</B><BR><BR><BR>At this time, the GUI for editing
+the configuration is not fully functional. It's still necessary to
+edit the configuration using a text editor. The first two steps
+should only be done upon initial configuration. Once the
+configuration is imported into the database, you will no longer use
+the <FONT FACE="Nimbus Mono L">netpass-example.conf</FONT> file. To
+make edits in the future, you'll &ldquo;checkout&rdquo; the
+configuration from the database (<FONT FACE="Nimbus Mono L">coconf.pl
+-l -o /tmp/netpass.conf</FONT>), edit it and check it back in
+(<FONT FACE="Nimbus Mono L">ciconf.pl -u -i /tmp/netpass.conf</FONT>)</P>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<P STYLE="margin-bottom: 0in"><B>4a. To make the initial
+configuration:</B><BR><BR>4a.1. <FONT FACE="Nimbus Mono L">cd
+/opt/netpass</FONT><BR>4a.2. <FONT FACE="Nimbus Mono L">cp
+etc/netpass-example.conf /tmp/netpass.conf</FONT><BR>4a.3. edit that
+file and make any changes to the <FONT FACE="Nimbus Mono L">&lt;policy&gt;
+&lt;radius&gt; &lt;ldap&gt; &lt;snmpcommunities&gt; &lt;vlanmap&gt;</FONT>
+and <FONT FACE="Nimbus Mono L">&lt;network&gt;</FONT> sections.
+Ignore the other sections for now. Save your changes.<BR>4a.4. Import
+the configuration into the database: <BR><FONT FACE="Nimbus Mono L">bin/ciconf.pl
+-i /tmp/netpass.conf</FONT><BR><BR><B>4b. To make changes in the
+future:</B><BR><BR>4b.1.<FONT FACE="Nimbus Mono L"> bin/coconf.pl -l
+-o /tmp/netpass.conf</FONT><BR>4b.2. edit the file<BR>4b.3.
+<FONT FACE="Nimbus Mono L">bin/ciconf.pl -u -i /tmp/netpass.conf</FONT><BR><BR>The
+intent is to finish the Web UI features within the next week.<BR><BR><B>4c.
+Configuring a user.</B> <BR><BR>The user access control feature
+should be done late tomorrow. For now, add a user manually:<BR><BR>4c.1.
+<FONT FACE="Nimbus Mono L">mysql -u root netpass</FONT><BR>4c.2.
+<FONT FACE="Nimbus Mono L">insert into users values ('yourusername',
+'default+Admin');</FONT><BR>4c.3. If you've configured Radius and
+changed your ADMIN_AUTH_METHOD in <FONT FACE="Nimbus Mono L">&lt;policy&gt;</FONT>
+then connect to your NetPass virtual name (or directly to one of the
+servers) and login. If you are not using Radius, leave the
+ADMIN_AUTH_METHOD alone and create a local password:</P>
+<P STYLE="margin-bottom: 0in">4c.4. <FONT FACE="Nimbus Mono L">insert
+into passwd values ('yourusername', encrypt('yourpassword', 'xx'))</FONT></P>
+<P STYLE="margin-bottom: 0in"><BR><BR><BR>
+</P>
+<OL START=5>
+	<LI><P STYLE="margin-bottom: 0in"><B>Configuring Redirectors</B></P>
+</OL>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<P STYLE="margin-bottom: 0in"><B>5a. Installing the software onto the
+redirectors.</B></P>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<P STYLE="margin-bottom: 0in">5a.1. Install the OS (RH4)</P>
+<P STYLE="margin-bottom: 0in">5a.2. Patch (lvs.patch) and install the
+kernel (see Section 1, above)</P>
+<P STYLE="margin-bottom: 0in">5a.3. Copy the NetPass source tree to
+each redirector</P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5a.4.
+</FONT>cd /opt/netpass-src/NetPass</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5a.5.
+</FONT>sudo install.d/install-lvs.sh</FONT><BR>       that will
+install required packages onto the system</P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5a.6.
+</FONT>sudo install.d/lvs</FONT><BR>       that will configure ha.cf
+and ldirectord.cf</P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5a.7.
+</FONT>cp install.d/iptables-lvs.sh /etc/iptables.sh</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5a.8.
+</FONT>vi /etc/iptables.sh</FONT> and adjust local system rules
+(change 128.205's to something appropriate so you can SSH into the
+redirectors).</P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5a.9.
+</FONT>sudo /etc/iptables.sh ; sudo /etc/init.d/iptables save</FONT><BR><BR><B>5b.
+Configuring the interfaces on the redirectors.</B></P>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<P STYLE="margin-bottom: 0in">Once you've configured your <FONT FACE="Nimbus Mono L">&lt;network&gt;</FONT>'s
+you'll want to do the following (on one of the NetPass servers)<BR><BR>
+</P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5b.1.
+</FONT>bin/coconf.pl -o /tmp/netpass.conf</FONT><BR>     (note: no -l
+this time since we just want a copy, we dont want to <BR>     lock it
+since we arent going to edit it)</P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5b.2.
+</FONT>bin/interfacecfg.pl -d 1 &gt; /tmp/redir1.sh</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5b.3.
+</FONT>bin/interfacecfg.pl -d 2 &gt; /tmp/redir2.sh</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5b.4.
+</FONT>scp /tmp/redir1.sh redirector1:/tmp</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5b.5.
+</FONT>scp /tmp/redir2.sh redirector2:/tmp</FONT><BR><BR><B>5c.
+Making the redirector configuration persist across reboots.</B><BR><BR><BR>
+</P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5c.1.
+</FONT>mkdir -p /opt/netpass/bin</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5c.2.
+</FONT>cp /tmp/redir1.sh /opt/netpass/bin/hascript.sh</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5c.3.
+</FONT>chmod 755 /opt/netpass/bin/hascript.sh</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5c.4.
+</FONT>cp /opt/netpass-src/NetPass/install.d/init.d/netpassha
+/etc/init.d/</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5c.5.
+</FONT>chkconfig --add netpassha</FONT></P>
+<P STYLE="margin-bottom: 0in"><FONT FACE="Nimbus Mono L"><FONT FACE="Nimbus Roman No9 L">5c.6.
+</FONT>chkconfig --level 2345 on netpassha</FONT><BR><BR><BR>For now,
+if you add or remove a network, you would re-do the appropriate parts
+of the 2nd and 3rd sections, above. Note that adding a network
+requires a restart of heartbeat (because &ldquo;haresources&rdquo;
+changes), so existing networks will see a 1-2 minute outage. 
+</P>
+<P STYLE="margin-bottom: 0in"><BR>
+</P>
+<OL START=5>
+	<P STYLE="margin-bottom: 0in"></P>
+	<LI><P STYLE="margin-bottom: 0in"><B>Staying up to date.</B>
+	<BR><BR>Periodically, over the next few weeks, as bugs are fixed and
+	features are finished, you'll be asked to update. To do so:<BR><BR>6.1.
+	<FONT FACE="Nimbus Mono L">cd /opt/netpass-src/NetPass</FONT><BR>6.2.
+	<FONT FACE="Nimbus Mono L">cvs update</FONT><BR>6.3. <FONT FACE="Nimbus Mono L">sudo
+	./install -c /opt/netpass</FONT><BR>6.4. <FONT FACE="Nimbus Mono L">sudo
+	/etc/init.d/apache restart</FONT><BR><BR>The &quot;-c&quot; is
+	important. It instructs &quot;install&quot; to only copy the source
+	into place and skip all other steps.<BR><BR><BR><BR>
+	</P>
+</OL>
+</BODY>
+</HTML>

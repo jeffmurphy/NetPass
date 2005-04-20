@@ -1,0 +1,124 @@
+<head>
+<title>NetPass: Supported Equipment</title
+<link rel="stylesheet" type="text/css" href="site.css">
+</style>
+</head>
+<body lang=EN-US style='tab-interval:.5in'>
+
+<div id="header"></div>
+
+<div id="nav">
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Documentation';return
+	true;"
+	onmouseout="this.className='n5';"><a href="index.html">Home</a></div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Documentation';return
+	true;"
+	onmouseout="this.className='n5';"><a href="/doc">Documentation</a></div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Download';return
+	true;"
+	onmouseout="this.className='n5';"><a href="/download.html">Download</a></div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Deployment Options';return
+	true;"
+	onmouseout="this.className='n5';"><a href="/deploy.html">Deployment Options</a></div>
+
+      <div class="n5o">Supported Equipment</div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Road Map';return
+	true;"
+	onmouseout="this.className='n5';"><a href="/roadmap.html">Road Map</a></div>
+</div>
+
+<div>
+
+<h2 class='mainpage'>Supported Equipment</h2>
+
+<img class="logo" src="img/arrows3.png">
+
+<P><DIV class="fc">N</div>etPass is a vendor-neutral network environment for 
+      quarantining clients identified as being out of compliance with your
+      network policy.</P>
+
+<P>NetPass currently supports Cisco and Nortel switches. Those switches
+	must support VLAN trunking. Specific models approved (tested, known
+	to work) for use with
+	NetPass are:</P>
+
+<ul>
+	<li> Cisco </li>
+	<ul>
+	      <li> 3500 series (3548XL, 3524XL, 3550-12G, 3550-24EMI) </li>
+	      <li> 6500 series </li>
+	</ul>
+      <li> Nortel </li>
+      <ul>
+	<li> Late model 350 (equivalent to the 450 without the cascade
+	  port). <BR>NetPass will <I>not</I> work with earlier 350s that do not
+	  support trunking of VLANs. </li>
+	<li> 450 </li>
+	<li> 470 </li>
+	<li> 5510 </li>
+      </uL>
+</uL>
+
+      <P>NetPass uses SNMP to control the switches. It should be possible to
+	develop an appropriate plugin for any switch that meets the
+	following feature requirements:
+      </P>
+
+      <dl>
+	<dt> SNMP Managable </dt>
+	<dd> The switch must be managable via SNMP. For efficiency reasons,
+	  SNMPv2, specifically, must be supported. If it is not support by
+	  the switch, then processing of the SNMP commands is likely to
+	  take too long - resulting in timeouts and delays and use
+	  dissatification. </dd>
+	<dt> 802.1q VLAN Tagging </dt>
+	<dd> The switch must support 802.1q VLAN tagging. In addition, it
+	  must permit trunking of VLANs to other switches. For example, the
+	  original Nortel 350 switch supported tagging of ports into VLANs,
+	  but only internally. The tags could not be propogated (trunked)
+	  outside of the switch. For that reason, the original Nortel 350
+	  can not be used with NetPass.</dd>
+	<dt> MIB-II Linkup/Linkdown Traps</dt>
+	<dd> Some of NetPass' functionality depends upon being able to
+	  receive notification of client port state changes. </dd>
+	<DT> Layer-2 Topology Aware </dT>
+	<dd>Nortel calls this <I>Autotopology</I> and Cisco
+	  uses <I>CDP</I>. This feature allows the switches to build a map of
+	  how they are connected which, in turn, allows NetPass to more efficiently
+	  locate the client's port. Note that this feature is typically
+	  implemented in a proprietary way - meaning that if you use a mixture of Nortel and
+	  Cisco switches, they won't be able to exchange layer-2 topology
+	  information. It's possible to deploy NetPass in a mixed vendor
+	  environment without significant performance degradation. The
+	  actual befit of having the topology information depends upon the
+	  architecture of your network.
+	</dd>
+      </dl>
+
+      <P>
+      In addition to the above, the switch should be able to process SNMP
+      requests in a timely manner. If the switch takes too long, is
+      underpowered, or simply can't handle multiple concurrent SNMP
+      queries, then timeouts and delays are likely to occur.
+      </P>
+      <P>
+	As of this
+      writing (Nov'04), Nortel 470's when deployed in a hybrid stack (a
+      mixture of 470s and 450s) are not capable of responding to the SNMP
+      queries rapidly enough. Standalone units and homogenous stacks of
+      470s or 450s don't experience this problem.
+      </P>
+
+</body>
+
+</html>

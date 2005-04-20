@@ -1,0 +1,162 @@
+<head>
+<title>NetPass</title
+<link rel="stylesheet" type="text/css" href="site.css">
+</style>
+</head>
+<body lang=EN-US style='tab-interval:.5in'>
+
+<div id="header"></div>
+
+<div id="nav">
+      <div class="n5o">Home</div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Documentation';return
+	true;"
+	onmouseout="this.className='n5';"><a href="/install.html">Documentation</a></div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Download';return
+	true;"
+	onmouseout="this.className='n5';"><a href="http://sourceforge.net/project/showfiles.php?group_id=116014">Download</a></div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Deployment Options';return
+	true;"
+	onmouseout="this.className='n5';"><a href="/deploy.html">Deployment Options</a></div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Supported Equipment';return
+	true;"
+	onmouseout="this.className='n5';"><a href="/supequip.html">Supported Equipment</a></div>
+
+      <div class="n5"
+	onmouseover="this.className='n5o';window.status='Road Map';return
+	true;"
+	onmouseout="this.className='n5';"><a href="/roadmap.html">Road Map</a></div>
+</div>
+
+<div>
+
+<h2 class='mainpage'>What Is NetPass?</h2>
+
+<img class="logo" src="img/arrows3.png">
+
+<DIV class="fc">N</div>etPass is a vendor-neutral network environment for 
+quarantining clients identified as being out of compliance with your
+      network policy.
+
+<h2 style='margin-left: 35%;'>How Does NetPass Work?</H2>
+
+      <P>NetPass works by assigning client ports into one of two VLANs. The default
+      is for the port to be in the <i>quarantined</i> VLAN state. In this
+      state, all traffic from the client is directed towards the NetPass Validation
+      Server. The NPVS intercepts web traffic, performs compliance checks, 
+      facilitates self-remediation and moves the client's port to the
+	<I>unquarantined</I> state once compliance is assured. </P>
+
+      <P><I>Self-remediation</I> is achieved by correlating specific
+	compliance failures with documentation on how to bring the client
+	computer into compliance. Once the steps are followed, compliance
+	is re-checked.</P>
+
+
+<H2 class='mainpage'>Identify</H2>
+
+<img style="float: left;" src="img/eye.png">
+
+
+	<P> NetPass is built to offer modular identification. Any part of your existing
+	infrastructure can be used to trigger a quarantining of a
+	client. For example, your mailserver might detect a particular
+	client sending out virus laden email - a sure sign that the client
+	is infected. That very same mailserver can instruct the NPVS to
+	quarantine the client. As part of that transaction, the mailserver
+	would tell the NPVS why the client is being quarantined. This
+	information would be used to assist the client in the
+	self-remediation process. </P>
+
+      <P>NetPass includes compliance checking modules for <a
+	  href="http://www.snort.org">Snort</a> and <a
+	  href="http://www.nessus.org">Nessus</a>
+	in addition to an API for integrating other indentification
+	systems. NetPass also includes a web interface for administrative
+	purposes - allowing you to manually quarantine hosts when necessary.
+	</P>
+
+      <P>
+	NetPass pays attention to the state of the switch port and the
+	devices attached to each port. If a quarantined client moves to
+	another switch port, they will remain quarantined. If a quarantined
+	client plugs into a mini-switch that contains unquarantined clients
+	the port that the mini-switch is plugged into will be
+	quarantined. NetPass supports <a href="supequip.html">multiple
+	  switch vendors</a> out of the box and is modular, allowing for
+	additional future support of other vendors.
+      </P>
+      <P>
+	NetPass is designed to be flexible and offers several 
+	<a href="deploy.html">deployment options</a> - allowing you to decide how
+	stringent you want to be in identifying when to quarantine a port.
+      </P>
+
+<h2 class='mainpage'>Quarantine</h2>
+
+<img style="float: right;" src="img/quar.png">
+
+
+<P>
+	Once a client is identified as being out of compliance, it is
+	quarantined. This is accomplished by changing the VLAN membership
+	of the switch port that	the client is connected to. NetPass
+	provides a per-subnet quarantine, rather than one big
+	quarantine. This allows you to segment your quarantine as it is not
+	appropriate to place all machines in the same quarantine, even
+	temporarily, as some other network access control systems do.
+</P>
+<P>
+	While in the quarantine, the client keeps their "normal" IP
+	address. They are not given a new distinct IP address. NetPass does
+	not rely on DHCP to work.
+</P>
+
+<h2 class='mainpage'>Remediate</h2>
+
+<img style="float: left;" src="img/rem.png">
+
+
+<P>
+	In addition, the client uses your normal
+	DNS servers, no custom DNS servers are needed and no fake DNS
+	records are used. The client retains web access to approved
+	websites (that you control) for the purposes of downloading
+	patches, virus definition files and utilities to help the client
+	self-remediate. This helps, in many instances, reduce the amount of
+	IT staff time required to fix a client. When deploying NetPass at a
+	University, this allows students living on-campus to correct the
+	problem and get out of quarantine as rapidly as possible.
+</P>
+<P>
+	Once the client has completed all of the remediation instructions
+	that they are given, NetPass once again checks them for compliance.
+	If any additional steps are required, or the client did not
+	successfully follow one or more of the instructions, they are
+	presented with more instructions and left in the quarantine. This
+	process continues until the client is in compliance.
+</P>
+<P>
+	NetPass is built for flexibility, allowing the NetPass Administrator to
+	override a client's state and force an unquarantining if
+	necessary. A client can be permenantly quarantined or unquarantined.
+	In the former case, the client can not get unquarantined without
+	administrator intervention. In the latter case, the client can not
+	be quarantined by automated processes (such as the mailserver in
+	the above example).
+</P>
+
+</body>
+
+
+
+</html>
+

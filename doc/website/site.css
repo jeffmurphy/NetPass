@@ -1,0 +1,70 @@
+IMG {
+	width: 100;
+	height: 100;
+	border: 0px;
+	margin: 5px 5px 5px 5px;
+}
+
+H2.mainpage { 
+	text-align: center;
+}
+
+DIV.logo { 
+	display: inline;
+	font-size: 36.0pt;
+	font-family: "sans-serif";
+}
+
+IMG.logo {
+	display: inline;
+	z-index: -10;
+	width: auto;
+	height: auto;
+	float: right;
+}
+
+DIV.fc { 
+	display: inline;
+	color: blue;
+	font-family: serif;
+	font-style: bold; font-style: italic;
+	font-size: 24pt;
+}
+
+#nav { 
+	background-color: blue;
+}
+
+.n5 A, .n5o A, .n5 A:hover, .n5o A:hover {
+        text-decoration: none;
+        color: white;
+}
+
+.n5o A, .n5o A:hover {
+        color: blue;
+}
+
+.n5 {
+	width: 33%;
+	display: inline;
+        color: white;
+        font-weight: bold;
+        background-color: blue;
+        padding: 0px 2px 0px 6px;
+}
+
+.n5o {
+	display: inline;
+        color: blue;
+        background-color: white;
+        font-weight: bold;
+	margin-left: -1px; 
+	margin-right: -1px;
+	padding: 0px 2px 0px 6px;
+	border: solid 1px;
+}
+
+BODY { 
+	font-family: arial, sans-serif;
+	font-size: 16px;
+}
