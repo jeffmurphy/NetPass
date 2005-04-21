@@ -8,7 +8,7 @@
 
  npsnortd.pl
      -s srvr1,srvr2...    the server npapid is running on
-     -S secret            the secret key
+     -S secret            the secret key for both npapi server and npsnortd
      -l logfile		  the snort log file
      -r rulesfile	  the snort rules file
      -P port		  the port npsnortd will run on	  	
