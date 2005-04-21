@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.15 2005/04/21 18:08:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.16 2005/04/21 19:41:46 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -50,6 +50,10 @@ my $error  = "";
 my $whoami = $m->session->{'username'};
 my $myip   = $ENV{'REMOTE_ADDR'};
 my $ldap   = $np->cfg->policy('LDAP_USER_QUERY', $ENV{'REMOTE_ADDR'});
+
+# if this is set, "default->Admin" users can change other users' passwords
+
+my $adminAuthDB = $np->cfg->policy('ADMIN_AUTH_METHOD') eq "NetPass::Auth::DB";
 
 # get a list of all networks
 
@@ -314,10 +318,19 @@ This will be enforced when you commit the changes.<P>
 	        size=10 maxlength=16 value="Add user..."><BR>
            <I>Press TAB after entering username</I>
 	   </center> 
+
+%	# change a user's password (if you are default:admin)
+%	if ($isRoot && $adminAuthDB) {
+		<table border=0>
+		<tr><td style='text-align:right'>New Password:</td><td><input type='password' size=10 maxlength=64></td></tr>
+		<tr><td style='text-align:right'>Again:</td><td><input type='password2' size=10 maxlength=64></td></tr>
+		<tr><td style='text-align:center' colspan=2><input type='submit' name='submit' value='Change Password'></td></tr>
+		</table>
+%	}
     </td>
     <td style='vertical-align:top;'>
 	    <select multiple size="15" id="GroupList" name="GroupList" multiple
-		onchange="userform_showACLforGroup(this); return false;">
+		onchange="userform_showACLforGroup(); return false;">
 		<option disabled name='width'><%$widthHolder%>
 	    </select>
 	    <BR><center><button onClick="userform_addGroupToUser(); return false;">^</button> 

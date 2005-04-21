@@ -16,8 +16,10 @@ function userform_changeToUser(o) {
 	userform_unHighLight("AccessControlList");
 	userform_disableList("AccessControlList");
 
+	o.options[0].selected = false;
+
 	for (var i = 0 ; i < o.options.length ; i++) {
-		if (o.options[i].selected && i == 0) {
+		if (o.options[i].selected && (i == 0) ) {
 			// IE doesnt support <option disabled>
 			// deselected if selected and return.
 			//http://msdn.microsoft.com/workshop/author/dhtml/reference/properties/disabled_3.asp
@@ -75,6 +77,9 @@ function userform_changeToUser(o) {
 				}
 			}
 		}
+		userform_sortList("GroupList");
+		userform_sortList("AvailableGroupList");
+
 	} else {
 		dbg (1, RN + ": one of: gl || agl || userhash["+selectedUser.value+"] is undef");
 	}
@@ -117,6 +122,11 @@ function userform_editACL() {
 
 	var acl = document.getElementById("AccessControlList");
 	if (acl) {
+		if (acl.options[0].selected) {
+			acl.options[0].selected = false; //IE
+			userform_showACLforGroup();
+			return;
+		}
 		for (var i = 1 ; i < acl.options.length ; i++) {
 			var val = acl.options[i].value;
 			if (acl.options[i].selected) {
@@ -226,8 +236,8 @@ function userform_unHighLight(oname, item) {
 
 	var acl = document.getElementById(oname);
 	if (acl) {
-		for(var i = 1 ; i < acl.options.length ; i++) {
-			if (item) {
+		for(var i = 0 ; i < acl.options.length ; i++) {
+			if (i && item) {
 				if (item == acl.options[i].value)
 					acl.options[i].selected = false;
 			} else {
@@ -325,7 +335,7 @@ function userform_disableModAll() {
  * AccessControlList menu. 
  */
 
-function userform_showACLforGroup(o) {
+function userform_showACLforGroup() {
 	var RN = "userform_showACLforGroup";
 	var su = userform_lookupSelectedUser();
 
@@ -333,10 +343,19 @@ function userform_showACLforGroup(o) {
 	userform_unHighLight("AvailableGroupList");
 	userform_enableList("AccessControlList");
 
+	var o = document.getElementById("GroupList");
+
 	if (o && su && userhash[su][o.value]) {
 
 		// figure out if there are multiple groups selected
 		var selected = 0;
+
+		if (o.options[0].selected) {
+			o.options[0].selected = false; //IE
+			userform_unHighLight("GroupList");
+			return;
+		}
+
 		for (var i = 0 ; i < o.options.length ; i++) {
 			if (o.options[i].selected) {
 				if (i == 0) {
@@ -394,6 +413,8 @@ function userform_addGroupToUser() {
 		userform_enableList("AccessControlList");
 		DBG_objDump(userhash, "userhash");
 		userform_setAclHash();
+		userform_sortList("GroupList");
+		userform_sortList("AvailableGroupList");
 	} else {
 		dbg (1, RN + ": cant find AvailableGroupList and/or GroupList object");
 	}
@@ -419,6 +440,8 @@ function userform_remGroupFromUser() {
 		userform_disableList("AccessControlList");
 		DBG_objDump(userhash, "userhash");
 		userform_setAclHash();
+		userform_sortList("GroupList");
+		userform_sortList("AvailableGroupList");
 	} else {
 		dbg (1, RN + ": cant find AvailableGroupList and/or GroupList object");
 	}
@@ -431,6 +454,34 @@ function userform_onfocus_addUser(o) {
 	dbg (1, RN);
 
 	if (o && o.value == "Add user...") o.value = "";
+}
+
+function userform_sortList(ln) {
+
+	if (ln) {
+		var l = document.getElementById(ln);
+		if (l && l.options.length) {
+			var oa = new Array();
+			for (var i = 1 ; i < l.options.length ; i++) {
+				oa[oa.length] = new Option( l.options[i].text, 
+							    l.options[i].value, 
+							    l.options[i].defaultSelected, 
+							    l.options[i].selected);
+				oa = oa.sort( function(a,b) {
+						      if ((a.value+"") < (b.value+"")) { return -1; }
+						      if ((a.value+"") > (b.value+"")) { return 1; }
+						      return 0; } 
+					      );
+				for ( i = 0 ; i < oa.length ; i++) {
+					l.options[i+1] = new Option(oa[i].text,
+								    oa[i].value,
+								    oa[i].defaultSelected,
+								    oa[i].selected)
+						;
+				}
+			}
+		}
+	}
 }
 
 function userform_onblur_addUser(o) {	
@@ -454,4 +505,7 @@ function userform_onblur_addUser(o) {
 	userhash[o.value] = new Object();
 	var no = new Option(o.value, o.value, false, false);
 	ul.options[ul.options.length] = no;
+
+	if(o) o.value = "Add user...";
+	userform_sortList("UserList");
 }
