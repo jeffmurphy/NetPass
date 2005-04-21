@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.23 2005/04/21 18:08:05 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.24 2005/04/21 18:35:49 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -492,34 +492,41 @@ sub snortEnabled {
 
 =head2 $sensors = $cfg-E<gt>getSnortSensors(network)
 
-Returns a reference to an array containing the address of all the snort
-sensors configured for that particular network. Returns C<undef> on failure.
+Returns a HASHREF with the keys being address of the machine npsnortd
+is running on and the values the port. Returns C<undef> on failure.
 
 =cut
 
 sub getSnortSensors {
     my $self = shift;
     my $nw   = shift;
-    my @sensors;
+    my $sensors = {};
 
     $self->reloadIfChanged();
-    return undef unless ($self->snortEnabled($nw) =~ /^(enabled|not_really)$/);   
+    return undef unless ($self->snortEnabled($nw) =~ /^(enabled|not_really)$/);
 
     if (recur_exists($self->{'cfg'}, 'network', $nw, 'snort', 'servers')) {
-	my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort');
-	@sensors = $s->keys('servers');	
-	return \@sensors;
+        my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort');
+        foreach ($s->keys('servers')) {
+                my($h, $p) = split(':', $_, 2);
+                $sensors->{$h} = $p;
+
+        }
+        return $sensors;
     }
 
     if (recur_exists($self->{'cfg'}, 'snort', 'servers')) {
-	my $s = $self->{'cfg'}->obj('snort');
-	@sensors = $s->keys('servers');
-	return \@sensors;	
+        my $s = $self->{'cfg'}->obj('snort');
+        foreach ($s->keys('servers')) {
+                my($h, $p) = split(':', $_, 2);
+                $sensors->{$h} = $p;
+
+        }
+        return $sensors;
     }
 
     return undef;
 }
-
 
 =head2 my $qvlan = $cfg-E<gt>quarantineVlan(network)
 
@@ -1355,7 +1362,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.23 2005/04/21 18:08:05 jeffmurphy Exp $
+$Id: Config.pm,v 1.24 2005/04/21 18:35:49 mtbell Exp $
 
 =cut
 
