@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.27 2005/04/21 12:49:31 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.28 2005/04/21 16:33:00 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1295,7 +1295,7 @@ sub getUsersAndGroups {
 		    $hr->{$row->[0]} = $self->decomposeGroupMembership($row->[1]);
 	    }
     } else {
-	    _log("ERROR", "db failure: sql=$sql err=".$dbh->errstr);
+	    _log("ERROR", "db failure: sql=$sql err=".$self->dbh->errstr);
     }
     return $hr;
 }
@@ -1349,6 +1349,7 @@ sub setUsersAndGroups {
 			    return "db failure ".$self->{'dbh'}->errstr;
 		    } else {
 			    _log("INFO", "user $u deleted\n");
+			    $self->deletePasswd($u);
 			    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
 					 -msg => [ qq{user $u deleted} ]);
 		    }
@@ -1504,6 +1505,7 @@ sub getPasswd {
 	my $s    = "SELECT password FROM passwd WHERE username = ".$self->{'dbh'}->quote($u);
 	my $x    = $self->{'dbh'}->selectrow_arrayref($s);
 	return $x->[0] if ($#$x > -1);
+	_log("ERROR", "failed to get passwd for $u: ".$self->dbh->errstr);
 	return undef;
 }
 
@@ -1518,14 +1520,14 @@ sub setPasswd {
 	my $self = shift;
 	my ($u, $p) = (shift, shift);
 	my $s = "INSERT INTO passwd (username, password) VALUES ('$u', ENCRYPT('$p', 'xx'))";
-	if ($self->{'dbh'}->do($s) == 1) {
-		return 1;
+	if (!defined($self->{'dbh'}->do($s))) {
+		$s = "UPDATE passwd SET password = ENCRYPT('$p', 'xx') WHERE username = '$u'";
+		if ( !defined($self->{'dbh'}->do($s)) ) {
+			_log("ERROR", "failed to set password for $u: ".$self->dbh->errstr);
+			return 0;
+		}
 	}
-	$s = "UPDATE passwd SET password = ENCRYPT('$p', 'xx') WHERE username = '$u'";
-	if ($self->{'dbh'}->do($s) == 1) {
-		return 1;
-	}
-	return 0;
+	return 1;
 }
 
 =head2 0 | 1 = deletePasswd($username)
@@ -1541,6 +1543,7 @@ sub deletePasswd {
 	if ($self->{'dbh'}->do($s) == 1) {
 		return 1;
 	}
+	_log("ERROR", "failed to delete password for $u: ".$self->dbh->errstr);
 	return 0;
 }
 
@@ -2459,7 +2462,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.27 2005/04/21 12:49:31 jeffmurphy Exp $
+$Id: DB.pm,v 1.28 2005/04/21 16:33:00 jeffmurphy Exp $
 
 =cut
 

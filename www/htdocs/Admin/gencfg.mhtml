@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.4 2005/04/19 01:40:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.5 2005/04/21 16:33:01 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,8 +18,10 @@ setWhereAmI('General Config');
 
 use Config::General;
 
-if (! $m->comp('/Admin/MemberOf', 'group' => 'default', 'acl' => [ 'Admin' ]) ) {
-        print $q->p({-class=>'error'}, "Sorry, permission denied.<BR>(You must be an Admin)");
+my ($isRoot, $groups) = $m->comp('/Admin/MemberOf', 'group' => 'default', 'acl' => [ 'Admin' ]);
+
+if (! $isRoot  ) {
+        print $q->p({-class=>'error'}, qq{Sorry, permission denied.<BR>(You must be an Admin for group "default".)});
         return;
 }
 
@@ -85,7 +87,7 @@ print "<TD CLASS='gray' WIDTH=50%>AUTH_METHOD</TD>";
 print "<TD CLASS='gray' WIDTH=50%>";
 print $q->textfield (
                         -name   => 'p_AUTH_METHOD',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('AUTH_METHOD'),
+                        -value  => $np->cfg->policy('AUTH_METHOD'),
                         -size   => 25,
                     );
 print "</TD></TR>";

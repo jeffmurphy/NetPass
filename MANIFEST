@@ -104,6 +104,7 @@ install.d/init.d/npsnortd
 install.d/init.d/apache
 install.d/init.d/swatch
 install.d/init.d/mysqld
+install.d/init.d/snortd
 install.d/crontab.netpass
 install.d/httpd.conf
 install.d/fstab
@@ -191,7 +192,7 @@ www/htdocs/Admin/logout.mhtml
 www/htdocs/Admin/mr.mhtml
 www/htdocs/Admin/qc.mhtml
 www/htdocs/Admin/user.mhtml
-www/htdocs/Admin/sq.mhtml
+www/htdocs/Admin/urlfilter.mhtml
 www/htdocs/Admin/test.html
 www/htdocs/Admin/clienthistory.mhtml
 www/htdocs/OSSTemplate/css/OSSTemplate.css.cgi
