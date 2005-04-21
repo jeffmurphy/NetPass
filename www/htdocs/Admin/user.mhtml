@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.13 2005/04/20 20:57:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.14 2005/04/21 12:49:32 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -25,15 +25,16 @@ setWhereAmI('User Editor');
 <%perl>
 
 use Data::Dumper;
+my $D = 0; # DEBUG ON/OFF
 
 # there is no RO access to this form.
 
 my @rwACLs = ('Admin', 'UserEditor');
 
-my ($isAdmin, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwACLs ]);
+my ($isReadWrite, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwACLs ]);
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
 
-if (!$isRoot && !$isAdmin) {
+if (!$isRoot && !$isReadWrite) {
         print $q->p({-class=>'error'},
                 "Sorry, permission denied.<BR>You must have one of: ".
                 join(', ', @rwACLs). " permissions on at least one group to use this form.");
@@ -97,15 +98,14 @@ if ($submit eq "Commit Changes") {
 			}
 			elsif ($#ap == 2) {
 				# user, group, but no ACL
-				$uh->{$ap[1]}->{$ap[2]} = "";
+				$uh->{$ap[1]}->{$ap[2]} = [];
 			}
 			elsif ($#ap == 1) {
 				# user, no groups, no ACL (delete user)
-				$uh->{$ap[1]} = "";
+				$uh->{$ap[1]} = {};
 			}
 		}
 	}
-	#print "<PRE>", Dumper($uh), "</PRE>";
 
 	# at this point we have all the edits, but we want to ensure that
 	# an admin for one group cant edit a user's ACL for another group.
@@ -127,72 +127,116 @@ if ($submit eq "Commit Changes") {
 	#
 	# we then repeat using the "uh" to remove new, but invalid, users.
 
+	# finally, default:Admin can edit anything. 
+	# anythingelse:Admin can edit anything within "anythingelse"
+	# anythingelse:UserEditor can edit anything within "anythingelse"
+	#    _except_ anythingelse:Admin
+
+	# this lets you delegate user account maintenance to someone else
+	# but prevent that person from creating an admin account which would
+	# grant them access to network settings, etc.
 
 	if (!$isRoot) {
 		my $mygrpRE = '^('.join('|', @$rwGroups).')$';
 
-		print "<PRE>mygrpRE = $mygrpRE\n";
+		print "<PRE>mygrpRE = $mygrpRE\n" if $D;
 
-		print  Data::Dumper->Dump([$uh], [qw(fromweb)] ), "\n";
+		print  Data::Dumper->Dump([$uh], [qw(fromweb)] ), "\n" if $D;
 
 		foreach $user (keys %$uh) {
-			print "PASS1 examining $user\n";
+			print "PASS1($user): examine group membership from webdata..\n" if $D;
+			foreach my $bdgrp (keys %{$uh->{$user}}) {
+				print "\texamining group $bdgrp ..\n";
+				if ($bdgrp !~ /$mygrpRE/) {
+					print "\t\twe found a group $bdgrp that we arent allowed to edit\n" if $D;
 
-			if (! exists($users->{$user}) ) {
-				print "\tthis is a new user. defer to PASS 2\n";
-			}
-			else {
-				foreach my $bdgrp (keys %{$users->{$user}}) {
-					if ($bdgrp !~ /$mygrpRE/) {
-						print "\twe found a group $bdgrp that we arent allowed to edit\n";
+					# we found a group that you added (or possibly changed)
+					# via the web but you arent allowed to add. if the group
+					# already exists for $user in the database, then restore
+					# the database data to "uh" just to be safe. if the group
+					# does not exist for the user in the database, then delete
+					# it from "uh".
 
-						# we found a group we arent allowed to edit. if the group
-						# already exists for $user in the database, then restore
-						# the database data to "uh" just to be safe. if the group
-						# does not exist for the user in the database, then delete
-						# it from "uh".
-
-						if (exists ($users->{$user}->{$bdgrp})) {
-							print "\t\trestoring perms from db copy\n";
-							$uh->{$user}->{$bdgrp} = $users->{$user}->{$bdgrp};
-						} else {
-							print "\t\tdeleting perms\n";
-							delete $uh->{$user}->{$bdgrp};
+					if (exists ($users->{$user}->{$bdgrp})) {
+						print "\t\t\trestoring perms from db copy\n" if $D;
+						$uh->{$user}->{$bdgrp} = $users->{$user}->{$bdgrp};
+					} else {
+						print "\t\t\tdeleting perms\n" if $D;
+						delete $uh->{$user}->{$bdgrp};
+					}
+				} else {
+					print "\t\twe found a group $bdgrp you _are_ allowed to edit\n" if $D;
+					if (grep !/^Admin$/, @$rwGroups) {
+						print "\t\t\tbut you are not Admin\n" if $D;
+						print "\t\t\tdb says: $user/$bdgrp = ".join(',', @{$users->{$user}->{$bdgrp}})."\n" if $D && ref($users->{$user}->{$bdgrp}) eq "ARRAY";
+						print "\t\t\tuh says: $user/$bdgrp = ".join(',', @{$uh->{$user}->{$bdgrp}})."\n" if $D;
+						if ( (grep /^Admin$/, @{$uh->{$user}->{$bdgrp}}) && 
+						     ( (ref($users->{$user}->{$bdgrp}) ne "ARRAY") || (grep !/^Admin$/, @{$users->{$user}->{$bdgrp}}) ) ) {
+							print "\t\t\t\tand you tried to give $user Admin so we'll remove it\n" if $D;
+							@{$uh->{$user}->{$bdgrp}} = grep !/^Admin$/, @{$uh->{$user}->{$bdgrp}};
+						}
+						elsif ( (grep !/^Admin$/, @{$uh->{$user}->{$bdgrp}}) && (grep /^Admin$/, @{$users->{$user}->{$bdgrp}}) ) {
+							print "\t\t\t\tand you tried to take away $user Admin so we'll add it back in\n" if $D;
+							@{$uh->{$user}->{$bdgrp}} = ('Admin', @{$uh->{$user}->{$bdgrp}});
+						}
+						else {
+							print "\t\t\t\tand you didnt try to fiddle with Admin so we're OK\n" if $D;
 						}
 					}
 				}
 			}
-
-			print "PASS2 examining $user\n";
-
-			foreach my $bdgrp (keys %{$uh->{$user}}) {
+			print "PASS2($user): adding missing data from db back in..\n" if $D;
+			foreach my $bdgrp (keys %{$users->{$user}}) {
+				print "\texamining group $bdgrp ..\n" if $D;
 				if ($bdgrp !~ /$mygrpRE/) {
-
-					# at this point, any users we inspect should be _new_ users
-					# so if the user exists in the db, we can skip it
-
-					next if exists $users->{$user};
-
-					print "\twe found a group $bdgrp that we arent allowed to edit\n";
-
-					# drop bad groups, leaving only good groups
-
-					print "\t\tdeleting perms from $user for $bdgrp\n";
-					delete $uh->{$user}->{$bdgrp};
+					print "\t\twe found a group $bdgrp that we arent allowed to edit\n" if $D;
+					# we found a group that you deleted via the web
+					# but you werent allowed to delete
+					if (exists ($users->{$user}->{$bdgrp})) {
+						print "\t\t\trestoring perms from db copy\n" if $D;
+						$uh->{$user}->{$bdgrp} = $users->{$user}->{$bdgrp};
+					} else {
+						print "\t\t\tdeleting perms\n" if $D;
+						delete $uh->{$user}->{$bdgrp};
+					}
+				} else {
+					print "\t\twe found a group $bdgrp you _are_ allowed to edit\n" if $D;
+					if (grep !/^Admin$/, @$rwGroups) {
+						print "\t\t\tbut you are not Admin\n" if $D;
+						if ( (grep /^Admin$/, @{$uh->{$user}->{$bdgrp}}) && 
+						     ( (ref($users->{$user}->{$bdgrp}) ne "ARRAY") || (grep !/^Admin$/, @{$users->{$user}->{$bdgrp}}) ) ) {
+							print "\t\t\t\tand you tried to give $user Admin so we'll remove it\n" if $D;
+							@{$uh->{$user}->{$bdgrp}} = grep !/^Admin$/, @{$uh->{$user}->{$bdgrp}};
+						}
+						elsif ( (grep !/^Admin$/, @{$uh->{$user}->{$bdgrp}}) && (grep /^Admin$/, @{$users->{$user}->{$bdgrp}}) ) {
+							print "\t\t\t\tand you tried to take away $user Admin so we'll add it back in\n" if $D;
+							@{$uh->{$user}->{$bdgrp}} = ('Admin', @{$uh->{$user}->{$bdgrp}});
+						}
+						else {
+							print "\t\t\t\tand you didnt try to fiddle with Admin so we're OK\n" if $D;
+						}
+					}
 				}
 			}
 		}
 
-		print  Data::Dumper->Dump([$users], [qw(fromdb)] ), "\n";
-		print  Data::Dumper->Dump([$uh], [qw(final)] ), "\n";
+		print  Data::Dumper->Dump([$users], [qw(fromdb)] ), "\n" if $D;
+		print  Data::Dumper->Dump([$uh], [qw(final)] ), "\n" if $D;
 
-		print "</PRE>";
+		print "</PRE>" if $D;
 	}
 
 	
-	#$np->db->setUsersAndGroups(-userhash => $uh, -whoami => $m->{'session'}->{'username'},
-	#				-ip => $ENV{'REMOTE_ADDR'});
+	$np->db->setUsersAndGroups(-userhash => $uh, -whoami => $m->{'session'}->{'username'},
+					-ip => $ENV{'REMOTE_ADDR'});
+
+	# because some of the above might have altered this hash, we reload it from the
+	# db.
+
+	$users  = $np->db->getUsersAndGroups();
 }
+
+
 </%perl>
 
 <script src="/resources/js/xmlhttp.js" type="text/javascript"></script>
@@ -200,6 +244,7 @@ if ($submit eq "Commit Changes") {
 <script src="/resources/js/debug.js" type="text/javascript"></script>
 <script language="JavaScript">
 DBG_init();
+var whoami = "<%$whoami%>";
 var userhash = {
 <%perl>
 	my ($comma1, $comma2, $comma3) = ("", "", "");

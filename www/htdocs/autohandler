@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.4 2005/04/12 16:17:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.5 2005/04/21 12:49:31 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -20,7 +20,7 @@ use OSS::Template;
 
 NetPass::LOG::init [ 'web', 'local0' ];
 
-# these 3 are globals
+# this is a global
 
 $np = new NetPass();
 

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.26 2005/04/20 13:17:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.27 2005/04/21 12:49:31 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1288,9 +1288,14 @@ sub getUsersAndGroups {
     $sql .= qq{ ORDER BY username};
 
     my $a   = $self->{'dbh'}->selectall_arrayref($sql);
-    my $hr  = undef;
-    foreach my $row (@$a) {
-	$hr->{$row->[0]} = $self->decomposeGroupMembership($row->[1]);
+    my $hr  = {};
+
+    if (defined($a)) {
+	    foreach my $row (@$a) {
+		    $hr->{$row->[0]} = $self->decomposeGroupMembership($row->[1]);
+	    }
+    } else {
+	    _log("ERROR", "db failure: sql=$sql err=".$dbh->errstr);
     }
     return $hr;
 }
@@ -2454,7 +2459,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.26 2005/04/20 13:17:02 jeffmurphy Exp $
+$Id: DB.pm,v 1.27 2005/04/21 12:49:31 jeffmurphy Exp $
 
 =cut
 
