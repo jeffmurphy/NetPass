@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.22 2005/04/21 17:43:43 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.23 2005/04/21 18:08:05 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1313,11 +1313,13 @@ sub nessusPort {
 
 sub nessusConfig {
 	my $self = shift;
-	
+	my $val  = shift;
+	$val =~ tr [A-Z] [a-z];
+
 	$self->reloadIfChanged();
-	return ($self->{'cfg'}->obj('nessus')->value('host'),
-		$self->{'cfg'}->obj('nessus')->value('username'),
-		$self->{'cfg'}->obj('nessus')->value('password'));
+
+	return $self->{'cfg'}->obj('nessus')->value($val)
+	  if (recur_exists($self->{'cfg'}, 'nessus', $val));
 }
 
 =head2 B<recur_exists>
@@ -1353,7 +1355,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.22 2005/04/21 17:43:43 mtbell Exp $
+$Id: Config.pm,v 1.23 2005/04/21 18:08:05 jeffmurphy Exp $
 
 =cut
 

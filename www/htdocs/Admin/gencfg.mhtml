@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.5 2005/04/21 16:33:01 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.6 2005/04/21 18:08:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -8,6 +8,7 @@
 </%doc>
 
 <%args>
+	$submit => '';
 </%args>
 
 <script><!--
@@ -32,10 +33,10 @@ my $restartnetpass = 0;
 my $restartnessus  = 0;
 my $restarthttpd   = 0;
 
-if ($ARGS{'action'} eq 'Commit Changes') {
-	print '<DIV CLASS="error">Please Wait about 5 minutes for Changes to take affect</DIV>';
+# XX Not functional yet
 
-	foreach my $p (sort $npcfg->{'cfg'}->keys('policy')) {
+if ($submit eq 'CommitXXChanges') {
+	foreach my $p (sort $np->cfg->keys('policy')) {
 		if ($ARGS{"p_$p"} ne $config{'policy'}{$p}) {
 			$config{'policy'}{$p} = $ARGS{"p_$p"};
 			
@@ -47,7 +48,7 @@ if ($ARGS{'action'} eq 'Commit Changes') {
 		}
 	}
 
-        foreach my $n (sort $npcfg->{'cfg'}->keys('nessus')) {
+        foreach my $n (sort $np->cfg->keys('nessus')) {
 		if ($ARGS{"n_$n"} ne $config{'nessus'}{$n}) {
 			if (ref($config{'nessus'}{$n}) eq 'HASH') {
 				map($config{'nessus'}{$n}{$_} = "",
@@ -60,7 +61,7 @@ if ($ARGS{'action'} eq 'Commit Changes') {
 		}
         }
 
-        foreach my $d (sort $npcfg->{'cfg'}->keys('database')) {
+        foreach my $d (sort $np->cfg->keys('database')) {
 		if ($ARGS{"d_$d"} ne $config{'database'}{$d}) {
                 	$config{'database'}{$d} = $ARGS{"d_$d"};
 			$restartnetpass = 1;
@@ -71,20 +72,27 @@ if ($ARGS{'action'} eq 'Commit Changes') {
 	$np->db->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
 	$np->db->reqAppAction('httpd',   'restart', '') if ($restarthttpd);
 
-	use File::Copy;
-	copy($np->{'configFile'}, $np->{'configFile'}.'.bak');
-	SaveConfig($np->{'configFile'}, \%config);
+	#SaveConfig($np->{'configFile'}, \%config);
 }
 
 print $q->start_form(-method => "POST");
 
-print "<h2>General Configuration</h2>";
-print "<TABLE CELLSPACING=2 CELLPADDING=2 WIDTH=400 BORDER=0>";
-print "<TR><TH COLSPAN=2>Policy</TH></TR>";
+</%perl>
 
-print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>AUTH_METHOD</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+<h2>General Configuration</h2>
+
+<input disabled type='submit' name='submit' value='Commit Changes'> (not implemented)<P>
+
+<TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
+<THEAD>
+<TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=2>General</TH></TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD CLASS='left'>AUTH_METHOD</TD>
+<TD CLASS='right'>
+
+<%perl>
 print $q->textfield (
                         -name   => 'p_AUTH_METHOD',
                         -value  => $np->cfg->policy('AUTH_METHOD'),
@@ -93,223 +101,235 @@ print $q->textfield (
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>ADMIN_AUTH_METHOD</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>ADMIN_AUTH_METHOD</TD>";
+print "<TD CLASS='right'>";
 print $q->textfield (
 			-name   => 'p_ADMIN_AUTH_METHOD',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('ADMIN_AUTH_METHOD'),
+                        -value  => $np->cfg->policy('ADMIN_AUTH_METHOD'),
                         -size   => 25,
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50>MULTI_MAC</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>MULTI_MAC</TD>";
+print "<TD CLASS='right' >";
 print $q->popup_menu (
                         -name     => 'p_MULTI_MAC',
                         -values   => ['ALL_OK', 'ONE_OK', 'DISALLOWED'],
-                        -default  => $npcfg->{'cfg'}->obj('policy')->value('MULTI_MAC'),
+                        -default  => $np->cfg->policy('MULTI_MAC'),
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>RESULTS_DISPLAY</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>RESULTS_DISPLAY</TD>";
+print "<TD CLASS='right'>";
 print $q->popup_menu (
                         -name     => 'p_RESULTS_DISPLAY',
 			-values	  => ['INLINE', 'POPUP'],
-                        -default  => $npcfg->{'cfg'}->obj('policy')->value('RESULTS_DISPLAY'),
+                        -default  => $np->cfg->policy('RESULTS_DISPLAY'),
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>RESULTS_EXPAND</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>RESULTS_EXPAND</TD>";
+print "<TD CLASS='right'>";
 print $q->textfield (
                         -name   => 'p_RESULTS_EXPAND',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('RESULTS_EXPAND'),
+                        -value  => $np->cfg->policy('RESULTS_EXPAND'),
                         -size   => 3,
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>AUTO_REDIRECT</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>AUTO_REDIRECT</TD>";
+print "<TD CLASS='right'>";
 print $q->radio_group (
                         -name    => 'p_AUTO_REDIRECT',
 			-values  => ['Yes', 'No'],
-                        -default => ($npcfg->{'cfg'}->obj('policy')->value('AUTO_REDIRECT')) ? 'Yes' : 'No',
+                        -default => ($np->cfg->policy('AUTO_REDIRECT')) ? 'Yes' : 'No',
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>COOKIE_DETECT</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>COOKIE_DETECT</TD>";
+print "<TD CLASS='right'>";
 print $q->radio_group (
                         -name    => 'p_COOKIE_DETECT',
                         -values  => ['Yes', 'No'],
-                        -default => ($npcfg->{'cfg'}->obj('policy')->value('COOKIE_DETECT')) ? 'Yes' : 'No',
+                        -default => ($np->cfg->policy('COOKIE_DETECT')) ? 'Yes' : 'No',
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>COOKIE_NAME</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>COOKIE_NAME</TD>";
+print "<TD CLASS='right'>";
 print $q->textfield (
                         -name   => 'p_COOKIE_NAME',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('COOKIE_NAME'),
+                        -value  => $np->cfg->policy('COOKIE_NAME'),
                         -size   => 25,
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>REDIR_URL_DEFAULT</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>REDIR_URL_DEFAULT</TD>";
+print "<TD CLASS='right'>";
 print $q->textfield (
                         -name   => 'p_REDIR_URL_DEFAULT',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('REDIR_URL_DEFAULT'),
+                        -value  => $np->cfg->policy('REDIR_URL_DEFAULT'),
                         -size   => 25,
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>SURVEY_ENABLED</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>SURVEY_ENABLED</TD>";
+print "<TD CLASS='right'>";
 print $q->radio_group (
                         -name    => 'p_SURVEY_ENABLED',
                         -values  => ['Yes', 'No'],
-                        -default => ($npcfg->{'cfg'}->obj('policy')->value('SURVEY_ENABLED')) ? 'Yes' : 'No',
+                        -default => ($np->cfg->policy('SURVEY_ENABLED')) ? 'Yes' : 'No',
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>SURVEY_EMAIL</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>SURVEY_EMAIL</TD>";
+print "<TD CLASS='right'>";
 print $q->textfield (
                         -name   => 'p_SURVEY_EMAIL',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('SURVEY_EMAIL'),
+                        -value  => $np->cfg->policy('SURVEY_EMAIL'),
                         -size   => 25,
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>PID_DIR</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>PID_DIR</TD>";
+print "<TD CLASS='right'>";
 print $q->textfield (
                         -name   => 'p_PID_DIR',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('PID_DIR'),
+                        -value  => $np->cfg->policy('PID_DIR'),
                         -size   => 25,
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>BASE_DIR</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>BASE_DIR</TD>";
+print "<TD CLASS='right'>";
 print $q->textfield (
                         -name   => 'p_BASE_DIR',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('BASE_DIR'),
+                        -value  => $np->cfg->policy('BASE_DIR'),
                         -size   => 25,
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>PORT_SEARCH_ALGO</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>PORT_SEARCH_ALGO</TD>";
+print "<TD CLASS='right'>";
 print $q->popup_menu (
                         -name     => 'p_PORT_SEARCH_ALGO',
                         -values   => ['LINEAR', 'TREE'],
-                        -default  => $npcfg->{'cfg'}->obj('policy')->value('PORT_SEARCH_ALGO'),
+                        -default  => $np->cfg->policy('PORT_SEARCH_ALGO'),
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>PORT_CACHE</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>PORT_CACHE</TD>";
+print "<TD CLASS='right'>";
 print $q->popup_menu (
                         -name     => 'p_PORT_CACHE',
                         -values   => ['ON', 'OFF'],
-                        -default  => ($npcfg->{'cfg'}->obj('policy')->value('PORT_CACHE')) ? 'ON' : 'OFF',
+                        -default  => ($np->cfg->policy('PORT_CACHE')) ? 'ON' : 'OFF',
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>UNQUAR_ON_LINKUP</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>UNQUAR_ON_LINKUP</TD>";
+print "<TD CLASS='right'>";
 print $q->popup_menu (
                         -name     => 'p_UNQUAR_ON_LINKUP',
                         -values   => ['ON', 'OFF', 'ITDEPENDS'],
-                        -default  => ($npcfg->{'cfg'}->obj('policy')->value('UNQUAR_ON_LINKUP') eq
+                        -default  => ($np->cfg->policy('UNQUAR_ON_LINKUP') eq
 				     'ITDEPENDS') ? 'ITDEPENDS' : 
-				     ($npcfg->{'cfg'}->obj('policy')->value('UNQUAR_ON_LINKUP')) ? 
+				     ($np->cfg->policy('UNQUAR_ON_LINKUP')) ? 
 				     'ON' : 'OFF',
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>resetport</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>resetport</TD>";
+print "<TD CLASS='right'>";
 print $q->popup_menu (
                         -name     => 'p_resetport',
                         -values   => ['on', 'off'],
-                        -default  => ($npcfg->{'cfg'}->obj('policy')->value('resetport')) ? 'on': 'off',
+                        -default  => ($np->cfg->policy('resetport')) ? 'on': 'off',
                     );
 print "</TD></TR>";
 
 print "<TR>";
-print "<TD CLASS='gray' WIDTH=50%>LDAP_USER_QUERY</TD>";
-print "<TD CLASS='gray' WIDTH=50%>";
+print "<TD CLASS='left'>LDAP_USER_QUERY</TD>";
+print "<TD CLASS='right'>";
 print $q->textfield (
                         -name   => 'p_LDAP_USER_QUERY',
-                        -value  => $npcfg->{'cfg'}->obj('policy')->value('LDAP_USER_QUERY'),
+                        -value  => $np->cfg->policy('LDAP_USER_QUERY'),
                         -size   => 25,
                     );
-print "</TD></TR>";
+</%perl>
 
-print "</TABLE>";
-print "<P>";
+</TD></TR>
+</TBODY></TABLE>
+<BR>
 
-print "<TABLE CELLSPACING=2 CELLPADDING=2 WIDTH=400 BORDER=0>";
-print "<TR><TH COLSPAN=2>Nessus</TH></TR>";
 
-foreach my $n (sort $npcfg->{'cfg'}->keys('nessus')) {
+<TABLE WIDTH=800 class="expandable" ID="nessusConfig" CELLSPACING=2 CELLPADDING=2>
+<THEAD>
+<TR><TH onclick="showHideObj2(getElementById('nessusConfig').tBodies[0]);" COLSPAN=2>Nessus</TH></TR>
+</THEAD>
+<TBODY>
+<TR><TD CLASS='left'>base_dir</TD><TD CLASS='right'><input type="text" name="n_base_dir" value="<%$np->cfg->nessusConfig('BASE_DIR')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>host</TD><TD CLASS='right'><input type="text" name="n_host" value="<%$np->cfg->nessusHost()%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>username</TD><TD CLASS='right'><input type="text" name="n_username" value="<%$np->cfg->nessusUsername()%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>password</TD><TD CLASS='right'><input type="text" name="n_password" value="<%$np->cfg->nessusPassword()%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>port</TD><TD CLASS='right'><input type="text" name="n_port" value="<%$np->cfg->nessusPort()%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>when_down</TD><TD CLASS='right'><input type="text" name="n_when_down" value="<%$np->cfg->nessusConfig('WHEN_DOWN')%>" size="25" /></TD></TR>
+</TBODY>
+</TABLE>
+<BR>
+
+<TABLE WIDTH=800 class="expandable" ID="ldapConfig" CELLSPACING=2 CELLPADDING=2>
+<THEAD><TR><TH ONCLICK="showHideObj2(getElementById('ldapConfig').tBodies[0]);" COLSPAN=2>LDAP</TH></TR></THEAD>
+<TBODY>
+<TR><TD CLASS='left'>Query URL</TD><TD CLASS='right'><input type="text" name="LDAP_USER_QUERY" value="<%$np->cfg->policy('LDAP_USER_QUERY')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Query URL</TD><TD CLASS='right'><input type="text" name="LDAP_POPUP_WIDTH" value="<%$np->cfg->policy('LDAP_POPUP_WIDTH')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Query URL</TD><TD CLASS='right'><input type="text" name="LDAP_POPUP_HEIGHT" value="<%$np->cfg->policy('LDAP_POPUP_HEIGHT')%>" size="25" /></TD></TR>
+</TBODY>
+</TABLE>
+<BR>
+
+<TABLE WIDTH=800 CLASS="expandable" ID="databaseConfig" CELLSPACING=2 CELLPADDING=2>
+<THEAD>
+<TR><TH ONCLICK="showHideObj2(getElementById('databaseConfig').tBodies[0]);" COLSPAN=2>Database</TH></TR>
+</THEAD>
+<TBODY>
+<%perl>
+
+
+foreach my $d (sort $np->cfg->{'cfg'}->keys('database')) {
         print "<TR>";
-        print "<TD CLASS='gray' WIDTH=50%>$n</TD>";
-        print "<TD CLASS='gray' WIDTH=50%>";
-	my $val = $npcfg->{'cfg'}->obj('nessus')->value($n);
-
-	if (ref($val) eq 'HASH') {
-		$val = join(',', keys %$val);
-	} 
-
-        print $q->textfield (
-                                -name   => "n_$n",
-				-value  => $val,
-				-size 	=> 25,
-                            );
-        print "</TD></TR>";
-}
-print "</TABLE>";
-print "<P>";
-
-print "<TABLE CELLSPACING=2 CELLPADDING=2 WIDTH=400 BORDER=0>";
-print "<TR><TH COLSPAN=2>Database</TH></TR>";
-
-foreach my $d (sort $npcfg->{'cfg'}->keys('database')) {
-        print "<TR>";
-        print "<TD CLASS='gray' WIDTH=50%>$d</TD>";
-        print "<TD CLASS='gray' WIDTH=50%>";
+        print "<TD CLASS='left'>$d</TD>";
+        print "<TD CLASS='right'>";
         print $q->textfield (
                                 -name   => "d_$d",
-				-value  => $npcfg->{'cfg'}->obj('database')->value($d),
+				-value  => $np->cfg->{'cfg'}->obj('database')->value($d),
 				-size 	=> 25 ,
                             );
         print "</TD></TR>";
 }
-print "</TABLE>";
-print $q->submit(
-			-name	=> 'action',
-			-value	=> 'Commit Changes'
-		);
+print "</TBODY></TABLE>";
 
 print $q->end_form();
 </%perl>
+
+<script language="JavaScript">
+ showHideObj2(document.getElementById("databaseConfig").tBodies[0]);
+ showHideObj2(document.getElementById("ldapConfig").tBodies[0]);
+ showHideObj2(document.getElementById("nessusConfig").tBodies[0]);
+ showHideObj2(document.getElementById("policyConfig").tBodies[0]);
+</script>

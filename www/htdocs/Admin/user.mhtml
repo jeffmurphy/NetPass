@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.14 2005/04/21 12:49:32 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.15 2005/04/21 18:08:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -241,7 +241,6 @@ if ($submit eq "Commit Changes") {
 
 <script src="/resources/js/xmlhttp.js" type="text/javascript"></script>
 <script src="/resources/js/userform.js" type="text/javascript"></script>
-<script src="/resources/js/debug.js" type="text/javascript"></script>
 <script language="JavaScript">
 DBG_init();
 var whoami = "<%$whoami%>";

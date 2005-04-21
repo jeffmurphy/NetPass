@@ -1,5 +1,5 @@
 /*
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/js/OSSTemplate.js,v 1.2 2004/09/30 01:50:10 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/js/OSSTemplate.js,v 1.3 2005/04/21 18:08:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -26,15 +26,33 @@ function getObj(name)
 } // end func
 
 function showHideObj (obj,link) {
-        var x = new getObj(obj);
+	var x = new getObj(obj);
+
         if (x.style.display=="none"){
-                x.style.display=""
+                x.style.display="";
     		re = /\+/gi;
                 link.innerHTML=link.innerHTML.replace(re, "-");
         } else {
-                x.style.display="none"
+                x.style.display="none";
     		re = /\-/gi;
                 link.innerHTML=link.innerHTML.replace(re, "+");
+        }
+} // end func
+
+function showHideObj2 (obj) {
+	var x;
+
+	if (typeof obj == "object") {
+		x = obj;
+	}
+	else {
+		x = new getObj(obj);
+	}
+
+        if (x.style.display == "none"){
+                x.style.display = "";
+        } else {
+                x.style.display = "none";
         }
 } // end func
 
