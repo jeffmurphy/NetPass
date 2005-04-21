@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.4 2005/04/21 03:30:19 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.5 2005/04/21 04:46:30 mtbell Exp $
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -170,6 +170,7 @@ if ($ruledel eq "Delete" && $readOnly ne "disabled") {
 		    !$dir    || !$dstip || !$dstport || !$o) {
 			print $q->p({-class=>'error'},
 				"Corrupt Snort Rule");
+				return;
 		}
 
 		my $r = join(' ', $action, $proto, $srcip, $srcport,
