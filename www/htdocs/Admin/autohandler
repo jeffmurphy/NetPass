@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.4 2005/04/21 12:49:31 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.5 2005/04/21 15:30:34 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -41,6 +41,8 @@ if (hostname =~ /-d.cit.buffalo.edu$/) {
 
 <a class="sbLinks" href="/Admin/Scan/" title="">Scan Config</a><br>
 
+<a class="sbLinks" href="/Admin/Scan/ids.mhtml" title="">IDS Config</a><br>
+
 <a class="sbLinks" href="/Admin/Editor/" title="">Message Editor</a><br>
 
 <a class="sbLinks" href="/Admin/user.mhtml" title="">User Editor</a><br>
@@ -52,7 +54,6 @@ if (hostname =~ /-d.cit.buffalo.edu$/) {
 
 **<a class="sbLinks" href="/Admin/sq.mhtml" title="">Squid Config</a><br>
 **<a class="sbLinks" href="/Admin/greset.mhtml" title="">Global Reset</a><br>
-**<a class="sbLinks" href="#" title="">IDS Config</a><br>
 **<a class="sbLinks" href="#" title="">Network</a><br>
 **<a class="sbLinks" href="#" title="">HA</a><br>
 
