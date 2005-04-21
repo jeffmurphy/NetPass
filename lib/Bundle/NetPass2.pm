@@ -80,6 +80,8 @@ SOAP::Lite
 
 SOAP::Transport::TCP
 
+Sys::HostIP
+
 =head1 DESCRIPTION
 
 NetPass required perl modules.
