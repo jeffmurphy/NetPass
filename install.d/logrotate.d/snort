@@ -1,0 +1,8 @@
+/opt/snort/logs/snort.log {
+    daily 
+    rotate 5
+    copytruncate
+    compress
+    notifempty
+    missingok
+}
