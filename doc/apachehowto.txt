@@ -6,7 +6,7 @@
 5. cd ../apache_1.3.33
 6. setenv CFLAGS "-lpthread"
 7. ./configure --prefix=/opt/apache_1.3.33 --enable-module=so --enable-module=ssl \
-   --enable-module=rewrite  --enable-module=info
+   --enable-module=rewrite  --enable-module=info --disable-rules=expat
 5. make; make install
 
 # mod_perl build
