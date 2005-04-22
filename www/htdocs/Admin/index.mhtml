@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.5 2005/04/22 03:48:15 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.6 2005/04/22 16:56:30 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -11,7 +11,6 @@
 setWhereAmI('Home');
 --></script>
 
-% use Data::Dumper;
 % if ( $m->comp('/Admin/Login', %ARGS) ) {
         Logged in as <B><%$m->session->{'username'}%></B>. Permissions: <B>
 <%perl>
@@ -20,25 +19,37 @@ setWhereAmI('Home');
                 print "$grp (".join(', ', @{$m->session->{'my_groups'}->{$grp}}).")$comma ";
                 $comma = ",";
         }
+} else {
+	return;
 }
 </%perl></B>
 
 <%perl>
+my @rwGroups = ('Admin', 'QuarAdmin');
+my ($rw, $aclGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
+
 use Digest::MD5 qw(md5_hex);
 use Sys::HostIP;
 use SOAP::Lite;
 
-
 print $q->h3("System Status");
 print $q->start_form(-method=>"POST", -action => "index.mhtml");
 
-
-snortStats();
+snortStats($rw, \%ARGS);
 
 sub snortStats {
+	my $rw       = shift;
+	my $args     = shift;
 	my @rows;
 	my $sensors  = {};
+	my $actions  = {};
 	my $networks = $np->cfg->getNetworks();
+	
+
+	foreach my $arg (keys %$args) {
+		my($a, $h, $p) = split('_', $arg);
+		$actions->{"$h:$p"} = $args->{$arg};	
+	}
 
 	foreach my $nw (@$networks) {
 		my $sips = $np->cfg->getSnortSensors($nw); 
@@ -58,11 +69,27 @@ sub snortStats {
 
 	foreach my $s (sort keys %$sensors) {
 		my $rv   = undef;
-#		my $soap = makeSoapConnection($np, $s, $sensors->{$s});
-		my $sec  = $np->cfg->npapiSecret(); 
+		my $soap = makeSoapConnection($np, $s, $sensors->{$s});
+		my $sec  = $np->cfg->npapiSecret();
 		my $md5  = md5_hex(hostip.$sec);
-#		$rv = eval{$soap->snortStatus($md5)->result} if defined $soap;
-$rv = 0;
+
+		if ($rw && defined $soap) {
+			my $a = $actions->{$s.':'.$sensors->{$s}};
+
+			if ($a eq "Start") {
+				eval{$soap->startSnort($md5)->result};
+			} elsif ($a eq "Stop") {
+				eval{$soap->stopSnort($md5)->result};
+			} elsif ($a eq "Restart") {
+				eval{$soap->restartSnort($md5)->result};
+			}
+
+			# wait here for one sec to give snort on the remote
+			# sensor a chance to catch the sighup.
+			sleep(1);
+		}
+ 
+		$rv = eval{$soap->snortStatus($md5)->result} if defined $soap;
 		push @rows, 
 			$q->TR({-class=>'gray'},
 				$q->td({-width=>"40%"}, $s.':'.$sensors->{$s}).
@@ -73,16 +100,17 @@ $rv = 0;
 					$q->submit(
 						    -name     => join('_', 'start', $s, $sensors->{$s}),
 						    -value    => 'Start', 
-						    ($rv) ? "disabled" : ""
+						    (!$rv && $rw) ? "" : "disabled"
 						  ).
                                         $q->submit(
                                                     -name     => join('_', 'stop', $s, $sensors->{$s}),
                                                     -value    => 'Stop',
-						    ($rv) ? "" : "disabled"
+						    ($rv && $rw) ? "" : "disabled"
                                                   ).
 					$q->submit(
 						    -name     => join('_', 'restart', $s, $sensors->{$s}),
 						    -value    => 'Restart',
+						    ($rv && $rw) ? "" : "disabled"
 						  )
 				)
 			);
@@ -100,7 +128,7 @@ sub makeSoapConnection {
 
         my $proxy = "tcp://$host:$port";
         my $soap  = SOAP::Lite->new(
-                                    uri   => 'tcp://netpass/NetPass/API',
+                                    uri   => 'tcp://netpass/NetPass/Snort',
                                     proxy => $proxy,
                                    );
         return undef unless defined $soap;
