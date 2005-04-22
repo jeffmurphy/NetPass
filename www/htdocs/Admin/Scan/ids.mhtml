@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.5 2005/04/21 04:46:30 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.6 2005/04/22 03:37:40 mtbell Exp $
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -66,11 +66,6 @@ setWhereAmI('IDS Config');
 		var param  = document.form.optparam.value
 		var option = document.form.option
 
-		if (arg == "") {
-			alert("Undefined Argument")
-			return false
-		}
-
 		var str = param+":"+arg
 
 		var opt = new Option(str, str)
@@ -125,7 +120,8 @@ my @table;
 my @otable;
 my @snortoptions = (
 			'ack','classtype','content','flags','flow','msg','seq',
-			'reference','rev','sid','uricontent'
+			'reference','rev','sid','uricontent', 'vlan', 'nocase',
+			'pcre', 'depth', 'isdataat' , 'distance', 'offset'
 		   );
 
 if ($ruledel eq "Delete" && $readOnly ne "disabled") {
@@ -329,7 +325,7 @@ if (!$raw) {
 			 $q->td({-class=>"gray", -align=>"center", -colspan=>1, -width=>"20%"},
 			 	$q->popup_menu(
                                 	        -name   => 'optparam',
-                                		-values => \@snortoptions,
+                                		-values => [sort @snortoptions],
                               		      )
 			 ).
 			 $q->td({-class=>"gray", -align=>"center", -colspan=>1, -width=>"40%"},

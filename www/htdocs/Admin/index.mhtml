@@ -1,10 +1,11 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.3 2005/04/21 16:33:01 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.4 2005/04/22 03:38:52 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 </%doc>
+
 
 <script><!--
 setWhereAmI('Home');
@@ -12,13 +13,102 @@ setWhereAmI('Home');
 
 % use Data::Dumper;
 % if ( $m->comp('/Admin/Login', %ARGS) ) {
-	Logged in as <B><%$m->session->{'username'}%></B>. Permissions: <B>
+        Logged in as <B><%$m->session->{'username'}%></B>. Permissions: <B>
 <%perl>
-	my $comma = "";
-	foreach my $grp (sort keys %{$m->session->{'my_groups'}}) {
-		print "$grp (".join(', ', @{$m->session->{'my_groups'}->{$grp}}).")$comma ";
-		$comma = ",";
-	}
+        my $comma = "";
+        foreach my $grp (sort keys %{$m->session->{'my_groups'}}) {
+                print "$grp (".join(', ', @{$m->session->{'my_groups'}->{$grp}}).")$comma ";
+                $comma = ",";
+        }
 }
 </%perl></B>
 
+<%perl>
+use Digest::MD5 qw(md5_hex);
+use Sys::HostIP;
+use SOAP::Lite;
+
+
+print $q->h3("System Status");
+print $q->start_form(-method=>"POST", action => "index.mhtml");
+
+
+snortStats();
+
+sub snortStats {
+	my @rows;
+	my $sensors  = {};
+	my $networks = $np->cfg->getNetworks();
+
+	foreach my $nw (@$networks) {
+		my $sips = $np->cfg->getSnortSensors($nw); 
+		print return unless (defined $sips) && (ref($sips) eq 'HASH');
+		map($sensors->{$_} = $sips->{$_}, keys(%$sips));	
+	}
+
+	push @rows,
+       		$q->TR(
+       		         $q->th({-colspan=>3}, "Snort Sensors")
+       		).
+		$q->TR({-class=>'gray'},
+			$q->td({-align=>"center"}, "Sensor").	
+			$q->td({-align=>"center"}, "Status").	
+			$q->td({-align=>"center"}, "Action")	
+		);
+
+	foreach my $s (sort keys %$sensors) {
+		my $rv   = undef;
+#		my $soap = makeSoapConnection($np, $s, $sensors->{$s});
+		my $sec  = $np->cfg->npapiSecret(); 
+		my $md5  = md5_hex(hostip.$sec);
+#		$rv = eval{$soap->snortStatus($md5)->result} if defined $soap;
+$rv = 0;
+		push @rows, 
+			$q->TR({-class=>'gray'},
+				$q->td({-width=>"40%"}, $s.':'.$sensors->{$s}).
+				$q->td({-width=>"20%", -align=>"center"}, ($rv) ?
+					"<B><FONT COLOR=green>Running</FONT></B>" :
+					"<B><FONT COLOR=red>Down</FONT></B>"). 
+				$q->td({-width=>"40%", -align=>"center"},
+					$q->submit(
+						    -name     => join('_', 'start', $s, $sensors->{$s}),
+						    -value    => 'Start', 
+						    ($rv) ? "disabled" : ""
+						  ).
+                                        $q->submit(
+                                                    -name     => join('_', 'stop', $s, $sensors->{$s}),
+                                                    -value    => 'Stop',
+						    ($rv) ? "" : "disabled"
+                                                  ).
+					$q->submit(
+						    -name     => join('_', 'restart', $s, $sensors->{$s}),
+						    -value    => 'Restart',
+						  )
+				)
+			);
+	
+	}
+
+	print $q->table( {-border=>0, -width=>500}, @rows);
+	return;
+}
+
+sub makeSoapConnection {
+	my $np   = shift;
+	my $host = shift;
+	my $port = shift;
+
+        my $proxy = "tcp://$host:$port";
+        my $soap  = SOAP::Lite->new(
+                                    uri   => 'tcp://netpass/NetPass/API',
+                                    proxy => $proxy,
+                                   );
+        return undef unless defined $soap;
+
+        # check to make sure we have a good connection
+        my $rv = eval{$soap->echo()->result};
+        return $soap if $rv;
+        return undef;
+}
+
+</%perl>
