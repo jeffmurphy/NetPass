@@ -179,10 +179,10 @@ sub quarantineByIP {
 	}
 
 	$np->db->audit (
-			 severity	=> 'NOTICE',
-			 mac		=> $mac,
-			 ip		=> $ip,
-			 user		=> 'npapi',
+			 -severity	=> 'NOTICE',
+			 -mac		=> $mac,
+			 -ip		=> $ip,
+			 -user		=> 'npapi',
 			 @msgs
 		       );
 	return ("nothing") if $mode eq "not_really"; 
