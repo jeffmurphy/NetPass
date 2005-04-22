@@ -5,8 +5,9 @@
 4. ./configure --with-apache=../apache_1.3.33
 5. cd ../apache_1.3.33
 6. setenv CFLAGS "-lpthread"
+# disable expat XML parsing in apache else segfaults will occur when trying to use SOAP and Mason
 7. ./configure --prefix=/opt/apache_1.3.33 --enable-module=so --enable-module=ssl \
-   --enable-module=rewrite  --enable-module=info --disable-rules=expat
+   --enable-module=rewrite  --enable-module=info --disable-rule=expat
 5. make; make install
 
 # mod_perl build
