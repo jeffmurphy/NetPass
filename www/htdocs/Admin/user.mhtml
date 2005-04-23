@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.16 2005/04/21 19:41:46 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.17 2005/04/23 15:32:05 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -53,7 +53,7 @@ my $ldap   = $np->cfg->policy('LDAP_USER_QUERY', $ENV{'REMOTE_ADDR'});
 
 # if this is set, "default->Admin" users can change other users' passwords
 
-my $adminAuthDB = $np->cfg->policy('ADMIN_AUTH_METHOD') eq "NetPass::Auth::DB";
+my $usingAuthDB = $np->cfg->policy('ADMIN_AUTH_METHOD') eq "NetPass::Auth::DB";
 
 # get a list of all networks
 
@@ -248,6 +248,7 @@ if ($submit eq "Commit Changes") {
 <script language="JavaScript">
 DBG_init();
 var whoami = "<%$whoami%>";
+var usingAuthDB = <%$usingAuthDB%>;
 var userhash = {
 <%perl>
 	my ($comma1, $comma2, $comma3) = ("", "", "");
@@ -320,10 +321,10 @@ This will be enforced when you commit the changes.<P>
 	   </center> 
 
 %	# change a user's password (if you are default:admin)
-%	if ($isRoot && $adminAuthDB) {
-		<table border=0>
-		<tr><td style='text-align:right'>New Password:</td><td><input type='password' size=10 maxlength=64></td></tr>
-		<tr><td style='text-align:right'>Again:</td><td><input type='password2' size=10 maxlength=64></td></tr>
+%	if ($isRoot && $usingAuthDB) {
+		<table id="passwdDialog" style="display:none;" border=0>
+		<tr><td style='text-align:right'>New Password:</td><td><input type='password' name='password' size=10 maxlength=64></td></tr>
+		<tr><td style='text-align:right'>Again:</td><td><input type='password' name='password2' size=10 maxlength=64></td></tr>
 		<tr><td style='text-align:center' colspan=2><input type='submit' name='submit' value='Change Password'></td></tr>
 		</table>
 %	}

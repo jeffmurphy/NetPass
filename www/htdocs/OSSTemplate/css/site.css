@@ -1,5 +1,5 @@
 /* 
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.4 2005/04/21 18:08:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.5 2005/04/23 15:32:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -10,6 +10,8 @@ A:active  { color:#1178BC; text-decoration: none}
 A:link    { color:#1178BC; text-decoration: none}
 A:visited { color:#1178BC; text-decoration: none}
 A:hover   { text-decoration: underline;  }
+
+.center { text-align:center; }
 
 BODY {
 	font-family: arial, helvetica, verdana, sans-serif;
@@ -25,6 +27,7 @@ TD, P {
 
 TH {
 	font-weight: bold;
+        font-size: 14pt;
 	color: #FFFFFF;
 	background: #000000;
 
@@ -155,4 +158,16 @@ TABLE.expandable TD.right {
 
 TABLE.expandable TBODY { 
   /*display: none;*/
+}
+
+TABLE#passwdChangeDialog { 
+  margin-left: 33%;
+}
+
+TABLE#passwdChangeDialog TD.left { 
+  text-align: right;
+}
+
+TABLE#passwdChangeDialog TD.right { 
+  text-align: left;
 }

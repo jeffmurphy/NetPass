@@ -84,6 +84,7 @@ doc/netpass-install.sxw
 etc/netpass-example.conf
 install.d/logrotate.d/apache
 install.d/logrotate.d/netpass
+install.d/logrotate.d/snort
 install.d/convertdb
 install.d/install
 install.d/install-test
@@ -195,6 +196,7 @@ www/htdocs/Admin/user.mhtml
 www/htdocs/Admin/urlfilter.mhtml
 www/htdocs/Admin/test.html
 www/htdocs/Admin/clienthistory.mhtml
+www/htdocs/Admin/chpwd.mhtml
 www/htdocs/OSSTemplate/css/OSSTemplate.css.cgi
 www/htdocs/OSSTemplate/css/.htaccess
 www/htdocs/OSSTemplate/css/calendar.css

@@ -1,0 +1,86 @@
+<%doc>
+</%doc>
+<%args>
+	$submit   => '';
+	$username => '';
+	$old      => '';
+	$new1     => '';
+	$new2     => '';
+</%args>
+
+<%perl>
+# if we are root admin or root usereditor, 
+# then "old" password isnt prompted for
+# (root admin/ueditor can change anyones passwd).
+
+my $isRoot; my $junk; my $isUEdit;
+
+($isRoot, $junk)  = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+($isUEdit, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+
+my $mg = $m->session->{'my_groups'};
+
+if ($m->session->{'logged_in'} && exists $m->session->{'my_groups'} && (keys %$mg) ) {
+
+	my $curpwstyle = "display:none;";
+
+	if ( ($username eq "") || (!$isRoot && !$isUEdit) ) {
+		$username   = $m->session->{'username'};
+		$curpwstyle = "";
+	}
+
+	my ($ecol, $emsg) = ("display:none;", "Waiting for data...");
+
+	# a password must be specified
+
+	if ( ($new1 ne "") && ($new1 eq $new2) ) {
+		($ecol, $emsg) = ("background-color:green;", "Password changed.");
+
+		# if you arent root or dont have uedit privs, then 
+		# the current password must be given as well
+
+		if (!$isRoot || !$isUEdit) {
+			my $op = $np->db->getPasswd($username);
+			if (defined($op)) {
+				my $np = crypt($old, substr($op, 0, 2));
+				if ($np ne $op) {
+					$ecol = "background-color:red;";
+					$emsg = "Password invalid.";
+				}
+			} else {
+				$ecol = "background-color:red;";
+				$emsg = "DB Failure (no password found?)";
+			}
+		}
+
+		# if everything is OK, set the password.
+
+		if ($ecol =~ "green") {
+			my $rv = $np->db->setPasswd($username, $new1);
+			if ($rv == 0) {
+				$ecol = "background-color:red;";
+				$emsg = "Failed to set password.";
+			}
+		}
+	}
+	my $your = "Your";
+	$your = $username."'s" unless $m->session->{'username'} eq $username;
+</%perl>
+
+<form method='post'>
+<table ID='passwdChangeDialog'>
+<tr><th align=center colspan=2>Change <%$your%> Password</th></tr>
+<tr style='<%$ecol%>'><td align=center colspan=2 id='pcstatus'><%$emsg%></td></tr>
+<tr><td class='left'>Username:</td><td class='right'><%$username%></td></tr>
+<tr style="<%$curpwstyle%>"><td class='left'>Current Password:</td>
+	<td class='right'><input  name='old' type='password'></td></tr>
+<tr><td class='left'>New Password:</td>
+	<td class='right'><input  name='new1' type='password'></td></tr>
+<tr><td class='left'>New (Confirm) Password:</td>
+	<td class='right'><input  name='new2' type='password'></td></tr>
+<tr><td colspan=2><center><input type='submit' name='submit' value='Change Password'></center></td></tr>
+</table></form>
+% } else {
+	Sorry. You don't have permission to use this form.
+% }
+

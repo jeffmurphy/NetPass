@@ -16,16 +16,14 @@ function userform_changeToUser(o) {
 	userform_unHighLight("AccessControlList");
 	userform_disableList("AccessControlList");
 
+	// IE doesnt support <option disabled>
+	//http://msdn.microsoft.com/workshop/author/dhtml/reference/properties/disabled_3.asp
+
 	o.options[0].selected = false;
 
+	// we should use selectedIndex here
+
 	for (var i = 0 ; i < o.options.length ; i++) {
-		if (o.options[i].selected && (i == 0) ) {
-			// IE doesnt support <option disabled>
-			// deselected if selected and return.
-			//http://msdn.microsoft.com/workshop/author/dhtml/reference/properties/disabled_3.asp
-			o.options[i].selected = false;
-			return;
-		}
 		if (o.options[i].selected) {
 			selectedUser = o.options[i];
 			break;
@@ -34,6 +32,11 @@ function userform_changeToUser(o) {
 
 	if (selectedUser == undefined) {
 		dbg (1, RN + ": no user selected?");
+
+		if (usingAuthDB) {
+			var pwd = document.getElementById('passwdDialog');
+			pwd.style.display = 'none';
+		}
 		return;
 	}
 
@@ -79,6 +82,11 @@ function userform_changeToUser(o) {
 		}
 		userform_sortList("GroupList");
 		userform_sortList("AvailableGroupList");
+
+		if (usingAuthDB) {
+			var pwd = document.getElementById('passwdDialog');
+			pwd.style.display = '';
+		}
 
 	} else {
 		dbg (1, RN + ": one of: gl || agl || userhash["+selectedUser.value+"] is undef");
@@ -454,6 +462,12 @@ function userform_onfocus_addUser(o) {
 	dbg (1, RN);
 
 	if (o && o.value == "Add user...") o.value = "";
+
+	if (usingAuthDB) {
+		var pwd = document.getElementById('passwdDialog');
+		pwd.style.display = '';
+	}
+
 }
 
 function userform_sortList(ln) {
@@ -505,6 +519,9 @@ function userform_onblur_addUser(o) {
 	userhash[o.value] = new Object();
 	var no = new Option(o.value, o.value, false, false);
 	ul.options[ul.options.length] = no;
+
+	userform_unHighLight("UserList");
+	ul.options[ul.options.length-1].selected = true;
 
 	if(o) o.value = "Add user...";
 	userform_sortList("UserList");
