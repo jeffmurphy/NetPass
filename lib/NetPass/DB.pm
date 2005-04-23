@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.28 2005/04/21 16:33:00 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.29 2005/04/23 12:32:07 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -961,6 +961,76 @@ sub getSnortRules {
     my $rules = $self->{'dbh'}->selectcol_arrayref($sql);
     return $rules if (defined($rules) && (ref($rules) eq "ARRAY"));
     return undef;
+}
+
+=head2 $rule = getSnortRuleEntry(sid)
+
+Retrieve the snort rule entry with id equal to sid. Returns a HASH ref
+of all the columns in the database for that row on success, C<undef> on failure.
+
+=cut
+
+sub getSnortRuleEntry {
+	my $self = shift;
+	my $sid  = shift;
+
+	return undef unless $sid =~ /\d+/;
+	$self->reconnect() || return undef;
+
+	my $query = "SELECT * FROM snortRules WHERE snortID = $sid";
+	my $href  = $self->{'dbh'}->selectrow_hashref($query);
+
+	return $href if (defined($href) && (ref($href) eq "HASH"));
+	return undef;
+}
+
+=head2 $rv = deleteSnortRule(sid)
+
+Delete the snort rule with Snort ID sid. Returns C<true> on success
+C<undef> on failure.
+
+=cut
+
+sub deleteSnortRule {
+	my $self = shift;
+	my $sid  = shift;
+
+	return undef unless $sid =~ /\d+/;
+	$self->reconnect() || return undef;
+
+	my $query = "DELETE FROM snortRules WHERE snortID = ?";
+	my $sth = $self->dbh->prepare($query);
+
+        if (!$sth->execute($sid)) {
+                _log("ERROR", "Unable to delete Snort Rule $sid from database");
+                return undef;
+        }
+
+	return 1;
+}
+
+=head2 $aref = getSnortIDs()
+
+Returns an ARRAY ref of all the snortIDs in the database. Returns
+C<undef> on failure.
+
+=cut
+
+sub getSnortIDs {
+	my $self = shift;
+	my @sids;
+
+	$self->reconnect() || return undef;
+
+	my $query = "SELECT distinct(snortID) FROM snortRules order by snortID";
+	my $aref = $self->dbh->selectall_arrayref($query);
+
+	if (!defined($aref) || ref($aref) ne 'ARRAY') {
+		_log("ERROR", "Unable to retrieve snortIDs from database");
+		return undef;
+	}
+
+	return [map($_->[0], @$aref)];
 }
 
 =head2 $history = getClientHistory(-mac => $mac)
@@ -2462,7 +2532,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.28 2005/04/21 16:33:00 jeffmurphy Exp $
+$Id: DB.pm,v 1.29 2005/04/23 12:32:07 mtbell Exp $
 
 =cut
 

@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.6 2005/04/22 03:37:40 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.7 2005/04/23 12:35:11 mtbell Exp $
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -125,7 +125,7 @@ my @snortoptions = (
 		   );
 
 if ($ruledel eq "Delete" && $readOnly ne "disabled") {
-	if (!$sid || !deleteRule($dbh, $sid)) {
+	if (!$sid || !$np->db->deleteSnortRule($sid)) {
 		print $q->p({-class=>'error'},
 		 	"Unable to delete SnortID $sid");
 		return;
@@ -195,7 +195,7 @@ push @table,
 			).$q->br().	
 			$q->scrolling_list(
 					    -name	=> 'sid',	
-					    -values	=> getSids($dbh),
+					    -values	=> $np->db->getSnortIDs(),
 					    -size	=> 10,
 					    -default	=> $sid,
 					    -style	=> "width:80%;",
@@ -220,7 +220,7 @@ push @table,
 		)
 	);
 
-my $r = getRule($dbh, $sid);
+my $r = getRule($dbh, $sid, $np);
 if (!$raw) {
 	push @table, 
 	$q->TR(
@@ -379,7 +379,7 @@ push @table,
 					-name	  => 'desc',
 					-rows	  => 4,
 					-columns  => 40,
-					-default  => (exists $r->{desc}) ? $r->{desc} : ""
+					-default  => (exists $r->{description}) ? $r->{description} : ""
 			)
 		).
 		$q->td({-class=>"gray", -align=>"left", -colspan=>2},
@@ -388,7 +388,7 @@ push @table,
 					-name	  => 'addedBy',
 					-size	  => 9,
 					-readonly => 1,
-					-value	  => (exists $r->{addedby}) ? $r->{addedby} : ""
+					-value	  => (exists $r->{addedBy}) ? $r->{addedBy} : ""
 				     )
 		).
 		$q->td({-class=>"gray", -align=>"left", -colspan=>2},
@@ -397,7 +397,7 @@ push @table,
                                         -name     => 'addedOn',
                                         -size     => 21,
                                         -readonly => 1,
-                                        -value    => (exists $r->{addedon}) ? $r->{addedon} : ""
+                                        -value    => (exists $r->{addedOn}) ? $r->{addedOn} : ""
                                      )
 		)
 	).
@@ -408,7 +408,7 @@ push @table,
                                         -name     => 'lastmodifiedby',
                                         -size     => 9,
                                         -readonly => 1,
-                                        -value    => (exists $r->{lastmodifiedby}) ? $r->{lastmodifiedby} : ""
+                                        -value    => (exists $r->{lastModifiedBy}) ? $r->{lastModifiedBy} : ""
                                      )
                 ).
                 $q->td({-class=>"gray", -align=>"left", -colspan=>2},
@@ -417,7 +417,7 @@ push @table,
                                         -name     => 'lastmodifiedon',
                                         -size     => 21,
                                         -readonly => 1,
-                                        -value    => (exists $r->{lastmodifiedon}) ? $r->{lastmodifiedon} : ""
+                                        -value    => (exists $r->{lastModifiedOn}) ? $r->{lastModifiedOn} : ""
                                      )
                 )
 	).
@@ -453,38 +453,14 @@ if (!$raw) {
 print "<INPUT TYPE=\"hidden\" name=\"alloptions\">";
 print $q->end_form();
 
-sub getSids {
-        my $dbh     = shift;
-	my @sids;
-
-        my $query = "SELECT distinct(snortID) FROM snortRules order by snortID";
-        my $sth = $dbh->prepare($query);
-        $sth->execute();
-
-
-        while(my $m = $sth->fetchrow_arrayref) {
-                push(@sids, $m->[0]);
-        }
-
-        $sth->finish;
-
-        return \@sids;
-}
-
 sub getRule {
 	my $dbh     = shift;
 	my $sid	    = shift;
-	my $h	    = {};
+	my $np      = shift;
+
+	my $h = $np->db->getSnortRuleEntry($sid);
+	return undef unless (defined $h && ref($h) eq 'HASH');
 	
-	my $query = "SELECT rule,description,addedBy,addedOn,lastModifiedBy,lastModifiedOn
-		     FROM snortRules WHERE snortID = ?";
-	my $sth = $dbh->prepare($query);
-	$sth->execute($sid);
-
-	($h->{rule}, $h->{desc}, $h->{addedby}, $h->{addedon},
-	 $h->{lastmodifiedby}, $h->{lastmodifiedon}) = $sth->fetchrow_array();
-	$sth->finish;
-
 	my($action, $proto, $sip, $sport, $dir, $dip, $dport, $options) =
 		split(/\s+/, $h->{rule}, 8);
 
@@ -498,18 +474,6 @@ sub getRule {
 	$h->{options}	= $options; 
 	
 	return $h;
-}
-
-sub deleteRule {
-        my $dbh     = shift;
-        my $sid     = shift;
-
-	my $query = "DELETE FROM snortRules WHERE snortID = ?";
-	my $sth = $dbh->prepare($query);
-	my $rv = $sth->execute($sid);
-
-	$sth->finish;
-	return $rv;
 }
 
 sub addRawRule {
@@ -573,6 +537,8 @@ sub addRawRule {
 	my $sql;
 	my $username = $m->session->{'username'};
 	my $time     = time();
+
+	# one day hafta write a function in DB.pm to do this.
 
 	if (defined $rev) {
 		$sql = qq{UPDATE snortRules SET    snortID	= ?,
