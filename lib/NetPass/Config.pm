@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.25 2005/04/24 03:42:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.26 2005/04/24 03:56:54 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -713,14 +713,7 @@ RETURN VALUES
 
 =over 4
 
- HASHREF           on successful fetch: { 'key' => 'value' }
- HASHREF           on successful set:   { 'key' => 'oldvalue' }
- "invalid parameters"
-                   routine called improperly
- "config not loaded"
-                   failed to read config
- "nosuch network"  attempt to set a policy on invalid network
- "nosuch group"    attempt to set a policy on invalid group
+ value (even undef)  on successful fetch or set
 
 =back
 
@@ -736,7 +729,11 @@ sub policy {
 				 -defaults => { -network => '', -val => undef }
 			    }
 			   );
-	return Carp::longmess("invalid parameters ".Class::ParmList->error) if (!defined($parms));
+
+	if (!defined($parms)) {
+		warn Carp::longmess("invalid parameters ".Class::ParmList->error);
+		return undef;
+	}
 
 	my ($pvar, $nw, $val) = $parms->get('-key', '-network', '-val');
 
@@ -747,11 +744,7 @@ sub policy {
 	$nw ||= "";
 
 	$self->reloadIfChanged();
-	
-	return "config not loaded"
-	  if (! exists $self->{'cfg'}) || 
-	    (ref $self->{'cfg'} ne "Config::General::Extended");
-	
+		
 	$pvar =~ tr [A-Z] [a-z]; # because of AutoLowerCase
 
 	# if network looks like an IP, figure out which <network> clause
@@ -799,7 +792,7 @@ sub policy {
 		
 		_log("DEBUG", "policy($pvar): no global policy. $pvar not found.\n") if $self->debug;
 
-		return { $pvar => undef };
+		return undef;
 	} 
 
 	# this is a set operation
@@ -822,14 +815,14 @@ sub policy {
 			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
 				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
-				return { $pvar => $oldvalue };
+				return $oldvalue;
 			}
 		} 
 		elsif ($nw ne "") {
 			# set the <group> policy
 
 			if (! recur_exists ($self->{'cfg'}, "group", $nw)) {
-				return "nosuch group";
+				return undef; #"nosuch group";
 			}
 
 			if (! recur_exists ($self->{'cfg'}, "group", $nw, 'policy')) {
@@ -840,11 +833,11 @@ sub policy {
 			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
 				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
-				return { $pvar => $oldvalue };
+				return $oldvalue;
 			}
 
 			$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
-			return { $pvar => undef };
+			return undef;
 
 		}
 		else {
@@ -857,7 +850,7 @@ sub policy {
 				$oldvalue = $self->{'cfg'}->obj('policy')->value($pvar);
 			}
 			$self->{'cfg'}->obj('policy')->$pvar($val);
-			return { $pvar => $oldvalue };
+			return $oldvalue;
 		}
 
 	}
@@ -1451,7 +1444,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.25 2005/04/24 03:42:02 jeffmurphy Exp $
+$Id: Config.pm,v 1.26 2005/04/24 03:56:54 jeffmurphy Exp $
 
 =cut
 

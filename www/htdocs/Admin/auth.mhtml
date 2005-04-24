@@ -1,0 +1,35 @@
+<%doc>
+</%doc>
+<%args>
+</%args>
+
+<TABLE WIDTH=800 ID="authMethods" CELLSPACING=2 CELLPADDING=2>
+<THEAD>
+<TR><TH COLSPAN=2>Authentication Methods</TH></TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD CLASS='left'>Client Auth Method</TD>
+<TD CLASS='right'>
+
+<%perl>
+print $q->popup_menu (
+                        -name    => 'policy:AUTH_METHOD',
+                        -default => $np->cfg->policy(-key => 'AUTH_METHOD'),
+                        -values => [ 'NetPass::Auth::DB' , 'NetPass::Auth::Radius',
+					'NetPass::Auth::LDAP', 'NetPass::Auth::Unix' ]
+                    );
+print "</TD></TR>";
+
+print "<TR>";
+print "<TD CLASS='left'>Admin Auth Method</TD>";
+print "<TD CLASS='right'>";
+print $q->popup_menu (
+			-name   => 'policy:ADMIN_AUTH_METHOD',
+                        -default => $np->cfg->policy(-key => 'ADMIN_AUTH_METHOD'),
+                        -values => [ 'NetPass::Auth::DB' , 'NetPass::Auth::Radius',
+					'NetPass::Auth::LDAP', 'NetPass::Auth::Unix' ]
+                    );
+print "</TD></TR>";
+</%perl>
+</table>
