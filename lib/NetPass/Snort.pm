@@ -113,12 +113,12 @@ sub startSnort {
         my $aref = eval {$soap->getSnortRules($md5, "enabled")->result};
         return undef unless defined($aref) && (ref($aref) eq 'ARRAY');
 
-        my $logfile = (exists $opts{'l'}) ? $opts{'l'} : $DEFAULTSNORTRULES;
+        my $rulesfile = (exists $opts{'r'}) ? $opts{'r'} : $DEFAULTSNORTRULES;
 
         # create a backup copy of the rules file
-        move($logfile, $logfile.'.bkp') if (-e $logfile);
+        move($rulesfile, $rulesfile.'.bkp') if (-e $rulesfile);
 
-        $fh->open("> $logfile");
+        $fh->open("> $rulesfile");
         map(print($fh $_), @$aref);
         $fh->close;
 
@@ -183,12 +183,12 @@ sub restartSnort {
         my $aref = eval {$soap->getSnortRules($md5, "enabled")->result};
         return undef unless defined($aref) && (ref($aref) eq 'ARRAY');
 
-	my $logfile = (exists $opts{'l'}) ? $opts{'l'} : $DEFAULTSNORTRULES;
+	my $rulesfile = (exists $opts{'r'}) ? $opts{'r'} : $DEFAULTSNORTRULES;
 
 	# create a backup copy of the rules file
-	move($logfile, $logfile.'.bkp') if (-e $logfile);
+	move($rulesfile, $rulesfile.'.bkp') if (-e $rulesfile);
 
-	$fh->open("> $logfile");
+	$fh->open("> $rulesfile");
 	map(print($fh $_), @$aref);
 	$fh->close;
 		
