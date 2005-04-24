@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.29 2005/04/23 12:32:07 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.30 2005/04/24 04:50:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -2469,7 +2469,7 @@ sub appendLogToConfig {
 
     return "invalid parameters (rev)" unless ($r >= 0);
     return "invalid parameters (user)" unless ($u ne "");
-    return "invalid parameters (log)" unless ( (ref($l) eq "ARRAY") && ($#{$l} >= 0));
+    return 0 unless ( (ref($l) eq "ARRAY") && ($#{$l} >= 0)); #empty?
 
     my $sql = "SELECT log FROM config WHERE rev = ".$self->dbh->quote($r);
 
@@ -2532,7 +2532,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.29 2005/04/23 12:32:07 mtbell Exp $
+$Id: DB.pm,v 1.30 2005/04/24 04:50:02 jeffmurphy Exp $
 
 =cut
 

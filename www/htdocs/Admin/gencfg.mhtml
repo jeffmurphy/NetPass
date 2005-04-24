@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.7 2005/04/24 03:42:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.8 2005/04/24 04:50:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -45,49 +45,25 @@ if ($submit eq 'Commit Changes') {
 					$restartnetpass = 1;
 					$restarthttpd = 1;
 				}
+				$np->cfg->policy(-key => $var, -val => $ARGS{$ak});
+print "setting $var to ".$ARGS{$ak}."<BR>";
 			}
-		}
-	}
 
-	if (0) {
-	foreach my $p (sort $np->cfg->keys('policy')) {
-		if ($ARGS{"p_$p"} ne $config{'policy'}{$p}) {
-			$config{'policy'}{$p} = $ARGS{"p_$p"};
-			
-			if ($p =~ /PID_DIR|BASE_DIR/) {
-				$restartnetpass = 1;
-			} else {
-				$restarthttpd = 1;
-			}
-		}
-	}
-
-        foreach my $n (sort $np->cfg->keys('nessus')) {
-		if ($ARGS{"n_$n"} ne $config{'nessus'}{$n}) {
-			if (ref($config{'nessus'}{$n}) eq 'HASH') {
-				map($config{'nessus'}{$n}{$_} = "",
-				    split(',', $ARGS{"n_$n"}));
+			elsif ($section eq "nessus") {
 				$restartnessus = 1;
-				next;
 			}
-                	$config{'nessus'}{$n} = $ARGS{"n_$n"};
-			$restartnessus = 1
-		}
-        }
 
-        foreach my $d (sort $np->cfg->keys('database')) {
-		if ($ARGS{"d_$d"} ne $config{'database'}{$d}) {
-                	$config{'database'}{$d} = $ARGS{"d_$d"};
-			$restartnetpass = 1;
+			elsif ($section eq "database") {
+				$restartnetpass = 1;
+			}
 		}
-        }
+	}
 
 	$np->db->reqAppAction('nessusd', 'restart', '') if ($restartnessus);
 	$np->db->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
 	$np->db->reqAppAction('httpd',   'restart', '') if ($restarthttpd);
 
-	#SaveConfig($np->{'configFile'}, \%config);
-	}
+	$np->cfg->save(-user => $m->session->{'username'});
 }
 
 print $q->start_form(-method => "POST");
@@ -96,7 +72,7 @@ print $q->start_form(-method => "POST");
 
 <h2>General Configuration</h2>
 
-<input disabled type='submit' name='submit' value='Commit Changes'> (not implemented)<P>
+<input type='submit' name='submit' value='Commit Changes'> <P>
 
 <TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
@@ -352,12 +328,12 @@ print $q->start_form(-method => "POST");
 <TR><TH onclick="showHideObj2(getElementById('nessusConfig').tBodies[0]);" COLSPAN=2>Nessus</TH></TR>
 </THEAD>
 <TBODY>
-<TR><TD CLASS='left'>Base_Dir</TD><TD CLASS='right'><input type="text" name="nessus:base_dir" value="<%$np->cfg->nessusConfig('BASE_DIR')%>" size="25" /></TD></TR>
-<TR><TD CLASS='left'>Host</TD><TD CLASS='right'><input type="text" name="nessus:host" value="<%$np->cfg->nessusHost()%>" size="25" /></TD></TR>
-<TR><TD CLASS='left'>Username</TD><TD CLASS='right'><input type="text" name="nessus:username" value="<%$np->cfg->nessusUsername()%>" size="25" /></TD></TR>
-<TR><TD CLASS='left'>Password</TD><TD CLASS='right'><input type="text" name="nessus:password" value="<%$np->cfg->nessusPassword()%>" size="25" /></TD></TR>
-<TR><TD CLASS='left'>Port</TD><TD CLASS='right'><input type="text" name="nessus:ort" value="<%$np->cfg->nessusPort()%>" size="25" /></TD></TR>
-<TR><TD CLASS='left'>When_down</TD><TD CLASS='right'><%$q->radio_group(-name => 'nessus:WHEN_DOWN', -default=>$np->cfg->nessusConfig('WHEN_DOWN'), -values => ['OK','FAIL'])%></TD></TR>
+<TR><TD CLASS='left'>Base_Dir</TD><TD CLASS='right'><input type="text" name="nessus:base_dir" value="<%$np->cfg->nessus(-key => 'BASE_DIR')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Host</TD><TD CLASS='right'><input type="text" name="nessus:host" value="<%$np->cfg->nessus(-key => 'host')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Username</TD><TD CLASS='right'><input type="text" name="nessus:username" value="<%$np->cfg->nessus(-key => 'username')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Password</TD><TD CLASS='right'><input type="text" name="nessus:password" value="<%$np->cfg->nessus(-key => 'password')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Port</TD><TD CLASS='right'><input type="text" name="nessus:port" value="<%$np->cfg->nessus(-key => 'port')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>When_down</TD><TD CLASS='right'><%$q->radio_group(-name => 'nessus:WHEN_DOWN', -default=>$np->cfg->nessus(-key => 'WHEN_DOWN'), -values => ['OK','FAIL'])%></TD></TR>
 </TBODY>
 </TABLE>
 <BR>
@@ -387,7 +363,7 @@ print $q->end_form();
 </%perl>
 
 <script language="JavaScript">
- showHideObj2(document.getElementById("databaseConfig").tBodies[0]);
+/* showHideObj2(document.getElementById("databaseConfig").tBodies[0]);
  showHideObj2(document.getElementById("nessusConfig").tBodies[0]);
- showHideObj2(document.getElementById("policyConfig").tBodies[0]);
+ showHideObj2(document.getElementById("policyConfig").tBodies[0]);*/
 </script>

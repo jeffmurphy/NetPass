@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.27 2005/04/24 03:58:56 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.28 2005/04/24 04:50:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -156,6 +156,45 @@ sub new {
 	
 	return bless ($self, $class);
 }
+
+=head2 $cfg-E<gt>save(-user => whoareyou)
+
+Save the current configuration. We don't attempt to acquire
+a lock on the config. You should have already gotten one before
+you started to edit it. 
+
+RETURNS 
+
+=over 4
+
+ 0         on success
+ "..."     on failure (can be a variety of things)
+
+=cut
+
+sub save {
+	my $self = shift;
+
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-user)],
+				 -required => [qw(-user)]
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return  Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+
+	my ($user) = $parms->get('-user');
+
+	my $rv = $self->{'db'}->putConfig(-rev    => $self->{'cfg_from_db'}->{'rev'},
+				       -config => [ $self->{'cfg'}->save_string() ],
+				       -user   => $user);
+	return $rv;
+}
+
 
 =head2 my $dbh = $cfg-E<gt>dbSource
 
@@ -751,8 +790,8 @@ sub policy {
 	# applies. else we assume network is a group name (if it's defined
 	# at all)
 
-	if ($nw !~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) { 
-		_log("DEBUG", "policy($pvar): resolve nw=$nw\n") if $self->debug;
+	if ($nw =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) { 
+		_log("DEBUG", "policy($pvar): resolve nw=$nw\n");# if $self->debug;
 		$nw = $self->getMatchingNetwork(-ip => $nw);
 		_log("DEBUG", "policy($pvar): resolved to nw=$nw\n") if $self->debug;
 	} 
@@ -763,6 +802,8 @@ sub policy {
 	if ( !defined($val) ) {
 		# if the network has a <policy> section, check it for the given
 		# pvar
+
+		_log ("DEBUG", "this is a policy lookup (not set) for ".$pvar."\n");
 
 		if (recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
 			_log("DEBUG", "policy($pvar): nw=$nw has policy section. returning that.\n") if $self->debug;
@@ -799,19 +840,25 @@ sub policy {
 	else {
 		my $oldvalue = undef;
 
-		if ($nw !~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) { 
+		_log ("DEBUG", "this is a policy set (not lookup) for ".$pvar." $val\n");
+
+		if ($nw =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) { 
 			# set the <network>'s policy
 
+			_log("DEBUG", "nw=$nw examine network clause\n");
+
 			if (! recur_exists ($self->{'cfg'}, "network", $nw)) {
-				return "nosuch network";
+				return undef; #"nosuch network";
 			}
 
 			if (! recur_exists ($self->{'cfg'}, "network", $nw, "policy")) {
 				# create one
+				_log("DEBUG", "nw=$nw create network policy clause\n");
 				$self->{'cfg'}->obj('network')->obj($nw)->policy({});
 			}
 
 			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
+				_log("DEBUG", "nw=$nw set network policy for $pvar\n");
 				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
 				return $oldvalue;
@@ -820,34 +867,43 @@ sub policy {
 		elsif ($nw ne "") {
 			# set the <group> policy
 
+			_log("DEBUG", "group=$nw set group policy for $pvar\n");
+
 			if (! recur_exists ($self->{'cfg'}, "group", $nw)) {
 				return undef; #"nosuch group";
 			}
 
 			if (! recur_exists ($self->{'cfg'}, "group", $nw, 'policy')) {
 				# create one
+				_log("DEBUG", "group=$nw create a group policy \n");
 				$self->{'cfg'}->obj('network')->obj($nw)->policy({});
 			}
 
 			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
+				_log("DEBUG", "group=$nw set group policy for $pvar (has oldval)\n");
 				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
 				return $oldvalue;
 			}
 
+			_log("DEBUG", "group=$nw set group policy for $pvar (no oldval)\n");
 			$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
 			return undef;
 
 		}
 		else {
+			_log("DEBUG", "set global policy for $pvar\n");
 			if (! recur_exists($self->{'cfg'}, "policy") ) {
+				_log("DEBUG", "create global policy\n");
 				# create one
 				$self->{'cfg'}->policy({});
 			}
 
 			if (recur_exists ($self->{'cfg'}, "policy", $pvar) ) {
+				_log("DEBUG", "set global policy (fetch oldval) $pvar \n");
 				$oldvalue = $self->{'cfg'}->obj('policy')->value($pvar);
 			}
+			_log("DEBUG", "set global policy $pvar\n");
 			$self->{'cfg'}->obj('policy')->$pvar($val);
 			return $oldvalue;
 		}
@@ -1394,20 +1450,55 @@ sub nessusPort {
 	return $self->{'cfg'}->obj('nessus')->value('port');
 }
 
-=head2 B<$np->cfg->nessusConfig()>
+=head2 B<$np->cfg->nessus(-key => key, -val => val)>
 
+Given a <nessus> config variable, return the value. If -val is given,
+the set the value.
+
+RETURNS
+
+=over 4
+
+ value or undef    on success
+
+=back
 
 =cut
 
-sub nessusConfig {
+sub nessus {
 	my $self = shift;
-	my $val  = shift;
-	$val =~ tr [A-Z] [a-z];
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-key -network -val)],
+				 -required => [qw(-key)],
+				 -defaults => { -network => '', -val => undef }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		warn Carp::longmess("invalid parameters ".Class::ParmList->error);
+		return undef;
+	}
+
+	my ($key, $nw, $val) = $parms->get('-key', '-network', '-val');
+
+	$key =~ tr [A-Z] [a-z];
 
 	$self->reloadIfChanged();
 
-	return $self->{'cfg'}->obj('nessus')->value($val)
-	  if (recur_exists($self->{'cfg'}, 'nessus', $val));
+	if (defined($val)) {
+		my $oldval = undef;
+		$self->{'cfg'}->nessus({}) if (! $self->{'cfg'}->exists('nessus') );
+		$oldval = ($self->{'cfg'}->obj('nessus')->exists($key)) 
+		  if ($self->{'cfg'}->obj('nessus')->exists($key));
+		$self->{'cfg'}->obj('nessus')->$key($val);
+		return $oldval;
+	}
+
+	return $self->{'cfg'}->obj('nessus')->value($key)
+	  if (recur_exists($self->{'cfg'}, 'nessus', $key));
+	return undef;
 }
 
 =head2 B<recur_exists>
@@ -1443,7 +1534,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.27 2005/04/24 03:58:56 jeffmurphy Exp $
+$Id: Config.pm,v 1.28 2005/04/24 04:50:02 jeffmurphy Exp $
 
 =cut
 
