@@ -1,118 +1,29 @@
 #!/bin/sh
 #
-# nessus        This shell script takes care of starting and stopping
-#               nessus.
+# npsnortd         Start/Stop the npsnortd.
 #
-# chkconfig: - 89 11
-# description: nessus provides host scanning for the netpass service
-
-# startup order should be:
-#   1. iptables            2345 08 92
-#   2. mysql               2345 78 12
-#   3. netpass-ha          2345 89 11
-#   4. garp                    ''
-#   5. portmover               ''
-#   6. resetport               ''
-#   7. apache              2345 90 10    
-#   8. dhcrelay            2345 91 09  <- change from 66/34
+# chkconfig: 2345 40 60
 #
-# this script doesn 3-6. the rest is handled by other initscripts
-
 # Source function library.
 . /etc/rc.d/init.d/functions
 
-# Source networking configuration.
-. /etc/sysconfig/network
+# Source the local configuration file
+. /etc/sysconfig/npsnortd
 
-[ -f /etc/sysconfig/netpass ] && . /etc/sysconfig/netpass
-
-# Check that networking is up.
-[ ${NETWORKING} = "no" ] && exit 0
-
-B=/opt/netpass
-
-
-RETVAL=0
-prog="netpass"
-
-start() {
-	# Start daemons.
-	if [ -f ${B}/bin/${HASCRIPT} ] ; then
-		echo -n $"Starting netpass-ha: "
-		daemon ${B}/bin/${HASCRIPT}
-		echo
-		#[ $RETVAL -eq 0 ] && exit $RETVAL
-	fi
-
-	echo -n $"Starting garp: "
-	${B}/bin/garpctl -q start
-	if [ $? == 0 ]; then 
-	    success "garp shutdown"
-	else
-	    failure "garp shutdown failed"
-	fi
-	echo
-
-	echo -n $"Starting resetport: "
-	daemon ${B}/bin/resetport.pl ${B}/log/snmptraps.log 
-	echo
-        #[ $RETVAL -eq 0 ] && exit $RETVAL
-
-        echo -n $"Starting portmover: "
-	daemon ${B}/bin/portmover.pl 
-	echo 
-        #[ $RETVAL -eq 0 ] && exit $RETVAL
-
-	return 0	
-}
-
-stop() {
-	# Stop daemons.
-
-	echo -n $"Shutting down garp: "
-	${B}/bin/garpctl -q stop
-	if [ $? == 0 ]; then 
-	    success "garp shutdown"
-	else
-	    failure "garp shutdown failed"
-	fi
-	echo
-
-	echo -n $"Shutting down resetport: "
-	killproc resetport.pl
-	echo
-
-	echo -n $"Shutting down portmover: "
-	killproc portmover.pl
-	echo
-	return 0
-}
-
-# See how we were called.
 case "$1" in
   start)
-	start
-	;;
+        echo -n "Starting npsnortd: "
+        daemon /opt/snort/bin/npsnortd.pl -s $NPAPISERVER -S $NPAPISECRET -l $SNORTLOGFILE -r $SNORTRULESFILE -P $NPSNORTDPORT -p $SNORTPIDFILE -f /etc/init.d/snort
+        echo
+        ;;
   stop)
-	stop
-	;;
-  restart|reload)
-	stop
-	start
-	RETVAL=$?
-	;;
-  status)
-	${B}/bin/garpctl status
-	status portmover
-	status resetport
-	status httpd
-	/etc/init.d/nessusd status
-	/etc/init.d/dhcrelay status
-	RETVAL=$?
-	;;
+        echo -n "Stopping snort: "
+        killproc npsnortd
+        echo 
+        ;;
   *)
-	echo $"Usage: $0 {start|stop|restart|status}"
-	exit 1
+        echo "Usage: $0 {start|stop}"
+        exit 2
 esac
 
-exit $RETVAL
+exit 0

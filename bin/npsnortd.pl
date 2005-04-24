@@ -80,8 +80,10 @@ my $D = 0;
 if (exists $opts{'D'}) {
 	$D = 1;
 } else {
-	daemonize("npsoapd", "/var/run");
+	daemonize("npsortd", "/var/run");
 }
+
+$0 = "npsnortd";
 
 my $tid = threads->create(\&soapServer, \%opts);
 die "Unable to spawn soap server thread." unless $tid;
@@ -131,7 +133,7 @@ while (1) {
 			warn "Wasn't Able to process $ip";
 			next;
 		}
-		print "processing $ip sids = ".join(',', keys(%{$data{$ip}}))." resulted in $res\n";
+		#print "processing $ip sids = ".join(',', keys(%{$data{$ip}}))." resulted in $res\n";
 	}
 }
 

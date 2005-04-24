@@ -211,6 +211,13 @@ sub snortStatus {
         return undef;
 }
 
+=head2 echo()
+
+Used to determine if we have a valid connection, Returns 1 always.
+
+=cut
+
+sub echo {1}
 
 1;
 

@@ -1,0 +1,8 @@
+CONF=/opt/snort/etc/snort.conf
+INTERFACE=dag0
+LOGDIR=/opt/snort/logs
+PASS_FIRST=1
+#USER=snort
+#GROUP=snort
+NO_PACKET_LOG=1
+
