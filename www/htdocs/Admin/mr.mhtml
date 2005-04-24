@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.6 2005/04/12 20:53:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.7 2005/04/24 03:42:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -68,7 +68,7 @@ print $q->table({-border=>0, -width=>600},
                                                 -error  => 'Please format the IP Address in the format
  specified.'
                                 ).
-                                $q->small(' e.g. '.$np->cfg->policy('EXAMPLE_IPADDR', $ENV{'REMOTE_ADDR'}))
+                                $q->small(' e.g. '.$np->cfg->policy(-key => 'EXAMPLE_IPADDR', -network => $ENV{'REMOTE_ADDR'}))
                         )
                 ).
                 $q->TR(
@@ -86,7 +86,7 @@ t specified.'
                         )
                 ).
                 $q->TR(
-                        $q->td({-class=>"gray"}, $np->cfg->policy('USERNAME_PROMPT', $ENV{'REMOTE_ADDR'}) || "Username:") .
+                        $q->td({-class=>"gray"}, $np->cfg->policy(-key => 'USERNAME_PROMPT', -network => $ENV{'REMOTE_ADDR'}) || "Username:") .
                         $q->td({-class=>"gray"},
                                 $q->textfield(
                                                 -name   => "uid",

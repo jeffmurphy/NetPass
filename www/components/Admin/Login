@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.7 2005/04/12 20:53:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.8 2005/04/24 03:42:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -46,10 +46,10 @@ This component outputs a login prompt form.
 <form method="post" name="mainForm">
  <table align=center border='0' width='300'>
    <tr><th align=center colspan=2>Login</th></tr>
-   <tr><td><%$np->cfg->policy('USERNAME_PROMPT', $ip) || "Username:"%></td>
+   <tr><td><%$np->cfg->policy(-key => 'USERNAME_PROMPT', -network => $ip) || "Username:"%></td>
        <td><input name="username" size=8></td>
    </tr>
-   <tr><td><%$np->cfg->policy('PASSWORD_PROMPT', $ip) || "Password:"%></td>
+   <tr><td><%$np->cfg->policy(-key => 'PASSWORD_PROMPT', -network => $ip) || "Password:"%></td>
        <td><input type=password name="password" size=8></td>
    </tr>
    <tr><td colspan=2 align=center><input type="submit" value="Login"></td></tr>

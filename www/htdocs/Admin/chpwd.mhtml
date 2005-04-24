@@ -13,6 +13,9 @@
 # then "old" password isnt prompted for
 # (root admin/ueditor can change anyones passwd).
 
+# if the user has no passwd, then old is not prompted for,
+# allowing for the specifying of a password for a new user
+
 my $isRoot; my $junk; my $isUEdit;
 
 ($isRoot, $junk)  = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
@@ -27,6 +30,11 @@ if ($m->session->{'logged_in'} && exists $m->session->{'my_groups'} && (keys %$m
 	if ( ($username eq "") || (!$isRoot && !$isUEdit) ) {
 		$username   = $m->session->{'username'};
 		$curpwstyle = "";
+	}
+
+	my $getpwd = $np->db->getPasswd($username);
+	if (!defined($getpwd)) {
+		$curpwstyle = "display:none;";
 	}
 
 	my ($ecol, $emsg) = ("display:none;", "Waiting for data...");
@@ -47,9 +55,9 @@ if ($m->session->{'logged_in'} && exists $m->session->{'my_groups'} && (keys %$m
 					$ecol = "background-color:red;";
 					$emsg = "Password invalid.";
 				}
-			} else {
-				$ecol = "background-color:red;";
-				$emsg = "DB Failure (no password found?)";
+			} 
+			else {
+				# no passwd in db? new user?
 			}
 		}
 

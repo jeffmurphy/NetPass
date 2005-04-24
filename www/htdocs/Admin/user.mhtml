@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.17 2005/04/23 15:32:05 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.18 2005/04/24 03:42:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -49,11 +49,11 @@ my @groups = (keys %groups);
 my $error  = "";
 my $whoami = $m->session->{'username'};
 my $myip   = $ENV{'REMOTE_ADDR'};
-my $ldap   = $np->cfg->policy('LDAP_USER_QUERY', $ENV{'REMOTE_ADDR'});
+my $ldap   = $np->cfg->policy(-key => 'LDAP_USER_QUERY', -network => $ENV{'REMOTE_ADDR'});
 
 # if this is set, "default->Admin" users can change other users' passwords
 
-my $usingAuthDB = $np->cfg->policy('ADMIN_AUTH_METHOD') eq "NetPass::Auth::DB";
+my $usingAuthDB = $np->cfg->policy(-key => 'ADMIN_AUTH_METHOD', -network => $ENV{'REMOTE_ADDR'}) eq "NetPass::Auth::DB";
 
 # get a list of all networks
 
@@ -322,11 +322,7 @@ This will be enforced when you commit the changes.<P>
 
 %	# change a user's password (if you are default:admin)
 %	if ($isRoot && $usingAuthDB) {
-		<table id="passwdDialog" style="display:none;" border=0>
-		<tr><td style='text-align:right'>New Password:</td><td><input type='password' name='password' size=10 maxlength=64></td></tr>
-		<tr><td style='text-align:right'>Again:</td><td><input type='password' name='password2' size=10 maxlength=64></td></tr>
-		<tr><td style='text-align:center' colspan=2><input type='submit' name='submit' value='Change Password'></td></tr>
-		</table>
+		<a id="passwdDialog" style="display:none;" href="javascript:document.location='chpwd.mhtml?username=' + userform_lookupSelectedUser();">Change Password</a>
 %	}
     </td>
     <td style='vertical-align:top;'>
@@ -361,8 +357,9 @@ This will be enforced when you commit the changes.<P>
 %		}
 </select>
 <P><CENTER>
-<button id='addToAll' disabled>Add To All</button><P>
-<button id='remFromAll' disabled>Remove From All</button>
+<!-- not implemented -->
+<button style='display:none;' id='addToAll' disabled>Add To All</button><P>
+<button style='display:none;' id='remFromAll' disabled>Remove From All</button>
 
 </CENTER>
 </td></tr></table>

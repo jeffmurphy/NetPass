@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.7 2005/04/19 04:01:24 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.8 2005/04/24 03:42:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -73,7 +73,7 @@ if($nres > -1) {
 	$m->comp('/Client/ShowResults', 'mac' => $mac, 'ip' => $ip, 'pquar' => 0);
 } else {
 
-	my $scanEnabled = $np->cfg->policy('nessus', $ip);
+	my $scanEnabled = $np->cfg->policy(-key => 'nessus', -network => $ip);
 	_log("INFO", "$mac $ip scanEnabled=$scanEnabled\n");
 
 	if (defined($scanEnabled) && $scanEnabled) {

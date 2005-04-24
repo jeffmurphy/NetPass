@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.24 2005/04/21 18:35:49 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.25 2005/04/24 03:42:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -591,31 +591,6 @@ sub getInterface {
         return undef;
 }
 
-=head2 0 | 1 = $cfg-E<gt>resetportSetting($nw)
-
-Given a network, return the reset port setting (0 or 1). If it is not
-set on the given network, return the global setting. If no network is 
-specified, returns the global setting.
-
-=cut
-
-sub resetportSetting {
-	my $self = shift;
-	my $nw   = shift;
-
-	$self->reloadIfChanged();
-
-        if ($self->{'cfg'}->obj('network')->exists($nw)) {
-                if ($self->{'cfg'}->obj('network')->obj($nw)->exists('resetport')) {
-                        return $self->{'cfg'}->obj('network')->obj($nw)->value('resetport');
-                }
-        }
-	my $x = $self->policy('resetport');
-	return 1 if defined($x) && ($x == 1);
-	return 0;
-}
-
-
 =head2 my $int = $cfg-E<gt>getBSW(network)
 
 return the building switch(es) defined for this network. return C<undef> if no
@@ -707,71 +682,185 @@ sub getNetComment {
 }
 
 
-=head2 $val = $np->policy($key, $nw)
+=head2 $val = $np->policy(-key => $key, -network => $nw, -val => $value)
+
+FETCHING POLICY SETTINGS
+
+=over 4
 
 Given a key (a policy/configuration variable name) return the associated value
-or undef if the variable doesnt exist in the C<netpass.conf> file's 
-E<lt>policyE<gt> section. Networks can have E<lt>policyE<gt> sections too.
-If we're given a network, we'll search there first. If we don't find
-anything useful, we'll try the network's group and finally the global policy.
+or undef if the variable doesnt exist in the C<netpass.conf>
+E<lt>policyE<gt> section. 
+
+Networks can have E<lt>policyE<gt> sections too. If we're given a network, 
+we'll search there first. If we don't find anything useful, we'll try the network's 
+group and finally the global policy.
+
+=back
+
+SETTING POLICY SEETINGS
+
+=over 4
+
+If a -val is given, the policy variable will be set instead of fetched. If no
+network is specified, the global policy is set. If a network is specified, 
+the specific policy for the network is set. If a groupname is given, the 
+specific policy for that group is set.
+
+=back
+
+RETURN VALUES
+
+=over 4
+
+ HASHREF           on successful fetch: { 'key' => 'value' }
+ HASHREF           on successful set:   { 'key' => 'oldvalue' }
+ "invalid parameters"
+                   routine called improperly
+ "config not loaded"
+                   failed to read config
+ "nosuch network"  attempt to set a policy on invalid network
+ "nosuch group"    attempt to set a policy on invalid group
+
+=back
 
 =cut
 
 sub policy {
 	my $self = shift;
-	my $pvar = shift;
-	my $nw   = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-key -network -val)],
+				 -required => [qw(-key)],
+				 -defaults => { -network => '', -val => undef }
+			    }
+			   );
+	return Carp::longmess("invalid parameters ".Class::ParmList->error) if (!defined($parms));
+
+	my ($pvar, $nw, $val) = $parms->get('-key', '-network', '-val');
 
 
 	_log("DEBUG", "policy($pvar)\n") if $self->debug;
 
+	$nw = "" if ($nw eq "default");
 	$nw ||= "";
 
 	$self->reloadIfChanged();
 	
-	return undef 
+	return "config not loaded"
 	  if (! exists $self->{'cfg'}) || 
 	    (ref $self->{'cfg'} ne "Config::General::Extended");
 	
-	return undef unless defined $pvar;
 	$pvar =~ tr [A-Z] [a-z]; # because of AutoLowerCase
 
-	if ($nw ne "" || $nw !~ /\//) { # not CIDR, bare IP
+	# if network looks like an IP, figure out which <network> clause
+	# applies. else we assume network is a group name (if it's defined
+	# at all)
+
+	if ($nw !~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) { 
 		_log("DEBUG", "policy($pvar): resolve nw=$nw\n") if $self->debug;
 		$nw = $self->getMatchingNetwork(-ip => $nw);
 		_log("DEBUG", "policy($pvar): resolved to nw=$nw\n") if $self->debug;
-	}
-
-	# if the network has a <policy> section, check it for the given
-	# pvar
-
-	if (recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
-		_log("DEBUG", "policy($pvar): nw=$nw has policy section. returning that.\n") if $self->debug;
-		return $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
-	}
+	} 
 
 
-	# if the network has a group name, check the group
+	# this is a lookup operation
 
-	my $netgroup = "";
-	if (recur_exists ($self->{'cfg'}, "network", $nw, "group")) {
-		$netgroup =  $self->{'cfg'}->obj('network')->obj($nw)->value('group');
-		_log("DEBUG", "policy($pvar): nw=$nw is member of group $netgroup\n") if $self->debug;
-		if (recur_exists ($self->{'cfg'}, "group", $netgroup, "policy", $pvar)) {
-			_log("DEBUG", "policy($pvar): (nw=$nw) group=$netgroup has policy section. returning that.\n") if $self->debug;
-			return $self->{'cfg'}->obj('group')->obj($netgroup)->
-			  obj('policy')->value($pvar);
+	if ( !defined($val) ) {
+		# if the network has a <policy> section, check it for the given
+		# pvar
+
+		if (recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
+			_log("DEBUG", "policy($pvar): nw=$nw has policy section. returning that.\n") if $self->debug;
+			return { $pvar => $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar) };
 		}
+
+
+		# if the network has a group name, check the group
+
+		my $netgroup = "";
+		if (recur_exists ($self->{'cfg'}, "network", $nw, "group")) {
+			$netgroup =  $self->{'cfg'}->obj('network')->obj($nw)->value('group');
+			_log("DEBUG", "policy($pvar): nw=$nw is member of group $netgroup\n") if $self->debug;
+			if (recur_exists ($self->{'cfg'}, "group", $netgroup, "policy", $pvar)) {
+				_log("DEBUG", "policy($pvar): (nw=$nw) group=$netgroup has policy section. returning that.\n") if $self->debug;
+				return { $pvar => 
+					 $self->{'cfg'}->obj('group')->obj($netgroup)->obj('policy')->value($pvar) };
+			}
+		}
+
+		# finally, look in the global policy
+
+		_log("DEBUG", "policy($pvar): looking in global policy.\n") if $self->debug;
+		
+		return { $pvar => $self->{'cfg'}->obj('policy')->value($pvar) }
+		  if (recur_exists ($self->{'cfg'}, "policy", $pvar));
+		
+		_log("DEBUG", "policy($pvar): no global policy. $pvar not found.\n") if $self->debug;
+
+		return { $pvar => undef };
+	} 
+
+	# this is a set operation
+
+	else {
+		my $oldvalue = undef;
+
+		if ($nw !~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) { 
+			# set the <network>'s policy
+
+			if (! recur_exists ($self->{'cfg'}, "network", $nw)) {
+				return "nosuch network";
+			}
+
+			if (! recur_exists ($self->{'cfg'}, "network", $nw, "policy")) {
+				# create one
+				$self->{'cfg'}->obj('network')->obj($nw)->policy({});
+			}
+
+			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
+				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
+				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
+				return { $pvar => $oldvalue };
+			}
+		} 
+		elsif ($nw ne "") {
+			# set the <group> policy
+
+			if (! recur_exists ($self->{'cfg'}, "group", $nw)) {
+				return "nosuch group";
+			}
+
+			if (! recur_exists ($self->{'cfg'}, "group", $nw, 'policy')) {
+				# create one
+				$self->{'cfg'}->obj('network')->obj($nw)->policy({});
+			}
+
+			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
+				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
+				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
+				return { $pvar => $oldvalue };
+			}
+
+			$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
+			return { $pvar => undef };
+
+		}
+		else {
+			if (! recur_exists($self->{'cfg'}, "policy") ) {
+				# create one
+				$self->{'cfg'}->policy({});
+			}
+
+			if (recur_exists ($self->{'cfg'}, "policy", $pvar) ) {
+				$oldvalue = $self->{'cfg'}->obj('policy')->value($pvar);
+			}
+			$self->{'cfg'}->obj('policy')->$pvar($val);
+			return { $pvar => $oldvalue };
+		}
+
 	}
-
-	# finally, look in the global policy
-
-	_log("DEBUG", "policy($pvar): looking in global policy.\n") if $self->debug;
-
-	return $self->{'cfg'}->obj('policy')->value($pvar)
-	  if (recur_exists ($self->{'cfg'}, "policy", $pvar));
-
-	_log("DEBUG", "policy($pvar): no global policy. $pvar not found.\n") if $self->debug;
 
 	return undef;
 }
@@ -818,7 +907,7 @@ sub getMatchingNetwork {
     
     my ($ip, $sw, $po) = $parms->get('-ip', '-switch', '-port');
 
-    return "invalid params (if !ip then sw/po both reqd)"
+    return "invalid parameters (if !ip then sw/po both reqd)"
       if (($ip eq "") && (($sw eq "") || ($po eq "")));
 
     if ($ip ne "") {
@@ -1362,7 +1451,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.24 2005/04/21 18:35:49 mtbell Exp $
+$Id: Config.pm,v 1.25 2005/04/24 03:42:02 jeffmurphy Exp $
 
 =cut
 

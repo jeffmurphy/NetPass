@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.16 2005/04/13 20:57:43 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.17 2005/04/24 03:42:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -178,30 +178,6 @@ sub cfg {
 }
 
 
-=head2 $val = $np-E<gt>policy($key, $network)
-
-=over
-
-Given a key (a policy/configuration variable name) return the associated value
-or undef if the variable doesnt exist in the C<netpass.conf> file's 
-E<lt>policyE<gt> section. If the network is given, we'll search there first.
-If the key doesn't exist on the specified network, we'll search the global
-policy.
-
-=back
-
-=cut
-
-sub policy {
-
-	die Carp::longmess("DEPRECATED. FIX ME.");
-
-    my $self = shift;
-    my $pvar = shift;
-
-    return $self->{'cfg'}->policy($pvar);
-}
-
 =head2 movePort(-switch =E<gt> switch, -port =E<gt> port, -vlan =E<gt> E<lt>unquarantine | quaranineE<gt>)
 
 Move a port to its unquarantined or quarantined VLAN as appropriate
@@ -370,7 +346,7 @@ sub authenticateUser {
 
     no strict 'refs';
 
-    my $auth_mod = $self->{'cfg'}->policy('AUTH_METHOD');
+    my $auth_mod = $self->{'cfg'}->policy(-key => 'AUTH_METHOD');
     _log "DEBUG", "auth_meth = $auth_mod\n";
 
     if (exists $self->{'auth_mod_loaded'}) {
@@ -407,7 +383,7 @@ sub authenticateAdmin {
 
     no strict 'refs';
 
-    my $auth_mod = $self->{'cfg'}->policy('ADMIN_AUTH_METHOD');
+    my $auth_mod = $self->{'cfg'}->policy(-key => 'ADMIN_AUTH_METHOD');
     _log "DEBUG", "admin_auth_meth = $auth_mod\n";
 
     if (exists $self->{'auth_mod_loaded'}) {
@@ -465,7 +441,7 @@ port is quarantined if multiple macs are seen
 sub enforceMultiMacPolicy {
 	my ($self, $mac, $ip, $status, $sw, $po, $mp, $pm) = @_;
 
-	if ( $self->policy('MULTI_MAC') eq "ALL_OK" ) {
+	if ( $self->policy(-key => 'MULTI_MAC') eq "ALL_OK" ) {
 		_log "DEBUG", "$mac $ip MULTI_MAC policy is ALL_OK $sw/$po\n";
 		my $allOK = 1;
 		my @OKmacs;
@@ -521,7 +497,7 @@ sub enforceMultiMacPolicy {
 	# XXX ELSE DISALLOWED
 	# XXX for future implementation
 	
-	_log "ERROR", "MULTI_MAC policy ".$self->policy('MULTI_MAC')." not implemented\n";
+	_log "ERROR", "MULTI_MAC policy ".$self->policy(-key => 'MULTI_MAC')." not implemented\n";
 	return ($status, $sw, $po);
 }
 
@@ -539,7 +515,7 @@ slow.
 sub findOurSwitchPort {
 	my ($self, @args) = (shift, @_);
 	
-	if ($self->cfg->policy('PORT_SEARCH_ALGO') eq "TREE") {
+	if ($self->cfg->policy(-key => 'PORT_SEARCH_ALGO') eq "TREE") {
 		my @rvs = $self->findOurSwitchPort_tree(@args); 
 		# if we succeeded, return, else fall thru to linear
 		return @rvs if defined($rvs[0]);
@@ -977,7 +953,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.16 2005/04/13 20:57:43 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.17 2005/04/24 03:42:02 jeffmurphy Exp $
 
 =cut
 

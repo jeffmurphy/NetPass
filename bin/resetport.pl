@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.11 2005/04/12 18:11:52 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.12 2005/04/24 03:42:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -77,7 +77,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.11 2005/04/12 18:11:52 jeffmurphy Exp $
+$Id: resetport.pl,v 1.12 2005/04/24 03:42:02 jeffmurphy Exp $
 
 =cut
 
@@ -146,7 +146,7 @@ daemonize("resetport", "/var/run/netpass") unless exists $opts{'D'};
 
 print "entering while..\n" if exists $opts{'D'};
 
-my $unq_on_linkup = $np->cfg->policy('UNQUAR_ON_LINKUP') || "0";
+my $unq_on_linkup = $np->cfg->policy(-key => 'UNQUAR_ON_LINKUP') || "0";
 
 # occasionally, you'll find a machine that will bring up link very early,
 # but wont source any traffic until quite a bit later. in those cases,
@@ -432,7 +432,7 @@ sub procUQ {
 				# endif
 			
 				my $numOK   = $np->db->UQLinkUp_itDependsCheck($macList);
-				my $mmpol   = $np->cfg->policy('MULTI_MAC');
+				my $mmpol   = $np->cfg->policy(-key => 'MULTI_MAC');
 				
 				if ( ($numOK == ($#$macList+1)) && ($mmpol eq "ALL_OK") ) {
 					_log ("DEBUG", "$switch $port 'itdepends' set. everything looks good. unquar port. ",
@@ -533,7 +533,7 @@ sub resetPortEnabled {
 
 	# is RESETPORT enabled on this network?
 
-	return $np->cfg->resetportSetting($_nw);
+	return $np->cfg->policy(-key => 'resetport', -network => $_nw);
 }
 
 sub findRegMac {

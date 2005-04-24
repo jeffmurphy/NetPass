@@ -197,6 +197,7 @@ www/htdocs/Admin/urlfilter.mhtml
 www/htdocs/Admin/test.html
 www/htdocs/Admin/clienthistory.mhtml
 www/htdocs/Admin/chpwd.mhtml
+www/htdocs/Admin/auth.mhtml
 www/htdocs/OSSTemplate/css/OSSTemplate.css.cgi
 www/htdocs/OSSTemplate/css/.htaccess
 www/htdocs/OSSTemplate/css/calendar.css

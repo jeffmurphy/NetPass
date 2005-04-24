@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.6 2005/04/19 01:40:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.7 2005/04/24 03:42:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -86,7 +86,7 @@ print $q->table({-border=>0, -width=>600},
 			)
 		).
 		$q->TR(
-			$q->td({-class=>"gray"}, $np->cfg->policy('USERNAME_PROMPT', $ENV{'REMOTE_ADDR'}) || "Username:") .
+			$q->td({-class=>"gray"}, $np->cfg->policy(-key => 'USERNAME_PROMPT', -network => $ENV{'REMOTE_ADDR'}) || "Username:") .
 			$q->td({-class=>"gray"},
 				$q->textfield(
 						-name 	=> "uid",

@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/garp.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/garp.pl,v 1.4 2005/04/24 03:42:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -96,7 +96,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: garp.pl,v 1.3 2005/04/12 20:53:43 jeffmurphy Exp $
+$Id: garp.pl,v 1.4 2005/04/24 03:42:02 jeffmurphy Exp $
 
 =cut
 
@@ -230,7 +230,7 @@ if (exists $opts{'r'}) {
 }
 
 my $daemon = 0;
-my $pidDir = $np->cfg->policy('PID_DIR') || "/var/run/netpass";
+my $pidDir = $np->cfg->policy(-key => 'PID_DIR') || "/var/run/netpass";
 my $pidFn  = $pidDir."/garp.PID.pid";
 if (! exists $opts{'D'}) {
     daemonize("garp", $pidDir, $pidFn, $opts{'i'});

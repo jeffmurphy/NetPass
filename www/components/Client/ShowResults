@@ -63,7 +63,7 @@ if ($nres > -1) {
 		print qq{</td></tr>};
 	}
 	else {
-		my $autoexpand = ($nres <= ($np->cfg->policy('RESULTS_EXPAND', $ip)-1));
+		my $autoexpand = ($nres <= ($np->cfg->policy(-key => 'RESULTS_EXPAND', -network =>$ip)-1));
 		for(my $resultNum = 0 ; $resultNum <= $nres ; $resultNum++) {
 			my $sid = $results->{'id'}->[$resultNum];
 			my ($shortName, $info, $description, $type);
