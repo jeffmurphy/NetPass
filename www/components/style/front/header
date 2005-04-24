@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/style/front/header,v 1.5 2005/04/21 18:08:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/style/front/header,v 1.6 2005/04/24 03:48:13 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -14,9 +14,9 @@
 
 <%perl>
 	my $ip = $ENV{'REMOTE_ADDR'};
-	my $compName  = $np->cfg->policy('COMPANY_NAME', $ip) || "";
-	my $compSName = $np->cfg->policy('COMPANY_SHORT_NAME', $ip) || "";
-	my $compUnit  = $np->cfg->policy('COMPANY_UNIT_NAME', $ip) || "";
+	my $compName  = $np->cfg->policy(-key => 'COMPANY_NAME', -network => $ip) || "";
+	my $compSName = $np->cfg->policy(-key => 'COMPANY_SHORT_NAME', -network => $ip) || "";
+	my $compUnit  = $np->cfg->policy(-key => 'COMPANY_UNIT_NAME', -network => $ip) || "";
 </%perl>
 
 <?xml version="1.0" encoding="iso-8859-1"?>

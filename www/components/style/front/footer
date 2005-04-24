@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/style/front/footer,v 1.3 2005/04/12 20:53:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/style/front/footer,v 1.4 2005/04/24 03:48:13 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -16,10 +16,10 @@
 
 <%perl>
 	my $ip = $ENV{'REMOTE_ADDR'};
-	my $compName  = $np->cfg->policy('COMPANY_NAME', $ip) || "";
-	my $compSName = $np->cfg->policy('COMPANY_SHORT_NAME', $ip) || "";
-	my $compUnit  = $np->cfg->policy('COMPANY_UNIT_NAME', $ip) || "";
-	my $copyRight = $np->cfg->policy('COPYRIGHT', $ip) || "";
+	my $compName  = $np->cfg->policy(-key => 'COMPANY_NAME', -network => $ip) || "";
+	my $compSName = $np->cfg->policy(-key => 'COMPANY_SHORT_NAME',  -network => $ip) || "";
+	my $compUnit  = $np->cfg->policy(-key => 'COMPANY_UNIT_NAME',  -network => $ip) || "";
+	my $copyRight = $np->cfg->policy(-key => 'COPYRIGHT',  -network => $ip) || "";
 </%perl>
 
 <table width="100%" border="0" cellpadding="0" cellspacing="0">

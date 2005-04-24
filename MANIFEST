@@ -117,6 +117,8 @@ install.d/ldirectord.cf
 install.d/testpm
 install.d/snmptrapd
 install.d/install-ipvs.sh
+install.d/sysconfig.npsnortd
+install.d/sysconfig.snort
 lib/Bundle/NetPass/API.pm
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
