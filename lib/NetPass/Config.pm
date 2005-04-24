@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.26 2005/04/24 03:56:54 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.27 2005/04/24 03:58:56 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -766,7 +766,7 @@ sub policy {
 
 		if (recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
 			_log("DEBUG", "policy($pvar): nw=$nw has policy section. returning that.\n") if $self->debug;
-			return { $pvar => $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar) };
+			return  $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 		}
 
 
@@ -778,8 +778,7 @@ sub policy {
 			_log("DEBUG", "policy($pvar): nw=$nw is member of group $netgroup\n") if $self->debug;
 			if (recur_exists ($self->{'cfg'}, "group", $netgroup, "policy", $pvar)) {
 				_log("DEBUG", "policy($pvar): (nw=$nw) group=$netgroup has policy section. returning that.\n") if $self->debug;
-				return { $pvar => 
-					 $self->{'cfg'}->obj('group')->obj($netgroup)->obj('policy')->value($pvar) };
+				return $self->{'cfg'}->obj('group')->obj($netgroup)->obj('policy')->value($pvar);
 			}
 		}
 
@@ -787,7 +786,7 @@ sub policy {
 
 		_log("DEBUG", "policy($pvar): looking in global policy.\n") if $self->debug;
 		
-		return { $pvar => $self->{'cfg'}->obj('policy')->value($pvar) }
+		return $self->{'cfg'}->obj('policy')->value($pvar) 
 		  if (recur_exists ($self->{'cfg'}, "policy", $pvar));
 		
 		_log("DEBUG", "policy($pvar): no global policy. $pvar not found.\n") if $self->debug;
@@ -1444,7 +1443,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.26 2005/04/24 03:56:54 jeffmurphy Exp $
+$Id: Config.pm,v 1.27 2005/04/24 03:58:56 jeffmurphy Exp $
 
 =cut
 
