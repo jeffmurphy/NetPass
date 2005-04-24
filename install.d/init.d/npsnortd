@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# npsnortd         Start/Stop the npsnortd.
+# snortd         Start/Stop the snortd.
 #
 # chkconfig: 2345 40 60
 #
@@ -13,7 +13,7 @@
 case "$1" in
   start)
         echo -n "Starting npsnortd: "
-        daemon /opt/snort/bin/npsnortd.pl -s $NPAPISERVER -S $NPAPISECRET -l $SNORTLOGFILE -r $SNORTRULESFILE -P $NPSNORTDPORT -p $SNORTPIDFILE -f /etc/init.d/snort
+        daemon /opt/snort/bin/npsnortd.pl -s $NPAPISERVER -S $NPAPISECRET -l $SNORTLOGFILE -r $SNORTRULESFILE -P $NPSNORTDPORT -p $SNORTPIDFILE -f $SNORTSTARTUPSCRIPT
         echo
         ;;
   stop)
