@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.28 2005/04/24 04:50:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.29 2005/04/24 04:54:26 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -777,10 +777,11 @@ sub policy {
 	my ($pvar, $nw, $val) = $parms->get('-key', '-network', '-val');
 
 
-	_log("DEBUG", "policy($pvar)\n") if $self->debug;
 
 	$nw = "" if ($nw eq "default");
 	$nw ||= "";
+
+	_log("DEBUG", "policy(-key $pvar, -network $nw)\n") if $self->debug;
 
 	$self->reloadIfChanged();
 		
@@ -791,7 +792,7 @@ sub policy {
 	# at all)
 
 	if ($nw =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) { 
-		_log("DEBUG", "policy($pvar): resolve nw=$nw\n");# if $self->debug;
+		_log("DEBUG", "policy($pvar): resolve nw=$nw\n") if $self->debug;
 		$nw = $self->getMatchingNetwork(-ip => $nw);
 		_log("DEBUG", "policy($pvar): resolved to nw=$nw\n") if $self->debug;
 	} 
@@ -803,7 +804,7 @@ sub policy {
 		# if the network has a <policy> section, check it for the given
 		# pvar
 
-		_log ("DEBUG", "this is a policy lookup (not set) for ".$pvar."\n");
+		_log ("DEBUG", "this is a policy lookup (not set) for ".$pvar."\n") if $self->debug;
 
 		if (recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar)) {
 			_log("DEBUG", "policy($pvar): nw=$nw has policy section. returning that.\n") if $self->debug;
@@ -840,12 +841,12 @@ sub policy {
 	else {
 		my $oldvalue = undef;
 
-		_log ("DEBUG", "this is a policy set (not lookup) for ".$pvar." $val\n");
+		_log ("DEBUG", "this is a policy set (not lookup) for ".$pvar." $val\n") if $self->debug;
 
 		if ($nw =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) { 
 			# set the <network>'s policy
 
-			_log("DEBUG", "nw=$nw examine network clause\n");
+			_log("DEBUG", "nw=$nw examine network clause\n") if $self->debug;
 
 			if (! recur_exists ($self->{'cfg'}, "network", $nw)) {
 				return undef; #"nosuch network";
@@ -853,12 +854,12 @@ sub policy {
 
 			if (! recur_exists ($self->{'cfg'}, "network", $nw, "policy")) {
 				# create one
-				_log("DEBUG", "nw=$nw create network policy clause\n");
+				_log("DEBUG", "nw=$nw create network policy clause\n") if $self->debug;
 				$self->{'cfg'}->obj('network')->obj($nw)->policy({});
 			}
 
 			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
-				_log("DEBUG", "nw=$nw set network policy for $pvar\n");
+				_log("DEBUG", "nw=$nw set network policy for $pvar\n") if $self->debug;
 				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
 				return $oldvalue;
@@ -867,7 +868,7 @@ sub policy {
 		elsif ($nw ne "") {
 			# set the <group> policy
 
-			_log("DEBUG", "group=$nw set group policy for $pvar\n");
+			_log("DEBUG", "group=$nw set group policy for $pvar\n") if $self->debug;
 
 			if (! recur_exists ($self->{'cfg'}, "group", $nw)) {
 				return undef; #"nosuch group";
@@ -875,18 +876,18 @@ sub policy {
 
 			if (! recur_exists ($self->{'cfg'}, "group", $nw, 'policy')) {
 				# create one
-				_log("DEBUG", "group=$nw create a group policy \n");
+				_log("DEBUG", "group=$nw create a group policy \n") if $self->debug;
 				$self->{'cfg'}->obj('network')->obj($nw)->policy({});
 			}
 
 			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
-				_log("DEBUG", "group=$nw set group policy for $pvar (has oldval)\n");
+				_log("DEBUG", "group=$nw set group policy for $pvar (has oldval)\n") if $self->debug;
 				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
 				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
 				return $oldvalue;
 			}
 
-			_log("DEBUG", "group=$nw set group policy for $pvar (no oldval)\n");
+			_log("DEBUG", "group=$nw set group policy for $pvar (no oldval)\n") if $self->debug;
 			$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
 			return undef;
 
@@ -894,16 +895,16 @@ sub policy {
 		else {
 			_log("DEBUG", "set global policy for $pvar\n");
 			if (! recur_exists($self->{'cfg'}, "policy") ) {
-				_log("DEBUG", "create global policy\n");
+				_log("DEBUG", "create global policy\n") if $self->debug;
 				# create one
 				$self->{'cfg'}->policy({});
 			}
 
 			if (recur_exists ($self->{'cfg'}, "policy", $pvar) ) {
-				_log("DEBUG", "set global policy (fetch oldval) $pvar \n");
+				_log("DEBUG", "set global policy (fetch oldval) $pvar \n") if $self->debug;
 				$oldvalue = $self->{'cfg'}->obj('policy')->value($pvar);
 			}
-			_log("DEBUG", "set global policy $pvar\n");
+			_log("DEBUG", "set global policy $pvar\n") if $self->debug;
 			$self->{'cfg'}->obj('policy')->$pvar($val);
 			return $oldvalue;
 		}
@@ -1534,7 +1535,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.28 2005/04/24 04:50:02 jeffmurphy Exp $
+$Id: Config.pm,v 1.29 2005/04/24 04:54:26 jeffmurphy Exp $
 
 =cut
 
