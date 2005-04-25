@@ -8,13 +8,14 @@
 var lockOpPending = false;
 
 function lockConfig_results(r) {
-	alert(r);
 	var b = document.getElementById('lockButton');
 	if (b) {
 		b.disabled = '';
 		b.textContent = "Lock Config";
 	}
 	lockOpPending = false;
+	var ra = r.split(' ');
+	alert(ra.length + "/ ra0='" +ra[0]+"'");
 }
 
 function lockConfig(lock, force) {

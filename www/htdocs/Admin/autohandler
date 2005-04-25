@@ -1,17 +1,13 @@
-
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.8 2005/04/25 02:52:48 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.9 2005/04/25 19:15:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 </%doc>
-
 <%args>
 	$printable => 0;
 </%args>
-
-
 <%perl>
 use Sys::Hostname;
 my $serverType = "PRODUCTION";
@@ -24,9 +20,6 @@ if ($printable == 0) {
 	print qq{<script src="/resources/js/xmlhttp.js" type="text/javascript"></script>};
 	$m->comp('/style/back/start_sidebar', %ARGS);
 </%perl>
-
-
-
 <center>
 <div class="sbHeader">NetPass Admin</div>
 <div class="sbHeader"><%$serverType%> SERVER</div>
@@ -67,13 +60,8 @@ if ($printable == 0) {
 <a class="sbLinks" href="/Admin/reports.mhtml" title="">Reports</a><br>
 </DIV>
 <P><P>
-
-
 <BR><H6><I><%join('.', (split(/\./, hostname))[0,1])%></I></H6>
-
 % }
-
-
 <%perl>
 }
 

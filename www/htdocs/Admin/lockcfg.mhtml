@@ -4,5 +4,103 @@
 	$lock => 0;
 	$force => 0;
 </%args>
-lock: <%$lock%> force: <%$force%> user: <%$m->session->{'username'}%>
+<%perl>
+
+my $lstat = $np->db->isConfigLocked();
+my $rv;
+
+if ($lock) {
+	# we want to lock the config
+
+	if (ref($lstat) eq "HASH") {
+		# config is already locked
+		if ($lstat->{'user'} ne $m->session->{'username'}) {
+			# and not by us
+			if ($force) {
+				# we're willing to force the issue
+				$rv = $np->db->unlockConfig(-rev => $lstat->{'rev'},
+							    -user => $m->session->{'username'});
+				if ($rv) {
+					# fail
+					print "NOK lock unlockfailed $rv\n";
+				} else {
+					$rv = $np->db->lockConfig(-rev => $lstat->{'rev'},
+								  -user => $m->session->{'username'});
+					if ($rv) {
+						# fail
+						print "NOK lock $rv\n";
+					} else {
+						# success
+						print "OK lock\n";
+					}
+				}
+			} else {
+				# we're not willing to break the lock
+				print "NOK lock lockedby=".$lstat->{'user'}."\n";
+			}
+		} else {
+			# config is already locked by us
+			print "OK lock alreadylocked\n";
+		}
+	} 
+	elsif ($lstat) {
+		# an error occurred
+		print "NOK lock $lstat\n";
+	}
+	else {
+		# config is not locked, lock it
+		$rv = $np->db->getConfig();
+		$rv = $np->db->lockConfig(-rev => $rv->{'rev'},
+					  -user => $m->session->{'username'});
+		if ($rv) {
+			# fail
+			print "NOK lock $rv\n";
+		} else {
+			# success
+			print "OK lock\n";
+		}
+	}
+} else {
+	# we want to unlock the config
+
+	if (ref($lstat) eq "HASH") {
+		# config is locked
+		if ($lstat->{'user'} ne $m->session->{'username'}) {
+			# and not by us
+			if ($force) {
+				# we're willing to force the issue
+				$rv = $np->db->unlockConfig(-rev => $lstat->{'rev'},
+							    -user => $m->session->{'username'});
+				if ($rv) {
+					# error
+					print "NOK unlock $rv\n";
+				} else {
+					print "OK unlock\n";
+				}
+			} else {
+				# we're not willing to break the lock
+				print "NOK unlock lockedby=".$lstat->{'user'}."\n";
+			}
+		} else {
+			# config is locked by us: unlock it
+			$rv = $np->db->unlockConfig(-rev => $lstat->{'rev'}, 
+						    -user => $m->session->{'username'});
+			if ($rv) {
+				# fail
+				print "NOK unlock $rv\n";
+			} else {
+				print "OK unlock\n";
+			}
+		}
+	} 
+	elsif ($lstat) {
+		# an error occurred
+		print "NOK unlock $lstat\n";
+	}
+	else {
+		# config is not locked: NOP
+		print "OK unlock\n";
+	}
+}
+</%perl>
 

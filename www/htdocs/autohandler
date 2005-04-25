@@ -1,15 +1,12 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.5 2005/04/21 12:49:31 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.6 2005/04/25 19:15:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 </%doc>
-
-
 <%args>
 </%args>
-
 <%init>
 
 use NetPass;
@@ -38,7 +35,6 @@ if (ref($np) ne "NetPass") {
 }
 
 </%init>
-
 <%cleanup>
 	if (defined ($np)  )  { $np->DESTROY()   ; }
 </%cleanup>

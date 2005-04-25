@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.32 2005/04/25 05:43:22 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.34 2005/04/25 19:15:00 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1002,8 +1002,8 @@ sub addSnortRuleEntry {
                              -parms    => \@_,
                              -legal    => [ qw(-rule -user -desc) ],
                              -defaults => { -rule   => '',
-                                            -user  => '',
-                                            -desc => ''
+                                            -user   => '',
+                                            -desc   => ''
                                           }
                             }
                            );
@@ -2454,14 +2454,14 @@ sub lockConfig {
     return "invalid parameters (rev)" unless ($r >= 0);
     return "invalid parameters (user)" unless ($u ne "");
 
-    my $sql = "SELECT xlock, rev FROM config WHERE xlock = 1";
+    my $sql = "SELECT xlock, rev, user FROM config WHERE xlock = 1";
     my $rv  = $self->dbh->selectall_arrayref($sql);
     return "db failure ".$self->dbh->errstr unless (ref($rv) eq "ARRAY");
 
     if ($#{$rv} > -1) {
-	    return "lock failed alreadyLockedRev=".$rv->[0]->[1];
+	    return "lock failed alreadyLocked rev=".$rv->[0]->[1]. " user=".$rv->[0]->[2];
     }
-    $sql = "UPDATE config SET xlock = 1 WHERE rev = ".$self->dbh->quote($r);
+    $sql = "UPDATE config SET xlock = 1, user = ".$self->dbh->quote($u)." WHERE rev = ".$self->dbh->quote($r);
     $rv  = $self->dbh->do($sql);
 
     if (!defined($rv)) {
@@ -2654,7 +2654,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.32 2005/04/25 05:43:22 mtbell Exp $
+$Id: DB.pm,v 1.34 2005/04/25 19:15:00 jeffmurphy Exp $
 
 =cut
 
