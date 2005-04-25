@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/style/front/footer,v 1.4 2005/04/24 03:48:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/style/front/footer,v 1.5 2005/04/25 02:55:16 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -11,6 +11,7 @@
    $resource_root => "/resources";
    $printable	  => 0;
 </%args>
+
 
 % return '' if($printable);
 

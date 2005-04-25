@@ -1,0 +1,8 @@
+<%doc>
+</%doc>
+<%args>
+	$lock => 0;
+	$force => 0;
+</%args>
+lock: <%$lock%> force: <%$force%> user: <%$m->session->{'username'}%>
+

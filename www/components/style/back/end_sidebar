@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/style/back/end_sidebar,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/style/back/end_sidebar,v 1.2 2005/04/25 02:52:47 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -8,9 +8,11 @@
 </%doc>
 
 <%args>
-   $resource_root => "/resources"
+	$resource_root => "/resources";
+	$printable     => 0;
 </%args>
 
+%if (! $printable) {
       </p>
 
       <img src="<% $resource_root %>/images/clrpxl.gif" height="3" width="135" border="0" alt="">
@@ -19,3 +21,4 @@
   <tr>
     <td valign="top" width="99%">
 	<br>
+%}

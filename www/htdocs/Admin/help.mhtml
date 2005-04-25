@@ -1,0 +1,21 @@
+<%doc>
+</%doc>
+<%args>
+	$lang   => 'en';
+	$topic  => 'toc';
+	$popup  => 0;
+</%args>
+
+MULTI_MAC 
+
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Fusce porttitor commodo purus. Suspendisse pharetra lorem in tellus. Vivamus posuere accumsan odio. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Morbi sit amet dui. Curabitur faucibus felis porta arcu. Morbi mauris diam, auctor sit amet, luctus eu, ornare sit amet, nunc. Vestibulum laoreet, tortor id fringilla mattis, mi arcu tristique ligula, a tincidunt sem lorem ut enim. Donec iaculis, libero ut tincidunt cursus, turpis lacus tincidunt urna, et bibendum eros dui id massa. Sed vel sem sed nunc luctus tempor.
+
+<P>
+Nullam tortor. Nam mollis, eros nec sollicitudin sollicitudin, erat augue cursus wisi, a feugiat mauris ipsum convallis justo. Praesent velit quam, aliquam a, facilisis vel, nonummy id, orci. Nullam consectetuer elit in pede. Vivamus vestibulum mauris ac felis. Aliquam erat volutpat. Aliquam velit magna, gravida sit amet, egestas a, tincidunt euismod, lectus. Donec diam quam, ultricies sed, semper quis, sodales non, augue. Nunc risus. Integer imperdiet. Etiam sollicitudin interdum velit. Mauris lectus. Curabitur et massa sit amet est varius eleifend. Etiam vitae quam pellentesque leo tristique elementum. Duis sapien. Aenean eget sapien.
+<P>
+Curabitur tempor accumsan neque. Donec sapien velit, tristique non, venenatis semper, laoreet ut, dolor. In hac habitasse platea dictumst. Nulla vitae urna. Maecenas nonummy varius odio. Quisque tortor. Ut dolor. Donec ac wisi a augue rhoncus suscipit. Donec porta. Nunc dapibus magna sit amet dolor. Ut congue imperdiet eros. Cras viverra venenatis magna. Nullam arcu. In erat.
+<P>
+Vivamus egestas aliquet risus. Ut id eros. Donec neque. Nullam aliquam. Suspendisse sem orci, ultrices et, tincidunt vel, sollicitudin ut, quam. Ut accumsan bibendum neque. Integer volutpat, augue vel scelerisque ornare, wisi lorem fermentum nulla, non sodales nibh metus et massa. In urna turpis, bibendum ac, pulvinar vel, imperdiet a, eros. Donec rutrum, odio nec malesuada volutpat, wisi diam ultricies felis, vitae fringilla lorem dolor vel elit. Sed volutpat odio eget enim. Cras et libero. Maecenas ultrices turpis. Mauris sem lacus, gravida ornare, eleifend at, eleifend a, quam. Nam viverra euismod ante. In nisl wisi, euismod at, placerat ultricies, mollis a, massa. Ut vitae diam non risus pulvinar congue. Mauris a sapien vitae dui eleifend tempus. Cras dictum dictum quam. Phasellus sollicitudin. In ut orci in diam eleifend venenatis.
+<P>
+Nam at lacus ac magna placerat dignissim. Aliquam nisl. Donec erat elit, nonummy quis, lacinia in, pulvinar vitae, nibh. Phasellus tincidunt neque at turpis. Aenean cursus ultrices wisi. Aliquam lorem. Sed volutpat purus ac orci. Suspendisse et purus sed lorem dictum tempor. Quisque et eros. Suspendisse dapibus nulla quis nunc. In tortor. Aenean ornare. Quisque dictum ullamcorper enim. Suspendisse potenti. Duis eget libero. Nunc pulvinar mollis purus.
+<P>

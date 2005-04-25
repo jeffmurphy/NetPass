@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/style/front/header,v 1.6 2005/04/24 03:48:13 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/style/front/header,v 1.7 2005/04/25 02:52:48 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,6 +18,8 @@
 	my $compSName = $np->cfg->policy(-key => 'COMPANY_SHORT_NAME', -network => $ip) || "";
 	my $compUnit  = $np->cfg->policy(-key => 'COMPANY_UNIT_NAME', -network => $ip) || "";
 </%perl>
+
+% return '' if ($printable == 2);
 
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE html

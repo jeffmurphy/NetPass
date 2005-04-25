@@ -1,0 +1,79 @@
+<%doc>
+</%doc>
+<%args>
+</%args>
+
+<script language="JavaScript">
+<!--
+var lockOpPending = false;
+
+function lockConfig_results(r) {
+	alert(r);
+	var b = document.getElementById('lockButton');
+	if (b) {
+		b.disabled = '';
+		b.textContent = "Lock Config";
+	}
+	lockOpPending = false;
+}
+
+function lockConfig(lock, force) {
+	// lock: 0 = unlock, 1 = lock
+	// force: 0 = no, 1 = yes
+
+	if (lockOpPending) return;
+
+	var b = document.getElementById('lockButton');
+	if (b) {
+		b.textContent = "Wait ...";
+		b.disabled = true;
+	}
+
+	lockOpPending = true;
+	xmlhttp.open("GET", "lockcfg.mhtml?printable=2&lock="+lock +
+			"&force="+force, true);
+	xmlhttp.onreadystatechange=function() {
+		if (xmlhttp.readyState == 4) {
+			lockConfig_results(xmlhttp.responseText);
+		}
+	};
+	xmlhttp.send(null);
+	return false;
+}
+
+function lockConfig_show_unlock() {
+	var b = document.getElementById('lockButton');
+}
+
+-->
+</script>
+<style>
+SPAN.unlockedButton {
+	border: outset 2px black;
+	padding: 2px 5px 2px 5px;
+	background-color: #FFFF77;
+	cursor: pointer;
+}
+</style>
+
+<span onclick="lockConfig(0,0); return false;" id='lockButton'
+	class='unlockedButton'>Lock Config</span> 
+
+<%perl>
+my $lstat = $np->db->isConfigLocked();
+
+if (ref($lstat) eq "HASH") { 
+	# the config is locked
+	if ($lstat->{'user'} eq $m->session->{'username'}) {
+		# by us, so show the unlock button
+	} else {
+		# but not by us, show the force unlock button
+	}
+} 
+elsif ($lstat) {
+	# there was a problem
+} 
+else {
+	# the config is not locked, show the lock button
+}
+</%perl>
