@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.31 2005/04/25 05:33:22 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.33 2005/04/25 05:44:55 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -997,12 +997,13 @@ sub addSnortRuleEntry {
     my $self = shift;
     my $data = {};
 
+    $self->reconnect() || return undef;
     my $parms = parse_parms({
                              -parms    => \@_,
                              -legal    => [ qw(-rule -user -desc) ],
                              -defaults => { -rule   => '',
-                                            -user  => '',
-                                            -desc => ''
+                                            -user   => '',
+                                            -desc   => ''
                                           }
                             }
                            );
@@ -2653,7 +2654,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.31 2005/04/25 05:33:22 mtbell Exp $
+$Id: DB.pm,v 1.33 2005/04/25 05:44:55 mtbell Exp $
 
 =cut
 

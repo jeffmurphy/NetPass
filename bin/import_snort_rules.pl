@@ -61,10 +61,7 @@ my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
 		     -debug  => exists $opts{'D'} ? 1 : 0,
 		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
-my $dbh = $np->db->{dbh};
-
 my $data = {};
-
 
 die "Cannot cd into ".$opts{'l'} unless(-d $opts{'l'});
 opendir(DIR, $opts{'l'}) || die "unable to open ".$opts{'l'};
@@ -107,47 +104,22 @@ foreach my $file (readdir(DIR)) {
 		}
 
 		$data->{$sid}{rule} = $line;
-
-		if ($line =~ /msg\:\"([\w-]+)\s+([^";]+)\"\;/) {
-			$data->{$sid}{category} = $1;
-			$data->{$sid}{name}     = $2;
-		}
-
-		if ($line =~ /rev\:(\d+)\;/) {
-                        $data->{$sid}{rev} = $1;
-                }
-
-                if ($line =~ /classtype\:([^;]+)\;/) {
-                        $data->{$sid}{classtype} = $1;
-                }
-
-                if ($line =~ /reference\:([^;]+)\;/) {
-                        $data->{$sid}{reference} = $1;
-                }
 	}
 
 	$fh->close;
 }
 closedir(DIR);
 
-my $sql = qq{INSERT IGNORE INTO snortRules (
-				     snortID, name, category, classtype, 
-				     description, rule, addedBy, lastModifiedBy,
-				     revision, other_refs
-				    ) VALUES (?,?,?,?,?,?,'import', 'import',?,?)};
-
-my $sth = $dbh->prepare($sql);
-
 foreach my $sid (sort keys %$data) {
-	$sth->execute($sid, $data->{$sid}{name},
-			    $data->{$sid}{category},
-			    $data->{$sid}{classtype},
-			    $data->{$sid}{desc},
-			    $data->{$sid}{rule},
-			    $data->{$sid}{rev},
-			    $data->{$sid}{reference});
+	my $rv = $np->db->addSnortRuleEntry (
+						-rule	=> $data->{$sid}{rule},
+						-user	=> 'import',
+						-desc	=> $data->{$sid}{desc}	
+				            );
+
+	if ($rv != 1) {
+		warn "failed to add $sid $rv";
+	}
 }
 
-$sth->finish;
-$dbh->disconnect;
 exit 0;
