@@ -1,6 +1,60 @@
 #!/opt/perl/bin/perl -w
+#
+#   $Header: /tmp/netpass/NetPass/bin/rogue-dhcp-detect.pl,v 1.2 2005/04/25 20:03:35 rcolantuoni Exp $
+#
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+
+=head1 NAME
+
+rogue-dhcp-detect.pl - sniffs NetPass interfaces for traffic from rogue dhcp servers.
+
+=head1 SYNOPSIS
+
+ rogue-dhcp-detect.pl [-q] [-D] [-c cstr] [-U dbuser/dbpass]
+     -q             be quiet. exit status only.
+     -D             enable debugging
+     -c             db connect string
+     -U             db user[/pass]
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-q>
+
+Be quiet, don't print anything. Just exit with non-zero status if
+an error occurred. Otherwise, exit with zero status.
+
+=item B<-D>
+
+Enable debugging output.
+
+=item B<-c cstr>
+
+Connect to alternate database.
+
+=item B<-U user/pass>
+
+Credentials to connect to the database with.
+
+=back
+
+=head1 DESCRIPTION
+
+This script fetches all configured interfaces (see L<netpass.conf>) and will continuously
+scan each interface for dhcp server traffic from unknown devices.
+If an invalid device is sending dhcp server traffic, the port is disabled.
+
+=head1 AUTHOR
+
+Rob Colantuoni <rgc@buffalo.edu>
+
+=cut
 
 use strict;
+use threads;
 use Getopt::Std;
 use Pod::Usage;
 
@@ -12,9 +66,12 @@ use NetPass::Config;
 use FileHandle;
 use IO::Select;
 
-#NetPass::LOG::init [ 'reset', 'local0' ]; #*STDOUT;
+BEGIN {
+    use Config;
+    $Config{useithreads} or die "Recompile Perl with threads to run this program.";
+}
 
-#$SIG{CHLD} = "IGNORE";
+#NetPass::LOG::init [ 'rogue-dhcp', 'local0' ]; #*STDOUT;
 
 my %opts;
 
