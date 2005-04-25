@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.30 2005/04/24 04:50:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.31 2005/04/25 05:33:22 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -971,17 +971,138 @@ of all the columns in the database for that row on success, C<undef> on failure.
 =cut
 
 sub getSnortRuleEntry {
-	my $self = shift;
-	my $sid  = shift;
+    my $self = shift;
+    my $sid  = shift;
 
-	return undef unless $sid =~ /\d+/;
-	$self->reconnect() || return undef;
+    return undef unless $sid =~ /\d+/;
+    $self->reconnect() || return undef;
 
-	my $query = "SELECT * FROM snortRules WHERE snortID = $sid";
-	my $href  = $self->{'dbh'}->selectrow_hashref($query);
+    my $query = "SELECT * FROM snortRules WHERE snortID = $sid";
+    my $href  = $self->{'dbh'}->selectrow_hashref($query);
 
-	return $href if (defined($href) && (ref($href) eq "HASH"));
-	return undef;
+    return $href if (defined($href) && (ref($href) eq "HASH"));
+    return undef;
+}
+
+=head2 $rv = addSnortRuleEntry(-rule => $rule -user => $user -desc => $desc)
+
+Add the specified rule $rule to the snortRules table with description $desc and 
+addedBy equal to $user. If rule already exists in database the entry
+will be updated and revisions of the rule will be checked. Returns C<true> on
+success, error description on failure.
+
+=cut
+
+sub addSnortRuleEntry {
+    my $self = shift;
+    my $data = {};
+
+    my $parms = parse_parms({
+                             -parms    => \@_,
+                             -legal    => [ qw(-rule -user -desc) ],
+                             -defaults => { -rule   => '',
+                                            -user  => '',
+                                            -desc => ''
+                                          }
+                            }
+                           );
+
+    return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
+    my ($rule, $user, $desc) = $parms->get('-rule', '-user', '-desc');
+
+    if ($rule =~ /sid\:(\d+)\;/) {
+	$data->{sid} = $1;
+    } else {
+	return "undefined sid";
+    }
+
+    if ($rule =~ /msg\:\"([\w-]+)\s+([^";]+)\"\;/) {
+	$data->{category} = $1;
+	$data->{name}     = $2;
+    } else {
+	return "unknown msg";
+    }
+
+    if ($rule =~ /rev\:(\d+)\;/) {
+	$data->{rev} = $1;
+    } else {
+	return "unknown rev";	
+    }
+
+    if ($rule =~ /classtype\:([^;]+)\;/) {
+	$data->{classtype} = $1;
+    } else {
+	return "unknown classtype";
+    }
+
+    if ($rule =~ /reference\:([^;]+)\;/) {
+	$data->{reference} = $1;
+    }
+
+    my $check = "SELECT revision FROM snortRules WHERE snortID = ".$data->{sid};
+    my($rev)  = $self->dbh->selectrow_arrayref($check);
+
+    if (defined $rev && $rev->[0] >= $data->{rev}) {
+	return "sid ".$data->{sid}." with rev = $rev->[0] exists";
+    }
+
+    my $sth;
+    my $rv;
+    my $time = time();
+
+    if (defined $rev && $rev->[0] > 0) {
+	my $sql = qq{UPDATE snortRules SET name         = ?,
+                                           category     = ?,
+                                           classtype    = ?,
+                                           description  = ?,
+                                           rule         = ?,
+                                           lastModifiedBy = ?,
+                                           lastModifiedOn = FROM_UNIXTIME(?),
+                                           revision     = ?,
+                                           other_refs   = ?
+                                           WHERE snortID = ?};
+
+	$sth = $self->dbh->prepare($sql);
+	$rv  = $sth->execute(
+                             $data->{name},
+                             $data->{category},
+                             $data->{classtype},
+                             $desc,
+                             $rule,
+			     $user,
+			     $time,
+                             $data->{rev},
+                             $data->{reference},
+			     $data->{sid}
+	      		    );
+    } else {
+	my $sql = qq{INSERT INTO snortRules (
+                                             snortID, name, category, classtype,
+                                             description, rule, addedBy,lastModifiedBy,
+                                             revision, other_refs
+                                            ) VALUES (?,?,?,?,?,?,?,?,?,?)};
+
+	$sth = $self->dbh->prepare($sql);
+	$rv  = $sth->execute(
+                             $data->{sid},
+                             $data->{name},
+                             $data->{category},
+                             $data->{classtype},
+                             $desc,
+                             $rule,
+			     $user,
+			     $user,
+                             $data->{rev},
+                             $data->{reference}
+			    );
+    }
+
+    if (!$rv) {
+	return "unable to insert rule into database ".$self->dbh->errstr;
+    }
+    $sth->finish;
+
+    return 1;   
 }
 
 =head2 $rv = deleteSnortRule(sid)
@@ -992,21 +1113,21 @@ C<undef> on failure.
 =cut
 
 sub deleteSnortRule {
-	my $self = shift;
-	my $sid  = shift;
+    my $self = shift;
+    my $sid  = shift;
 
-	return undef unless $sid =~ /\d+/;
-	$self->reconnect() || return undef;
+    return undef unless $sid =~ /\d+/;
+    $self->reconnect() || return undef;
 
-	my $query = "DELETE FROM snortRules WHERE snortID = ?";
-	my $sth = $self->dbh->prepare($query);
+    my $query = "DELETE FROM snortRules WHERE snortID = ?";
+    my $sth = $self->dbh->prepare($query);
 
-        if (!$sth->execute($sid)) {
-                _log("ERROR", "Unable to delete Snort Rule $sid from database");
-                return undef;
-        }
+    if (!$sth->execute($sid)) {
+	_log("ERROR", "Unable to delete Snort Rule $sid from database");
+	return undef;
+    }
 
-	return 1;
+    return 1;
 }
 
 =head2 $aref = getSnortIDs()
@@ -1017,20 +1138,20 @@ C<undef> on failure.
 =cut
 
 sub getSnortIDs {
-	my $self = shift;
-	my @sids;
+    my $self = shift;
+    my @sids;
 
-	$self->reconnect() || return undef;
+    $self->reconnect() || return undef;
 
-	my $query = "SELECT distinct(snortID) FROM snortRules order by snortID";
-	my $aref = $self->dbh->selectall_arrayref($query);
+    my $query = "SELECT distinct(snortID) FROM snortRules order by snortID";
+    my $aref = $self->dbh->selectall_arrayref($query);
 
-	if (!defined($aref) || ref($aref) ne 'ARRAY') {
-		_log("ERROR", "Unable to retrieve snortIDs from database");
-		return undef;
-	}
+    if (!defined($aref) || ref($aref) ne 'ARRAY') {
+	_log("ERROR", "Unable to retrieve snortIDs from database");
+	return undef;
+    }
 
-	return [map($_->[0], @$aref)];
+    return [map($_->[0], @$aref)];
 }
 
 =head2 $history = getClientHistory(-mac => $mac)
@@ -2532,7 +2653,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.30 2005/04/24 04:50:02 jeffmurphy Exp $
+$Id: DB.pm,v 1.31 2005/04/25 05:33:22 mtbell Exp $
 
 =cut
 
