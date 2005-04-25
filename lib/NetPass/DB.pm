@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.33 2005/04/25 05:44:55 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.32 2005/04/25 05:43:22 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1002,8 +1002,8 @@ sub addSnortRuleEntry {
                              -parms    => \@_,
                              -legal    => [ qw(-rule -user -desc) ],
                              -defaults => { -rule   => '',
-                                            -user   => '',
-                                            -desc   => ''
+                                            -user  => '',
+                                            -desc => ''
                                           }
                             }
                            );
@@ -2654,7 +2654,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.33 2005/04/25 05:44:55 mtbell Exp $
+$Id: DB.pm,v 1.32 2005/04/25 05:43:22 mtbell Exp $
 
 =cut
 
