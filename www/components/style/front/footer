@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/style/front/footer,v 1.5 2005/04/25 02:55:16 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/style/front/footer,v 1.6 2005/04/25 03:08:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -13,9 +13,9 @@
 </%args>
 
 
-% return '' if($printable);
-
 <%perl>
+return '' if ($printable == 2); # aggressive printable
+if ($printable == 0) { # 1 = less aggressive printable
 	my $ip = $ENV{'REMOTE_ADDR'};
 	my $compName  = $np->cfg->policy(-key => 'COMPANY_NAME', -network => $ip) || "";
 	my $compSName = $np->cfg->policy(-key => 'COMPANY_SHORT_NAME',  -network => $ip) || "";
@@ -35,6 +35,7 @@
     </td>
   </tr>
 </table>
+% }
 </body>
 </html>
 
