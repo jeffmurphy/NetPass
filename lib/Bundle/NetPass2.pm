@@ -32,6 +32,8 @@ Archive::Tar
 
 Proc::ProcessTable::Process
 
+Net::Pcap
+
 Net::Ping
 
 Net::Ping::External
