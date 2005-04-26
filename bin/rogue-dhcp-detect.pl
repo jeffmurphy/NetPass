@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-#   $Header: /tmp/netpass/NetPass/bin/rogue-dhcp-detect.pl,v 1.2 2005/04/25 20:03:35 rcolantuoni Exp $
+#   $Header: /tmp/netpass/NetPass/bin/rogue-dhcp-detect.pl,v 1.3 2005/04/26 20:35:36 rcolantuoni Exp $
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -57,21 +57,19 @@ use strict;
 use threads;
 use Getopt::Std;
 use Pod::Usage;
+use Net::Pcap;
 
-use lib qw(../lib);
+use lib qw(/opt/netpass/lib);
 use NetPass::LOG qw(_log _cont);
 use NetPass;
 use NetPass::Config;
 
 use FileHandle;
-use IO::Select;
 
 BEGIN {
     use Config;
     $Config{useithreads} or die "Recompile Perl with threads to run this program.";
 }
-
-#NetPass::LOG::init [ 'rogue-dhcp', 'local0' ]; #*STDOUT;
 
 my %opts;
 
@@ -80,11 +78,18 @@ pod2usage(2) if exists $opts{'h'}  || exists $opts{'?'};
 
 my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
+my $debug	= exists $opts{'D'} ? 1 : 0;
+my $quiet	= exists $opts{'q'} ? 1 : 0;
+
+NetPass::LOG::init *STDOUT if $debug;
+NetPass::LOG::init [ 'rogue-dhcp-sniff', 'local0' ] unless $debug;
+
+
 my $np = new NetPass(	-cstr 	=> exists $opts{'c'} ? $opts{'c'} : undef,
                      	-dbuser => $dbuser,
 			-dbpass => $dbpass,
-                     	-debug  => exists $opts{'D'} ? 1 : 0,
-                     	-quiet  => exists $opts{'q'} ? 1 : 0,
+                     	-debug  => $debug,
+                     	-quiet  => $quiet,
 		    );
 
 die "failed to create NetPass object" unless defined $np;
@@ -102,13 +107,9 @@ foreach my $network ( @{$np->cfg->getNetworks()} ) {
 }
 
 die "no interfaces to listen on" if($#interfaces<0);
-
-#exit;
 		
 ###################### CONFIG VARS ####################################
 
-my $debug	= 1;
-my $quiet	= 0;
 
 my $allowed 	= {
 			'128.205.1.32'    => 'ccdhcp-resnet3',
@@ -124,7 +125,7 @@ my $checkFrequency  = 3;  # how often (in seconds) to check the tcpdump filehand
 my $reportFrequency = 20; # how often (in minutes) to send the report of rogues found
 
 # file containing a map of the first half of a mac address to manufacturer
-my $ouiFile = "../etc/oui.txt";
+my $ouiFile = "/opt/netpass/etc/oui.txt";
 
 my $fhIfMap = {};
 
@@ -135,9 +136,6 @@ $reportFrequency = $reportFrequency * 60;
 
 # unbuffer output
 $|=1;
-
-# create a filehandle group
-my $fhGroup 	= IO::Select->new();
 
 # when true, we exit
 my $programExit	= 0;
@@ -152,129 +150,85 @@ my $lastReport  = time;
 # use oui file for determining what manufacturer made this device
 my $ouiCache    = loadOUI($ouiFile);
 
-# for each VLAN, open a tcpdump filehandle and push it into the filehandle group
+my @threads = ();
+
+# for each interface, spawn a thread and push it into the filehandle group
 foreach my $interface (@interfaces) {
-	next if(!ifConfigured($interface));
-
-	# the -S in the tcpdump command is very important... without -S, tcpdump keeps track of
-	# all the connections it has seen so it can generate relative sequence numbers rather
-	# than absolute sequence numbers. over time, this will increase the address space used
-	# by tcpdump, simulating a memory leak.
-
-	my $fh = new FileHandle "/usr/sbin/tcpdump -Slne -i$interface udp src port 67 2>&1 |";
-	if(defined($fh)) {
-		print "Listening to traffic on IF $interface\n" if(!$quiet);
-		$fhGroup->add($fh);
-		$fhIfMap->{$fh} = $interface;
-	}
+	my $sniffer = pcapDescriptor($interface);
+	push @threads, new threads (\&threadEntry, $sniffer, $interface);
 }
 
-while(!$programExit) {
+#print "Parent thread waiting\n" if $debug;
+#$threads[0]->join;
+#print "Parent thread joined\n" if $debug;
 
-	# check to see if any of the filehandles have input
-	if (my @fhs = $fhGroup->can_read(0)) {
+# wait for all threads to finish
+$_->join foreach @threads;
 
-		# @fhs is an array of the filehandle that have input waiting to be read
-
-		# foreach filehandle that has input to be read, get the input and parse it
-		foreach my $fh (@fhs) {
-			
-			my $line = $fh->getline;
-			my ($srcEth, $dstEth, $srcIp, $dstIp) = ('','','','');
-
-			($srcEth, $dstEth, $srcIp, $dstIp) = $line =~ /(\w+\:\w+\:\w+\:\w+\:\w+\:\w+) (\w+\:\w+\:\w+\:\w+\:\w+\:\w+)*.+ (\d+\.\d+\.\d+\.\d+)\.bootps > (\d+\.\d+\.\d+\.\d+).+/; 
-
-			if(!$srcIp) {	
-				# this filter catches bad matches
-				print "NOMATCH:\t$line" if($debug);
-
-			} elsif($srcIp =~ /\.25\d$/) {
-				# this filter catches dhcrelays
-				print "DHCRELAY:\t$srcIp - $srcEth\n" if($debug);
-
-			} elsif( $allowed->{$srcIp} ) {
-				# this filter catches our exceptions
-				print "EXCEPTION:\t$srcIp - $srcEth\n" if($debug);
-
-			} else {
-				# anything else, should be a rogue server
-				$roguesFound->{$srcEth}->{'ip'}	  = $srcIp;
-				$roguesFound->{$srcEth}->{'vlan'} = $fhIfMap->{$fh};
-				$roguesFound->{$srcEth}->{'count'}++;
-				print "ROGUE:\t$srcIp - $srcEth - " . $fhIfMap->{$fh} . " - " . $roguesFound->{$srcEth}->{'count'} . "\n" if(!$quiet);
-			}
-		}
-
-	} else {
-		print "no line\n" if($debug);
-	}
-
-	# if it's time to report, report
-	if((time - $lastReport) >= $reportFrequency) {
-		sendReport();
-		$lastReport = time;
-		$roguesFound = {};
-	}	
-
-	# let's sleep for a while and wait for some input to queue up
-	sleep($checkFrequency);
-
-#	$programExit = 1;
-
-}
-
-# if we're exiting, close all the filehandles
-print "Stop Listening...\n" if(!$quiet);
-foreach my $fh ( @{$fhGroup->handles} ) {
-	$fh->close;
-}
-
-exit;
-
+exit 0;
 
 ########################################################################
 
-sub ifConfigured {
-	my ($interface) = @_;
-	
-	return 0 if(!defined($interface));
+sub threadEntry {
+	my $sniffer   = shift;
+	my $interface = shift;
 
-	# check that the interface exists on this machine
-	if(system("/sbin/ifconfig -s $interface > /dev/null 2>&1") == 0) {
-		return 1;
+	#my $tid = threads->tid();
+	#print "$tid";  # causes segfault?? wtf!
+
+	if(ref($sniffer)) {
+		_log("DEBUG", "Thread [tid] - Listening on interface $interface\n");
+#		Net::Pcap::loop($sniffer, -1, \&processPacket, 0);
+		Net::Pcap::close($sniffer);
+		_log("DEBUG", "Thread [tid] - Done Listening on interface $interface\n");
+	} else {
+		_log("DEBUG", "Not Listening on interface $interface\n");
 	}
-	print "Interface $interface is not configured on this device\n" if(!$quiet);
-	return 0;
+}
 
-} # end sub
+sub processPacket {
+	my($user_data, $hdr, $pkt) = @_;
+	print "got one!\n";
+	return;
+}
 
-sub sendReport {
 
-	my $msg  = '';
+sub pcapDescriptor {
+	my ($device) = @_;
 
-	foreach my $eth ( keys %$roguesFound ) {
-		my $ip    = $roguesFound->{$eth}->{'ip'};
-		my $vlan  = $roguesFound->{$eth}->{'vlan'};
-		my $count = $roguesFound->{$eth}->{'count'};
+	# promiscuous mode on
+    	my $promisc = 1;
+    	
+	my $snaplen = 96;
 
-		$eth = sprintf('%02s:%02s:%02s:%02s:%02s:%02s', split(':', $eth));
-	   	
-		$msg .= "ip: $ip - eth: $eth - vlan: $vlan - requests: $count";
+    	my $timeout 	= 0;	# timeout  (ms)
+    	my $optimize	= 1;    # optimize flag
+    
+	# dhcp
+    	my $filter = "udp src port 67";
 
-		my $lookup = sprintf('%02s:%02s:%02s', split(':', $eth));
+	my ($err, $net, $mask, $filterCompiled);
+ 
+    	if ( (Net::Pcap::lookupnet($device, \$net, \$mask, \$err) ) == -1 ) {
+		_log("DEBUG", "$err\n");
+		return undef;
+    	}
+ 
+    	# open the descriptor
+    	my $descriptor = Net::Pcap::open_live($device, $snaplen, $promisc, $timeout, \$err);
+    	$descriptor || die "Can't create packet descriptor.  Error was $err";
+ 
+    	if ( Net::Pcap::compile($descriptor, \$filterCompiled, $filter, $optimize, $net) == -1 ) {
+        	die "Unable to compile filter string '$filter'\n";
+    	}
 
-		$msg .= " - manufacturer: " . $ouiCache->{$lookup} if($ouiCache->{$lookup});
-		$msg .= "\n";
-	}
+    	# Make sure our sniffer only captures those bytes we want in
+    	# our filter.
+    	Net::Pcap::setfilter($descriptor, $filterCompiled);
 
-	if($msg ne '') {
-		$msg  = "ROGUE DHCP SERVERS DETECTED:\n\n" . $msg;
-		print "$msg\n";
-	}
-
-	return 1;
-
-} # end sub
+    	# Return our pcap descriptor
+	return $descriptor;
+}
 
 sub loadOUI {
 	my ($filename) = @_;
