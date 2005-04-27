@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.8 2005/04/24 03:42:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.9 2005/04/27 03:54:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -89,7 +89,7 @@ if($nres > -1) {
 		print $q->submit(-name=>'submit', -value=>'Re-Scan') . $q->br;
 	} else {
 		$m->session->{'phase'} = 'COMPLETE';
-		my $msg = $np->db->getPage(-name => 'msg:remediate_completed_no_recan', 
+		my $msg = $np->db->getPage(-name => 'msg:remediate_completed_no_rescan', 
 						-nohtml => 1, -npcfg => $np->cfg, -ip => $ip);
 
 		if($msg) {

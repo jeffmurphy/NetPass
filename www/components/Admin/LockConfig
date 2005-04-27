@@ -11,11 +11,45 @@ function lockConfig_results(r) {
 	var b = document.getElementById('lockButton');
 	if (b) {
 		b.disabled = '';
-		b.textContent = "Lock Config";
+		b.innerHTML = "Lock Config";
 	}
 	lockOpPending = false;
-	var ra = r.split(' ');
-	alert(ra.length + "/ ra0='" +ra[0]+"'");
+	var ra = r.split(/\s/);
+
+	if (ra[0] == "OK") {
+		// something succeeded
+		if (ra[1] == "lock") {
+			// we got the lock, change button to
+			// green and text to 'unlock'
+			b.style.backgroundColor = '#77FF77';
+			b.innerHTML = 'Config is Locked (by you)<BR>Unlock Config';
+			adjust_onClick(b, "return lockConfig(0, 0);");
+		} else {
+			// we got the unlock, button -> yellow
+			// text -> 'lock'
+			b.style.backgroundColor = '#FFFF77';
+			b.innerHTML = 'Config is Unlocked<BR>Lock Config';
+			adjust_onClick(b, "return lockConfig(1, 0);");
+		}
+	} else {
+		// something failed
+//alert(r + " ral:" + ra.length + ' 1:' + ra[0] + ' 2:' + ra[1] + ' 3:' + ra[2]);
+
+		if (ra[1] == "lock") {
+			// we didnt get the lock, change button to
+			// red and text to 'force lock'
+			b.style.backgroundColor = '#FF7777';
+			b.innerHTML = 'Config is Locked by '+ra[2]+'<BR>Force Lock Config';
+			adjust_onClick(b, "return lockConfig(1, 1);");
+		} else {
+			// we didnt get the unlock, 
+			// button -> red
+			// text -> 'force unlock'
+			b.style.backgroundColor = '#FF7777';
+			b.innerHTML = 'Config is Locked by '+ra[2]+'<BR>Force Unock Config';
+			adjust_onClick(b, "return lockConfig(0, 1);");
+		}
+	}
 }
 
 function lockConfig(lock, force) {
@@ -26,13 +60,14 @@ function lockConfig(lock, force) {
 
 	var b = document.getElementById('lockButton');
 	if (b) {
-		b.textContent = "Wait ...";
+		b.innerHTML = "Wait ...";
+		adjust_onClick(b, "return false;");
 		b.disabled = true;
 	}
 
 	lockOpPending = true;
-	xmlhttp.open("GET", "lockcfg.mhtml?printable=2&lock="+lock +
-			"&force="+force, true);
+	var url = "lockcfg.mhtml?printable=2&lock="+lock +"&force="+force;
+	xmlhttp.open("GET", url , true);
 	xmlhttp.onreadystatechange=function() {
 		if (xmlhttp.readyState == 4) {
 			lockConfig_results(xmlhttp.responseText);
@@ -46,10 +81,23 @@ function lockConfig_show_unlock() {
 	var b = document.getElementById('lockButton');
 }
 
+function adjust_onClick(obj, fn) {
+	if (browserType_IE) {
+		obj.onclick = eval("x=function(e){"+fn+"}");
+	} else {
+		obj.setAttribute('ONCLICK', fn);
+	}
+}
+
+
 -->
 </script>
 <style>
-SPAN.unlockedButton {
+DIV.unlockedButton {
+	text-align: center;
+	width: 10em;
+	float: right;
+	display: block;
 	border: outset 2px black;
 	padding: 2px 5px 2px 5px;
 	background-color: #FFFF77;
@@ -57,8 +105,10 @@ SPAN.unlockedButton {
 }
 </style>
 
-<span onclick="lockConfig(0,0); return false;" id='lockButton'
-	class='unlockedButton'>Lock Config</span> 
+<div onclick="return false;" id='lockButton'
+	class='unlockedButton'>Thinking ...</div> 
+
+<!--<div class='unlockedButton'>Testing<BR>Foobar</div>-->
 
 <%perl>
 my $lstat = $np->db->isConfigLocked();
@@ -67,8 +117,10 @@ if (ref($lstat) eq "HASH") {
 	# the config is locked
 	if ($lstat->{'user'} eq $m->session->{'username'}) {
 		# by us, so show the unlock button
+		print qq{<script>lockConfig_results("OK lock");</script>};
 	} else {
 		# but not by us, show the force unlock button
+		print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");</script>};
 	}
 } 
 elsif ($lstat) {
@@ -76,5 +128,6 @@ elsif ($lstat) {
 } 
 else {
 	# the config is not locked, show the lock button
+	print qq{<script>lockConfig_results("OK unlock");</script>};
 }
 </%perl>

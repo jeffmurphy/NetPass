@@ -31,6 +31,8 @@ bin/import_snort_rules.pl
 bin/getresults.pl
 bin/quarantine_host.pl
 bin/lsconf.pl
+bin/rogue-dhcp-detect.pl
+bin/npurlfilter.pl
 doc/cron.monthly/mysql_binlog_rotate
 doc/logrotate.d/apache
 doc/logrotate.d/netpass
@@ -82,6 +84,7 @@ doc/nessus-install.txt
 doc/npsnort.txt
 doc/netpass-install.sxw
 etc/netpass-example.conf
+etc/oui.txt
 install.d/logrotate.d/apache
 install.d/logrotate.d/netpass
 install.d/logrotate.d/snort

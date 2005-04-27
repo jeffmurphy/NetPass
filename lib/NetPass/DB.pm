@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.34 2005/04/25 19:15:00 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.35 2005/04/27 03:54:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,6 +18,11 @@ my $VERSION = '1.0001';
 sub DESTROY {
     my $self = shift;
     $self->{'dbh'}->disconnect if defined $self->{'dbh'};
+}
+
+sub disconnect {
+	my $self = shift;
+	$self->{'dbh'}->disconnect  if defined $self->{'dbh'};
 }
 
 sub D {
@@ -498,9 +503,19 @@ sub getPageList {
            $sql .= " WHERE name LIKE ".$self->dbh->quote($name."%");
     } 
     if ($group ne "") {
-           $sql .= " AND network LIKE ".$self->dbh->quote($group."%");
+	    if ($name ne "") {
+		    $sql .= " AND ";
+	    } else {
+		    $sql .= " WHERE ";
+	    }
+	    if ($group =~ /%/) {
+		    $sql .= " network LIKE ".$self->dbh->quote($group);
+	    } else {
+		    $sql .= " network = ".$self->dbh->quote($group);
+	    }
     }
 
+    $sql .= " ORDER BY name ASC ";
     $self->reconnect() || return undef;
 
     my $ar = $self->dbh->selectall_arrayref($sql);
@@ -515,7 +530,7 @@ sub getPageList {
          return $rv;
     }
 
-    return "db failure ". $self->dbh->errstr;
+    return "db failure (sql=$sql) ". $self->dbh->errstr;
 }
 
 
@@ -675,14 +690,15 @@ sub setPage {
     $sql .= $self->dbh->quote($name)    . ")";
 
     my $rv = $self->dbh->do($sql);
+
     if (!defined($rv)) {
 	    if ($noupdate == 0) {
 		    $sql  = "UPDATE pages SET content = ".$self->dbh->quote($content);
 		    $sql .= " WHERE network = ".$self->dbh->quote($group);
-		    $sql .= " AND name = ".$self->dbg->quote($name);
+		    $sql .= " AND name = ".$self->dbh->quote($name);
 		    $rv = $self->dbh->do($sql);
 	    }
-	    if (!defined($rv)) {
+	    if (!defined($rv) || ($rv == 0)) {
 		    return "db failure ".$self->dbh->errstr;
 	    }
     }
@@ -1936,8 +1952,8 @@ sub addResult {
     $i ||= '';
 
     if ($t =~ /^manual$/i) {
-	    $junk = $self->getPage(-ip => $i, -npcfg => $npcfg);
-	    if (!defined($junk)) {
+	    $junk = $self->getPage(-name => $i, -npcfg => $npcfg);
+	    if (!defined($junk) && !$f) {
 		    _log("ERROR", "$m cant add 'manual' result with invalid ID '$i'\n");
 		    return "invalid manual id";
             }
@@ -2624,8 +2640,105 @@ sub appendLogToConfig {
 
 
 
+=head2 getUrlFilters()
 
+Fetch the "urlFilters" table contents.
 
+RETURNS
+
+=over 4
+
+ HASHREF              on success
+  {network}->
+     {'permit'}->{'re'}         = joined RE
+     {'block'}->{'re'}          = joined RE
+     {'soft-redirect'}->{'re'}  = joined RE
+     {'hard-redirect'}->{'re'}  = joined RE
+
+     {'permit'}->{'list'}->[]
+     {'block'}->{'list'}->[]
+     {'soft-redirect'}->{'list'}->[]
+     {'hard-redirect'}->{'list'}->[]
+
+     {'permit'}->{'hash'}->{url} = newurl
+     {'block'}->{'hash'}->{url}  = newurl
+     {'soft-redirect'}->{'hash'}->{url} = newurl
+     {'hard-redirect'}->{'hash'}->{url} = newurl
+
+ "db failure"         something failed with the DB
+
+=back
+
+=cut
+
+sub getUrlFilters {
+	my $self = shift;
+
+	my $sql = "SELECT url, dst, network, action FROM urlFilters";
+	my $hr  = $self->dbh->selectall_arrayref($sql);
+	if (ref($hr) ne "ARRAY") {
+		_log("ERROR", "failed to read urlFilters table: ".$self->dbh->errstr);
+		return "db failure ".$self->dbh->errstr;
+	}
+
+	my $rv = {};
+	my @permit;
+	my @block;
+	my @sredir;
+	my @hredir;
+
+	my $permit;
+	my $block;
+	my $sredir;
+	my $hredir;
+
+	my $dst;
+
+	foreach my $row (@$hr) {
+		my $url = $row->[0];
+		#      $network     $url         $dst
+		$dst->{$row->[2]}->{$row->[0]} = $row->[1];
+		$permit->{$row->[2]}->{$row->[0]} = $row->[1];
+		$block->{$row->[2]}->{$row->[0]} = $row->[1];
+		$sredir->{$row->[2]}->{$row->[0]} = $row->[1];
+		$hredir->{$row->[2]}->{$row->[0]} = $row->[1];
+
+		if ($row->[3] eq "permit") {
+			push @permit, $row->[0];
+		}
+		elsif ($row->[3] eq "block") {
+			push @block, $row->[0];
+		}
+		elsif ($row->[3] eq "soft-redirect") {
+			push @sredir, $row->[0];
+		}
+		elsif ($row->[3] eq "hard-redirect") {
+			push @hredir, $row->[0];
+		}
+	}
+
+	$rv->{'permit'}->{'re'} = '^'.join('|', @permit).'$';
+	$rv->{'permit'}->{'list'} = \@permit;
+	$rv->{'permit'}->{'hash'} = {};
+	%{$rv->{'permit'}->{'hash'}} = map { $_ => 1 } @permit;
+
+	$rv->{'block'}->{'re'} = '^'.join('|', @block).'$';
+	$rv->{'block'}->{'list'} = \@block;
+	$rv->{'block'}->{'hash'} = {};
+	%{$rv->{'block'}->{'hash'}} = map { $_ => 1 } @block;
+
+	$rv->{'soft-redirect'}->{'re'} = '^'.join('|', @sredir).'$';
+	$rv->{'soft-redirect'}->{'list'} = \@sredir;
+	$rv->{'soft-redirect'}->{'hash'} = {};
+	%{$rv->{'soft-redirect'}->{'hash'}} = map { $_ => 1 } @sredir;
+
+	$rv->{'hard-redirect'}->{'re'} = '^'.join('|', @hredir).'$';
+	$rv->{'hard-redirect'}->{'list'} = \@hredir;
+	$rv->{'hard-redirect'}->{'hash'} = {};
+	%{$rv->{'hard-redirect'}->{'hash'}} = map { $_ => 1 } @hredir;
+
+	return $rv;
+}
 
 
 
@@ -2654,7 +2767,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.34 2005/04/25 19:15:00 jeffmurphy Exp $
+$Id: DB.pm,v 1.35 2005/04/27 03:54:07 jeffmurphy Exp $
 
 =cut
 

@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/index.mhtml,v 1.4 2005/04/19 04:01:25 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/index.mhtml,v 1.5 2005/04/27 03:54:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -9,7 +9,6 @@
 
 <%args>
 $name    => '';
-$network => '';
 $ta      => '';
 $search  => '';
 $group   => '';
@@ -29,18 +28,20 @@ my @rwGroups = ('Admin', 'Editor');
 my @roGroups = ('Reports');
 my $readOnly = "disabled";
 
-my ($isReadonly, $roGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ]);
-my ($isAdmin, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
-my $isRoot = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+my ($isRO, $roGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ]);
+my ($isRW, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
+my ($isRoot, $junk)   = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+my ($allMyRO, $allMyRW);
+($junk, $allMyRO) = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ]);
+($junk, $allMyRW) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
 
-if ($isAdmin) {
+if ($isRW) {
         $readOnly = "";
-} elsif ($isReadonly) {
+} elsif ($isRO) {
         $readOnly = "disabled";
 } else {
         print $q->p({-class=>'error'},
-                "Sorry, permission denied.<BR>You must be in one of these groups: ",
-                join(',', @rwGroups, @roGroups));
+                "Sorry, you don't have access to this form.<P>");
         return;
 }
 
@@ -50,14 +51,28 @@ my $pageList = $np->db->getPageList();
 
 my %allGroups = map { $_ => $_ } @{$pageList->{'group'}};
 
-# XXX if you are !default->Admin then strip out groups that you dont 
-# belong too
 
 if (! $isRoot) {
-	foreach my $grp (@$roGroups, @$rwGroups) {
-		print "Strip group: $grp<BR>";
-	}
+	# 'default' is added so you can at least see the default
+	# messages (assuming you dont have any default perms). 
+	# we won't allow you to edit them tho.
+
+	%allGroups = map {$_ => $_} ('default', @$allMyRO, @$allMyRW);
 }
+
+print "You have permission to <B>edit</B> the messages in the following groups: ", join(', ', @$allMyRW), "<BR>"
+	if ($#{$allMyRW} > -1);
+
+print "You have permission to <B>view</B> the messages in the following groups: ";
+
+if ($#{$allMyRO} > -1) {
+	print join(', ', @$allMyRO);
+	print ", default" if (grep !/^default$/, @$allMyRO);
+	print "<BR>";
+} else {
+	print "default<BR>";
+}
+
 
 print $q->table({-border=>0, -width=>600},
 		$q->TR($q->td({-colspan=>2, -align=>"right"}, 
@@ -101,138 +116,86 @@ print $q->table({-border=>0, -width=>600},
 return if(!$submit && !$search);
 
 if($submit) {
-        if ($readOnly eq "") {
-		savePage($dbh, $name, $ta);
-		print $q->p("Your changes have been saved...");
-        } else {
-                # this really shouldnt happen. we dont give them a submit button
-                $np->db->audit(  -user => $m->session->{'username'},
-                                	-severity => "ALERT",
-	                                -msg => [ "tried to change a Message but is ReadOnly" ]);
-
-        }
+	my $rv = savePage($allMyRW, $name, $group, $ta, ($submit eq " Save Copy "));
+	print $q->p({-class=>'error'}, $rv);
 }
 
-my ($results, $count) = getMessages($dbh, $name, $group);
+my $pl = $np->db->getPageList(-name => $name, -group => $group);
+if (ref($pl) ne "HASH") {
+	print ("<P class='error'>Sorry, there was an error while processing your request ($pl).</P>");
+} else {
+	my $count = $#{$pl->{'name'}} + 1;
+	my $class = "";
 
-if($count<0) {
-	print ("<P class='error'>Sorry, there was an error while processing your request!</P>");
-}
+</%perl>
+	<h4>Your search returned <%$count%> result(s)</h4>
+%	if ($count) {
 
-print $q->h4("Your search returned $count result(s)");
+		<table>
+		<tr><th>Name</th><th>Group</th><th colspan=3>Operation</th></tr>
 
-if($count==0) {
-	print $q->p("You may want to re-define your search to be less strict.");
-	return;
-}
+%		for(my $row = 0 ; $row <= $#{$pl->{'name'}} ; $row++) {
+%			$class = ($class eq "")?"gray":"";
+%			my $rwHref = "edit.mhtml?name=" . $pl->{'name'}->[$row]."&group=".$pl->{'group'}->[$row];
+%			my $roHref = "view.mhtml?name=" . $pl->{'name'}->[$row]."&group=".$pl->{'group'}->[$row];
+%			my $delLink = "";
 
-my @rows = ();
+			<tr class="<%$class%>">
+			<td width='50%'><%$pl->{'name'}->[$row]%></td>
+			<td width='25%'><%$pl->{'group'}->[$row]%></td>
+%			if (grep /^$pl->{'group'}->[$row]$/, @$rwGroups) {
+				<td width='8%'><a href="<%$rwHref%>">[ edit ]</a></td>
+				<td width='8%'><a href="">[ del ]</a></td>
+%			} else {
+				<td width='8%'> </td>
+				<td width='8%'> </td>
+%			}
+			<td width='8%'><a href="<%$roHref%>">[ view ]</a></td>
+			</tr>
+%		}
+		</table>
+%	}
+%}
 
-push(@rows, 	$q->TR(
-			$q->th("Name") .
-			$q->th("Edit") 
-		)
-);
+</form>
+<P>
 
-my $class = "";
-
-while (my $row = $results->fetchrow_hashref() ) {
-
-	$class = ($class eq "")?"gray":"";
-	
-	my $href = "edit.mhtml?name=" . $row->{name}."&group=".$row->{'network'};
-	if ($readOnly eq "disabled") {
-		$href = "view.mhtml?name=" . $row->{name}."&group=".$row->{'network'};
-	}
-
-	my $delLink = "";
-
-	#if ($readOnly eq "") {
-	#	$delLink = $q->td(({-align=>'center'}, $q->submit(-name => 'submit', -value => 'Delete')));
-	#}
-
-	push( @rows,	$q->TR( {-class=> $class },
-				$q->td({-align=>'center'}, $row->{name}) . 
-				$q->td({-align=>'center'}, $q->a({-href=>$href}, 
-					($readOnly eq "")?"[ edit ]":"[ view ]"
-				))
-			) . "\n");
-}
-
-$results->finish();
-
-print $q->table({-width=>'80%'}, @rows);
-print $q->end_form();
-
-print $q->p();
-
+<%perl>
 return;
 
-#######################
-
-sub getMessages {
-	my $dbh	   = shift;
-	my $name   = shift;
-	my $group  = shift;
-
-	my @clause = ();
-	my @params = ();
-
-	if($name) {
-		push(@clause, "name LIKE ?");
-		push(@params, "%$name%");
-	}
-
-	if($group) {
-		push(@clause, "network = ?");
-		push(@params, $group);
-	}
-
-	my $query = "SELECT name, network FROM pages";
-	
-	if($#clause>-1) {
-		$query .= " WHERE " . join(" AND ", @clause)
-	}
-
-	$query .= " ORDER BY name LIMIT 150";
-
-	my $sth = $dbh->prepare($query);
-
-	if(!defined($sth)) {
-        	return ("prepare failed: ". $dbh->errstr, -1);
-    	}
-    
-	if( !$sth->execute(@params) ) {
-        	return ("execute failed: ". $dbh->errstr, -1);
-    	}
-
-    	my $count = $sth->rows;
-
-	return ($sth, $count);
-
-}
-
 sub savePage {
-	my $dbh     = shift;
+	my $rw      = shift;
 	my $name    = shift;
+	my $group   = shift;
 	my $content = shift;
+	my $noupdate = shift;
 
-	$np->db->audit(
-		-user => $m->session->{'logged_in'},
-	      	-msg => [ "MessageEdit: $name editted" ]);
+	# enforce permissions
 
-	my $ins_query = "INSERT IGNORE INTO pages (content, name) values (?,?)";
-	my $upd_query = "UPDATE pages SET content=? WHERE name = ?";
+	if (grep /^$group$/, @$rw) {
 
-	my $ins_sth   = $dbh->prepare($ins_query);
-	my $upd_sth   = $dbh->prepare($upd_query);
+		$np->db->audit(
+			-user => $m->session->{'username'},
+	      		-msg => [ "MessageEdit: $name ($group) editted" ]);
 
-	$ins_sth->execute($content, $name);
-	$ins_sth->finish;
-	$upd_sth->execute($content, $name);
-	$upd_sth->finish;
+		my $rv = $np->db->setPage(-name => $name, -group => $group,
+					  -content => $content, -noupdate => $noupdate);
 
+		if ($rv =~ /duplicate/i) {
+			return "Save failed. Duplicate entry. Did you use 'Save Copy' but forget to change the name?";
+		}
+		return $rv if ($rv); # error
+		return "Page saved.";
+	}
+
+	# else you dont have permission
+
+	$np->db->audit( -user => $m->session->{'username'}, -severity => "ALERT",
+			-msg => [ "tried to edit $name ($group) but doesnt have permission to do so" ]);
+
+	return "You dont have the appropriate permissions to edit this message.";
 }
+
 
 
 </%perl>

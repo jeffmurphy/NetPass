@@ -28,7 +28,7 @@ if ($lock) {
 								  -user => $m->session->{'username'});
 					if ($rv) {
 						# fail
-						print "NOK lock $rv\n";
+						print "NOK lock force err=$rv\n";
 					} else {
 						# success
 						print "OK lock\n";
@@ -45,7 +45,7 @@ if ($lock) {
 	} 
 	elsif ($lstat) {
 		# an error occurred
-		print "NOK lock $lstat\n";
+		print "NOK lock isConfigLockedErr $lstat\n";
 	}
 	else {
 		# config is not locked, lock it
@@ -54,7 +54,7 @@ if ($lock) {
 					  -user => $m->session->{'username'});
 		if ($rv) {
 			# fail
-			print "NOK lock $rv\n";
+			print "NOK lock err=$rv\n";
 		} else {
 			# success
 			print "OK lock\n";

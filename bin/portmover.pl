@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.4 2005/04/12 15:24:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.5 2005/04/27 03:54:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -74,7 +74,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: portmover.pl,v 1.4 2005/04/12 15:24:08 jeffmurphy Exp $
+$Id: portmover.pl,v 1.5 2005/04/27 03:54:06 jeffmurphy Exp $
 
 =cut
 
@@ -133,6 +133,7 @@ while (1) {
 
     if (!defined($ar)) {
 	_log "ERROR", "db error ".$np->db->error."\n";
+	next;
     }
 
     foreach my $row (@$ar) {

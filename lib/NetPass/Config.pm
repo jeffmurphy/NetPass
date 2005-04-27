@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.29 2005/04/24 04:54:26 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.30 2005/04/27 03:54:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1004,6 +1004,9 @@ sub getMatchingNetwork {
 sub getNetgroup {
 	my $self    = shift;
 	my $network = shift;
+
+	return '' if (!defined($network) || ($network eq "none"));
+
 	my $nw = $self->getMatchingNetwork(-ip => $network);
 	my $netgroup = '';
 
@@ -1535,7 +1538,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.29 2005/04/24 04:54:26 jeffmurphy Exp $
+$Id: Config.pm,v 1.30 2005/04/27 03:54:07 jeffmurphy Exp $
 
 =cut
 

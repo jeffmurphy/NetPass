@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.9 2005/04/24 03:42:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.10 2005/04/27 03:54:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -82,7 +82,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.9 2005/04/24 03:42:02 jeffmurphy Exp $
+$Id: macscan.pl,v 1.10 2005/04/27 03:54:06 jeffmurphy Exp $
 
 =cut
 
@@ -153,7 +153,7 @@ my @threads;
 my $allSwitches = $np->cfg->getSwitches();
 
 
-# we devide the switches up into groups of "$ps"
+# we divide the switches up into groups of "$ps"
 # and give each group out to a thread for periodic
 # polling
 

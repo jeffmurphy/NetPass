@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.16 2005/04/24 03:42:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.17 2005/04/27 03:54:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -30,14 +30,19 @@ my @roGroups = ('Reports');
 my $readOnly = "disabled";
 my @aclGroups = ();
 
-if (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ])) {
+my ($isRW, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
+my ($isRO, $roGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ]);
+my ($isRoot, $junk)   = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+
+if ( $isRW ) {
 	$readOnly = "";
-} elsif (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ])) {
+} 
+elsif ( $isRO ) {
 	$readOnly = "disabled";
-} else {
+} 
+else {
         print $q->p({-class=>'error'},
-                "Sorry, permission denied.<BR>You must be in one of these groups: ",
-                join(',', @rwGroups, @roGroups));
+                "Sorry, you don't have permission to access this form.<P>");
         return;
 }
 
@@ -50,12 +55,18 @@ my $msgs     = getAllMsgs($np->db->{'dbh'});
 
 The "IP Address" field is the address that the client had <I>when they first registered</I>. It 
 is <B>not necessarily</B> the address they have right now. So when quarantining a host, you
-should really be searching by MAC Address. To translate a currently assigned IP Address
+should really be searching by MAC Address. 
+
+% use Sys::Hostname;
+% if (hostname =~ /buffalo\.edu$/) {
+To translate a currently assigned IP Address
 into a MAC address, you can use some of the other tools available until we are able to
 better integrate them into UB NetPass. <P>
 
 These tools might require additional access. If you get an access denied, click on the 
 "Apply for an account" link and apply for a  "Network Documentation" account. <P>
+%}
+
 
 
 <ul>
@@ -169,7 +180,7 @@ return if(!$submit && !$search);
 
 if($submit) {
 	if ($readOnly eq "") {
-        	my $sqr = saveQuarChanges($np->db->{'dbh'},\%ARGS, $ids);
+        	my $sqr = saveQuarChanges($np->db->{'dbh'}, \%ARGS, $ids, $isRoot, $rwGroups, $roGroups);
 		if ($sqr ne "") {
 			print $q->p({-class=>"error"}, $sqr);
 		}
@@ -433,6 +444,10 @@ sub saveQuarChanges {
         my $dbh  = shift;
         my $args = shift;
         my $ids  = shift;
+	my $isRoot   = shift;
+	my $rwGroups = shift;
+	my $roGroups = shift;
+
 	my $D    = 0;
 
 	if(!(ref($ids) =~ /ARRAY/) ) {
@@ -510,6 +525,22 @@ sub saveQuarChanges {
 		print "</UL>\n" if $D;
 		next if ( $m_unc && $s_unc && $u_unc );
 
+		# we're being somewhat trusting here. to be thorough, refetch IP from
+		# db based on mac
+
+		my $nw       = $np->cfg->getMatchingNetwork(-ip => $args->{"ipAddr:$mac"});
+		my $netgroup = $np->cfg->getNetgroup($nw);
+
+		if ($nw eq "none") {
+			print qq{<p class='error'>Update failed for $mac because it's network is unknown to NetPass.</P>};
+			next;
+		}
+
+		if ( !$isRoot && !grep(/^$nw$/, @$rwGroups) && !grep(/^$netgroup$/, @$rwGroups) ) {
+			print qq{<P class='error'>Update failed for $mac because you don't have the proper permissions for it's network ($nw)</P>};
+			next;
+		}
+
 		if($D) {
 			print "<PRE>[debugging output - ignore this]\n";
 			print "mac ".$mac."\n";
@@ -545,7 +576,8 @@ sub saveQuarChanges {
 			} else {
 				push @params, $args->{"message:$mac"};
 				$resultsRV = $np->db->addResult(-mac => $mac, -type => 'manual', 
-								   -id => $args->{"message:$mac"});
+								-force => 1,
+								-id => $args->{"message:$mac"});
 			}
 		}
 
@@ -610,20 +642,20 @@ sub saveQuarChanges {
 		if($rv) {
 			$rv = "";
 			my $ipAddr = $args->{"ipAddr:$mac"};
-			print qq{Database update succeeded for mac address "$mac" ($ipAddr)<P>};
+			print qq{<P class='error'>Database update succeeded for mac address "$mac" ($ipAddr)</P>};
 			_log("DEBUG", "$mac $ipAddr record updated.\n");
 
 			my ($sw, $po, $m2p, $p2m) = $np->findOurSwitchPort($mac, $ipAddr);
 
 			if (!defined($sw) || !defined($po)) {
-				$rv = "not found on network. port reset failed.";
+				$rv = "not found on network. Port reset failed.";
 
 				_log("DEBUG", "$mac $ipAddr $rv\n");
 				$np->db->audit(-mac => $mac, -ip => $args->{'ip'}, 
 					-user => $m->session->{'username'},
 			      		-msg => [ "QC: $rv " ]);
 
-				$rv = qq{mac address "$mac" $rv};
+				$rv = qq{MAC address "$mac" $rv};
 			} else {
 				_log("DEBUG", "$mac $ipAddr found. quarantining $sw $po\n");
 				if (! $np->db->requestMovePort(-switch => $sw, 
