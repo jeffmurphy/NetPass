@@ -23,7 +23,6 @@ datadir="/var/lib/mysql"
 start(){
 	# startup mysql cluster stuff
 	cd /var/lib/mysql-cluster
-	/usr/local/mysql/bin/ndb_mgmd
 	/usr/local/mysql/bin/ndbd
 
 	touch /var/log/mysqld.log
@@ -73,6 +72,8 @@ stop(){
 	fi
 	[ $ret -eq 0 ] && rm -f /var/lock/subsys/mysqld
 	[ $ret -eq 0 ] && rm -f $datadir/mysql.sock
+
+	killproc ndbd
 	return $ret
 }
  
