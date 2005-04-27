@@ -1,3 +1,7 @@
+#
+# mysql storage node setup (npw1-d, npw2-d)
+#
+# do this step after mgmd daemons are config'd and running
 1. download mysql from mirrors.cloud9.net/pub/Downloads
 2. groupadd mysql
 3. useradd -g mysql mysql
@@ -9,37 +13,54 @@
 9. chown -R mysql data
 10. chgrp -R mysql .
 11. mkdir /var/lib/mysql-cluster
-12. cd /var/lib/mysql-cluster
-13. create config.ini (only on server with mgmt daemon)
+# ndbd --initial deletes a bunch of stuff in /var/lib/mysql-cluster
+# so only use initial setup
+12. run /usr/local/mysql/bin/ndbd --initial
+13 kill ndbd
+14. edit my.cnf add these lines
+[mysqld]
+ndbcluster
+
+[mysql_cluster]
+ndb-connectstring=128.205.10.40;128.205.10.62
+# use mysqld included in netpass, this should start ndbd
+# normally and mysqld
+15. /etc/init.d/mysqld start
+
+#
+# management daemon setup (npr1-d, npr2-d)
+#
+1. mkdir /var/lib/mysql-cluster
+2. cd /var/lib/mysql-cluster
+3. create config.ini (only on server with mgmt daemon)
 [NDBD DEFAULT]
 NoOfReplicas=2
+
 [MYSQLD DEFAULT]
 [NDB_MGMD DEFAULT]
 [TCP DEFAULT]
 [NDB_MGMD]
 ID=10
-HostName=npw2-d.cit.buffalo.edu
+HostName=npr1-d.cit.buffalo.edu
+
+[NDB_MGMD]
+ID=11
+HostName=npr2-d.cit.buffalo.edu
+
 [NDBD]
 ID=1
 HostName= npw2-d.cit.buffalo.edu
 DataDir= /var/lib/mysql-cluster
+
 [NDBD]
 ID=2
 HostName= npw1-d.cit.buffalo.edu
 DataDir= /var/lib/mysql-cluster
+
 [MYSQLD]
 [MYSQLD]
 [MYSQLD]
 
-14. run /usr/local/mysql/bin/ndb_mgmd (only on server with mgmt daemon)
-15. run /usr/local/mysql/bin/ndbd --initial
-16. edit my.cnf add these lines
-[mysqld]
-ndbcluster
-
-# add the following lines to the mysql machines not running mgmt daemon
-[mysql_cluster]
-ndb-connectstring=128.205.10.137
-17. /etc/init.d/mysqld start
-
-#steps 13 and 14 just on mgmt server
+4. copy ndb_mgmd from npw1-d and place in /var/lib/mysql-cluster
+# use startup script included with netpass to start mgmd daemon
+5. /etc/init.d/ndbmgmd start
