@@ -1,0 +1,237 @@
+diff -ruN /tmp/snort-2.3.3/src/detection-plugins/Makefile.in snort-2.3.3/src/detection-plugins/Makefile.in
+--- /tmp/snort-2.3.3/src/detection-plugins/Makefile.in	2005-04-23 15:47:24.000000000 -0400
++++ snort-2.3.3/src/detection-plugins/Makefile.in	2005-04-28 12:25:22.472508632 -0400
+@@ -97,7 +97,7 @@
+ sp_tcp_win_check.c sp_tcp_win_check.h sp_ttl_check.c sp_ttl_check.h            \
+ sp_clientserver.c sp_clientserver.h sp_byte_check.c sp_byte_check.h            \
+ sp_byte_jump.c sp_byte_jump.h sp_pcre.c sp_pcre.h sp_isdataat.c sp_isdataat.h  \
+-sp_flowbits.c sp_flowbits.h sp_asn1.c sp_asn1.h
++sp_flowbits.c sp_flowbits.h sp_asn1.c sp_asn1.h sp_vlan_check.h
+ 
+ subdir = src/detection-plugins
+ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+@@ -120,7 +120,7 @@
+ 	sp_tcp_win_check.$(OBJEXT) sp_ttl_check.$(OBJEXT) \
+ 	sp_clientserver.$(OBJEXT) sp_byte_check.$(OBJEXT) \
+ 	sp_byte_jump.$(OBJEXT) sp_pcre.$(OBJEXT) sp_isdataat.$(OBJEXT) \
+-	sp_flowbits.$(OBJEXT) sp_asn1.$(OBJEXT)
++	sp_flowbits.$(OBJEXT) sp_asn1.$(OBJEXT) sp_vlan_check.$(OBJEXT)
+ libspd_a_OBJECTS = $(am_libspd_a_OBJECTS)
+ 
+ DEFS = @DEFS@
+diff -ruN /tmp/snort-2.3.3/src/detection-plugins/sp_vlan_check.c snort-2.3.3/src/detection-plugins/sp_vlan_check.c
+--- /tmp/snort-2.3.3/src/detection-plugins/sp_vlan_check.c	1969-12-31 19:00:00.000000000 -0500
++++ snort-2.3.3/src/detection-plugins/sp_vlan_check.c	2005-04-28 12:24:38.742820511 -0400
+@@ -0,0 +1,174 @@
++/*
++** Copyright (C) 1998-2002 Martin Roesch <roesch@sourcefire.com>
++**
++** This program is free software; you can redistribute it and/or modify
++** it under the terms of the GNU General Public License as published by
++** the Free Software Foundation; either version 2 of the License, or
++** (at your option) any later version.
++**
++** This program is distributed in the hope that it will be useful,
++** but WITHOUT ANY WARRANTY; without even the implied warranty of
++** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++** GNU General Public License for more details.
++**
++** You should have received a copy of the GNU General Public License
++** along with this program; if not, write to the Free Software
++** Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++*/
++
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <sys/types.h>
++#include <stdlib.h>
++#include <ctype.h>
++
++#include "rules.h"
++#include "decode.h"
++#include "parser.h"
++#include "plugbase.h"
++#include "debug.h"
++#include "plugin_enum.h"
++#include "util.h"
++
++typedef struct _VlanData
++{
++    u_short vlanid;
++
++} VlanData;
++
++void VlanCheckInit(char *, OptTreeNode *, int);
++void ParseVlan(char *, OptTreeNode *);
++int VlanCheck(Packet *, struct _OptTreeNode *, OptFpList *);
++
++
++/****************************************************************************
++ * 
++ * Function: SetupVlanCheck()
++ *
++ * Purpose: Associate the vlan keyword with VlanCheckInit
++ *
++ * Arguments: None.
++ *
++ * Returns: void function
++ *
++ ****************************************************************************/
++void SetupVlanCheck(void)
++{
++    /* map the keyword to an initialization/processing function */
++    RegisterPlugin("vlan", VlanCheckInit);
++
++    DEBUG_WRAP(DebugMessage(DEBUG_PLUGIN,"Plugin: VlanCheck Initialized\n"););
++}
++
++
++/****************************************************************************
++ * 
++ * Function: VlanCheckInit(char *, OptTreeNode *)
++ *
++ * Purpose: Setup the vlan data struct and link the function into option
++ *          function pointer list
++ *
++ * Arguments: data => rule arguments/data
++ *            otn => pointer to the current rule option list node
++ *
++ * Returns: void function
++ *
++ ****************************************************************************/
++void VlanCheckInit(char *data, OptTreeNode *otn, int protocol)
++{
++    /* multiple declaration check */ 
++    if(otn->ds_list[PLUGIN_VLAN_CHECK])
++    {
++        FatalError("%s(%d): Multiple vlan options in rule\n", file_name,
++                file_line);
++    }
++        
++    /* allocate the data structure and attach it to the
++       rule's data struct list */
++    otn->ds_list[PLUGIN_VLAN_CHECK] = (VlanData *)
++            SnortAlloc(sizeof(VlanData));
++
++    /* this is where the keyword arguments are processed and placed into the 
++       rule option's data structure */
++    ParseVlan(data, otn);
++
++    /* finally, attach the option's detection function to the rule's 
++       detect function pointer list */
++    AddOptFuncToList(VlanCheck, otn);
++}
++
++
++
++/****************************************************************************
++ * 
++ * Function: ParseVlan(char *, OptTreeNode *)
++ *
++ * Purpose: Convert the vlan option argument to data and plug it into the 
++ *          data structure
++ *
++ * Arguments: data => argument data
++ *            otn => pointer to the current rule's OTN
++ *
++ * Returns: void function
++ *
++ ****************************************************************************/
++void ParseVlan(char *data, OptTreeNode *otn)
++{
++    VlanData *ds_ptr;  /* data struct pointer */
++
++    /* set the ds pointer to make it easier to reference the option's
++       particular data struct */
++    ds_ptr = otn->ds_list[PLUGIN_VLAN_CHECK];
++
++    /* get rid of any whitespace */
++    while(isspace((int)*data))
++    {
++        data++;
++    }
++
++    ds_ptr->vlanid = (u_short)atoi(data);
++
++    DEBUG_WRAP(DebugMessage(DEBUG_PLUGIN,"Vlan set to %d\n", ds_ptr->vlanid););
++}
++
++
++/****************************************************************************
++ * 
++ * Function: VlanCheck(char *, OptTreeNode *)
++ *
++ * Purpose: look for the vlanid in the packet and determine if it
++ *          matches the rule.
++ *
++ * Arguments: data => argument data
++ *            otn => pointer to the current rule's OTN
++ *
++ * Returns: void function
++ *
++ ****************************************************************************/
++int VlanCheck(Packet *p, struct _OptTreeNode *otn, OptFpList *fp_list)
++{
++    u_short vlanid;
++
++    if(!p->vh)
++        return 0; /* if no vlan header present return 0 
++                   * immediately 
++                   */
++
++    vlanid = VTH_VLAN(p->vh);
++	
++    if(((VlanData *)otn->ds_list[PLUGIN_VLAN_CHECK])->vlanid == vlanid)
++    {
++        /* call the next function in the function list recursively */
++        return fp_list->next->OptTestFunc(p, otn, fp_list->next);
++    }
++    else
++    {
++        /* you can put debug comments here or not */
++        DEBUG_WRAP(DebugMessage(DEBUG_PLUGIN, "No match for sp_vlan_check\n"););
++    }
++
++    /* if the test isn't successful, return 0 */
++    return 0;
++}
+diff -ruN /tmp/snort-2.3.3/src/detection-plugins/sp_vlan_check.h snort-2.3.3/src/detection-plugins/sp_vlan_check.h
+--- /tmp/snort-2.3.3/src/detection-plugins/sp_vlan_check.h	1969-12-31 19:00:00.000000000 -0500
++++ snort-2.3.3/src/detection-plugins/sp_vlan_check.h	2005-04-28 12:24:38.743820367 -0400
+@@ -0,0 +1,6 @@
++#ifndef __SP_VLAN_CHECK_H__
++#define __SP_VLAN_CHECK_H__
++
++void SetupVlanCheck(void);
++
++#endif  /* __SP_VLAN_CHECK_H__ */
+diff -ruN /tmp/snort-2.3.3/src/plugbase.c snort-2.3.3/src/plugbase.c
+--- /tmp/snort-2.3.3/src/plugbase.c	2005-04-22 15:03:56.000000000 -0400
++++ snort-2.3.3/src/plugbase.c	2005-04-28 12:26:31.286575359 -0400
+@@ -91,6 +91,7 @@
+ #include "detection-plugins/sp_pcre.h"
+ #include "detection-plugins/sp_flowbits.h"
+ #include "detection-plugins/sp_asn1.h"
++#include "detection-plugins/sp_vlan_check.h"
+ #ifdef ENABLE_RESPONSE
+ #include "detection-plugins/sp_react.h"
+ #include "detection-plugins/sp_respond.h"
+@@ -136,6 +137,7 @@
+     SetupIcmpCodeCheck();
+     SetupTtlCheck();
+     SetupIpIdCheck();
++    SetupVlanCheck();
+     SetupTcpAckCheck();
+     SetupTcpSeqCheck();
+     SetupDsizeCheck();
+diff -ruN /tmp/snort-2.3.3/src/plugin_enum.h snort-2.3.3/src/plugin_enum.h
+--- /tmp/snort-2.3.3/src/plugin_enum.h	2003-10-20 11:03:22.000000000 -0400
++++ snort-2.3.3/src/plugin_enum.h	2005-04-28 12:25:54.006956765 -0400
+@@ -34,4 +34,5 @@
+     PLUGIN_TTL_CHECK,
+     PLUGIN_BYTE_TEST,
+     PLUGIN_PCRE,
++    PLUGIN_VLAN_CHECK,
+ };
