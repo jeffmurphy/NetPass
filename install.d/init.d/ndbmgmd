@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# ndb_mgmd         Start/Stop the ndb_mgmd.
+#
+# chkconfig: 2345 40 60
+#
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+CLUSTERDIR=/var/lib/mysql-cluster
+NDBMGMD=/var/lib/mysql-cluster/ndb_mgmd
+
+case "$1" in
+  start)
+        echo -n "Starting ndb_mgmd: "
+	cd $CLUSTERDIR
+        daemon $NDBMGMD
+        echo
+        ;;
+  stop)
+        echo -n "Stopping ndb_mgmd: "
+        killproc ndb_mgmd
+        echo 
+        ;;
+  *)
+        echo "Usage: $0 {start|stop}"
+        exit 2
+esac
+
+exit 0
