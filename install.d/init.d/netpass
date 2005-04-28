@@ -60,6 +60,10 @@ start() {
 
         echo -n $"Starting macscan: "
 	daemon ${B}/bin/macscan.pl 
+	echo
+
+	echo -n $"Starting npapid: "
+	daemon ${B}/bin/npapid.pl
 	echo 
         #[ $RETVAL -eq 0 ] && exit $RETVAL
 
@@ -78,6 +82,11 @@ stop() {
 	echo -n $"Shutting down macscan: "
 	killproc macscan.pl
 	echo
+
+	echo -n $"Shutting down npapid: "
+	killproc npapid.pl
+	echo
+
 	return 0
 }
 
@@ -98,6 +107,7 @@ case "$1" in
 	status portmover
 	status resetport
 	status macscan
+	status npapid.pl
 	RETVAL=$?
 	;;
   *)

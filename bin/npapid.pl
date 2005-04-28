@@ -10,13 +10,11 @@ use SOAP::Lite;
 use IO::SessionSet;
 use Socket;
 
-#use lib '/opt/netpass/lib';
-use lib '/u1/students/mtbell/NetPass/lib';
+use lib '/opt/netpass/lib';
 use RUNONCE;
 use NetPass::LOG qw(_log _cont);
 NetPass::LOG::init [ 'npapid', 'local0' ]; #*STDOUT;
 use NetPass;
-use NetPass::Config;
 use NetPass::API;
 
 my $otherPid = RUNONCE::alreadyRunning('npapi');
