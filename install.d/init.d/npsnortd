@@ -10,10 +10,40 @@
 # Source the local configuration file
 . /etc/sysconfig/npsnortd
 
+if [ "$SNORTLOGFILE"X = "X" ]; then
+   SNORTLOGFILE=""
+else
+   SNORTLOGFILE="-l $SNORTLOGFILE"
+fi
+
+if [ "$SNORTRULESFILE"X = "X" ]; then
+   SNORTRULESFILE=""
+else
+   SNORTRULESFILE="-r $SNORTRULESFILE"
+fi
+
+if [ "$NPSNORTDPORT"X = "X" ]; then
+   NPSNORTDPORT=""
+else
+   NPSNORTDPORT="-P $NPSNORTDPORT"
+fi
+
+if [ "$SNORTPIDFILE"X = "X" ]; then
+   SNORTPIDFILE=""
+else
+   SNORTPIDFILE="-p $SNORTPIDFILE"
+fi
+
+if [ "$SNORTSTARTUPSCRIPT"X = "X" ]; then
+   SNORTSTARTUPSCRIPT=""
+else
+   SNORTSTARTUPSCRIPT="-f $SNORTSTARTUPSCRIPT"
+fi
+
 case "$1" in
   start)
         echo -n "Starting npsnortd: "
-        daemon /opt/snort/bin/npsnortd.pl -s $NPAPISERVER -S $NPAPISECRET -l $SNORTLOGFILE -r $SNORTRULESFILE -P $NPSNORTDPORT -p $SNORTPIDFILE -f $SNORTSTARTUPSCRIPT
+        daemon /opt/snort/bin/npsnortd.pl -s $NPAPISERVER -S $NPAPISECRET $SNORTLOGFILE $SNORTRULESFILE $NPSNORTDPORT $SNORTPIDFILE $SNORTSTARTUPSCRIPT
         echo
         ;;
   stop)

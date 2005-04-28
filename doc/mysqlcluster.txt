@@ -13,16 +13,16 @@
 9. chown -R mysql data
 10. chgrp -R mysql .
 11. mkdir /var/lib/mysql-cluster
-# ndbd --initial deletes a bunch of stuff in /var/lib/mysql-cluster
-# so only use initial setup
-12. run /usr/local/mysql/bin/ndbd --initial
-13 kill ndbd
 14. edit my.cnf add these lines
 [mysqld]
 ndbcluster
 
 [mysql_cluster]
 ndb-connectstring=128.205.10.40;128.205.10.62
+# ndbd --initial deletes a bunch of stuff in /var/lib/mysql-cluster
+# so only use initial setup
+12. run /usr/local/mysql/bin/ndbd --initial
+13 kill ndbd
 # use mysqld included in netpass, this should start ndbd
 # normally and mysqld
 15. /etc/init.d/mysqld start
