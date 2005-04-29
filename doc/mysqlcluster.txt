@@ -1,3 +1,5 @@
+http://dev.mysql.com/doc/mysql/en/mysql-cluster-faq.html
+
 #
 # mysql storage node setup (npw1-d, npw2-d)
 #

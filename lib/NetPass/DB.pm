@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.35 2005/04/27 03:54:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.36 2005/04/29 00:30:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1398,7 +1398,7 @@ sub getUserGroups {
     if(defined($u)) {
 	$self->reconnect() || return undef;
 
-	my $sql = qq{SELECT groups FROM users WHERE username = '$u'};
+	my $sql = qq{SELECT groups FROM users WHERE username = }.$self->dbh->quote($u);
 	my $a   = $self->{'dbh'}->selectrow_arrayref($sql);
 	return $self->decomposeGroupMembership($a->[0]);
     }
@@ -1474,7 +1474,7 @@ sub composeGroupMembership {
 	return "" unless (ref($gh) eq "HASH");
 
 	my $gstring = "";
-	foreach my $g (keys %$gh) {
+	foreach my $g (sort keys %$gh) {
 		if (ref($gh->{$g}) eq "ARRAY") {
 			$gstring .= "$g+".join('+', @{$gh->{$g}}).";";
 		} else {
@@ -1545,41 +1545,59 @@ sub setUsersAndGroups {
 
     foreach my $u (keys %$uh) {
 	    my $groups = $self->composeGroupMembership($uh->{$u});
-	    _log ("DEBUG", "u $u  g $groups\n");
+	    my $sql = '';
 
 	    $self->reconnect() || return "db failure database down";
 	    
 	    # if groups contains no ACLs, then delete the user.
 	    if ($groups !~ /\+/) {
-		    my $sql = qq{DELETE FROM users WHERE username = '$u'};
+		    $sql = qq{DELETE FROM users WHERE username = '$u'};
 		    if (!$self->{'dbh'}->do($sql)) {
-			    _log("ERROR", "failed to delete user $u ".$self->{'dbh'}->errstr."\n");
+			    _log("ERROR", "$whoami failed to delete user $u ".$self->{'dbh'}->errstr."\n");
 			    return "db failure ".$self->{'dbh'}->errstr;
 		    } else {
-			    _log("INFO", "user $u deleted\n");
+			    _log("INFO", "$whoami deleted user $u\n");
 			    $self->deletePasswd($u);
 			    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
 					 -msg => [ qq{user $u deleted} ]);
 		    }
 	    } else {
-		    my $sql = qq{INSERT INTO users (username, groups) VALUES (};
-                    my $msg = "user added.";
-                    $sql .= $self->dbh->quote($u). ",";
-                    $sql .= $self->dbh->quote($groups). ")";
-                    if (!$self->dbh->do($sql)) {
-		            $sql  = qq{UPDATE users SET groups = };
-                            $sql .= $self->dbh->quote($groups);
-                            $sql .= " WHERE username = ".$self->dbh->quote($u);
-	                    if (!$self->{'dbh'}->do($sql)) {
-			            _log("ERROR", 
-				         "failed to change groups to ($groups) for $u ".$self->{'dbh'}->errstr."\n");
-			            return "db failure ".$self->{'dbh'}->errstr;
-                            }
+		    my $ugh = $self->getUserGroups($u);
+		    if (!defined($ugh)) {
+			    # user doesnt exist
+			    $sql = "NSERT INTO users (username, groups) VALUES (";
+			    $sql .= $self->dbh->quote($u). ",";
+			    $sql .= $self->dbh->quote($groups). ")";
+			    if (!$self->dbh->do($sql)) {
+				    _log("ERROR", "failed to add user: $u sql=$sql err=".$self->dbh->errstr);
+				    return "db failured ".$self->dbh->errstr;
+			    }
+			    _log ("INFO", qq{$whoami added user $u groups "$groups"});
+			    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
+					 "user added: $u groups: $groups");
+		    } 
+
+		    else {
+			    # user already exists
+
+			    my $groups_orig = $self->composeGroupMembership($ugh);
+			    if ($groups ne $groups_orig) {
+				    $sql  = qq{UPDATE users SET groups = };
+				    $sql .= $self->dbh->quote($groups);
+				    $sql .= " WHERE username = ".$self->dbh->quote($u);
+				    if (!$self->{'dbh'}->do($sql)) {
+					    _log("ERROR", 
+						 "failed to change groups to ($groups) for $u ".$self->{'dbh'}->errstr."\n");
+					    return "db failure ".$self->{'dbh'}->errstr;
+				    }
+				    _log ("INFO", qq{$whoami modified user $u groups "$groups_orig" to "$groups"});
+				    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
+						 "groups for $u changed from: $groups_orig to: $groups");
+			    }
 		    }
-		    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
-					 "$msg groups for $u changed to: $groups");
 	    }
     }
+
     return 0;
 }
 
@@ -2767,7 +2785,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.35 2005/04/27 03:54:07 jeffmurphy Exp $
+$Id: DB.pm,v 1.36 2005/04/29 00:30:07 jeffmurphy Exp $
 
 =cut
 
