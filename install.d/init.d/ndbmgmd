@@ -8,7 +8,8 @@
 . /etc/rc.d/init.d/functions
 
 CLUSTERDIR=/var/lib/mysql-cluster
-NDBMGMD=/var/lib/mysql-cluster/ndb_mgmd
+NDBMGMD=/usr/sbin/ndb_mgmd
+NDBMGM=/usr/bin/ndb_mgm
 
 case "$1" in
   start)
@@ -22,8 +23,13 @@ case "$1" in
         killproc ndb_mgmd
         echo 
         ;;
+  clusterstop)
+        echo -n "Shutting Down Cluster: "
+        $NDBMGM -e shutdown
+        echo
+        ;;
   *)
-        echo "Usage: $0 {start|stop}"
+        echo "Usage: $0 {start|stop|clusterstop}"
         exit 2
 esac
 
