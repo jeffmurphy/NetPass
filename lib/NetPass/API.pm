@@ -41,19 +41,33 @@ my $check_soap_auth = sub {
         return ($their_secret eq $my_secret) ? 1 : 0;
 };
 
-=head2 $aref = getSnortRules($secret, $type = <enabled | disabled | all>)
+=head2 $aref = getSnortRules(-secret => $secret, -type => $type = <enabled | disabled | all>
+			     -ignorequarrule => 0|1)
 
-Retrieve snort rules registered in the NetPass database. Returns
-an C<array reference> on success, C<undef> on failure.
+Retrieve snort rules registered in the NetPass database. Arguments include
+a secret, type either return all enabled rules, all disabled rules, or all
+rules. Argument ignorequarrule will prepend vlan filtering rules to filter
+quarantine traffic from being monitored by snort. Returns an C<array reference>
+on success, C<undef> on failure.
 
 =cut
 
 sub getSnortRules {
 	my $self   = shift;
-	my $secret = shift;
-	my $type   = shift;
 	my $np	   = $::np;
 	my @aref;
+
+        my $parms = parse_parms({
+                                  -parms    => \@_,
+                                  -legal    => [ qw(-secret -type -ignorequarrule) ],
+                                  -defaults => { -secret  => '',
+                                                 -type    => '',
+                                                 -ignorequarrule => 0,
+                                               }
+                                });
+
+        return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
+        my ($secret, $type, $ignorequarrule) = $parms->get('-secret', '-type', '-ignorequarrule');
 
 	return undef unless ($self->$check_soap_auth($secret));
 	return undef unless ($type =~ /^(enabled|disabled|all)$/);
@@ -63,11 +77,13 @@ sub getSnortRules {
 
 	_log("DEBUG", "retrieving snort rules");
 
-	foreach my $nw (@$network) {
-		my $qvlan = $np->cfg->quarantineVlan($nw);
-		next unless defined $qvlan;
-		push @aref, sprintf("pass tcp any any -> any any (vlan:%d;)\n", $qvlan);
+	if ($ignorequarrule) {
+		foreach my $nw (@$network) {
+			my $qvlan = $np->cfg->quarantineVlan($nw);
+			next unless defined $qvlan;
+			push @aref, sprintf("pass tcp any any -> any any (vlan:%d;)\n", $qvlan);
 
+		}
 	}
 
 	my $rules = $np->db->getSnortRules($type);
