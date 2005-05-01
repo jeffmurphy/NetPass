@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.10 2005/04/27 03:54:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.11 2005/05/01 05:44:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -42,8 +42,6 @@ my $restartnetpass = 0;
 my $restartnessus  = 0;
 my $restarthttpd   = 0;
 
-# XX Not functional yet
-
 if ($submit eq 'Commit Changes') {
 	foreach my $ak ( keys %ARGS ) {
 		if ($ak =~ /^(\S+):(\S+)$/) {
@@ -83,9 +81,9 @@ print $q->start_form(-method => "POST");
 
 <h2>General Configuration</h2>
 
-% $m->comp('/Admin/LockConfig');
+% $m->comp('/Admin/LockConfig', 'enableWhenLocked' => 'submitButton');
 
-<input type='submit' name='submit' value='Commit Changes'> <P>
+<input id='submitButton' type='submit' name='submit' value='Commit Changes'> <P>
 
 <TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
 <THEAD>

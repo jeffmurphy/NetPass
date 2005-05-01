@@ -63,6 +63,8 @@ doc/mysqlcluster.txt
 doc/nessus-install.txt
 doc/npsnort.txt
 doc/netpass-install.sxw
+doc/snort-2.3.3-vlan.patch
+doc/.mysqlcluster.txt.swp
 etc/netpass-example.conf
 etc/oui.txt
 install.d/logrotate.d/apache
@@ -186,6 +188,7 @@ www/htdocs/Admin/help.mhtml
 www/htdocs/Admin/chpwd.mhtml
 www/htdocs/Admin/auth.mhtml
 www/htdocs/Admin/lockcfg.mhtml
+www/htdocs/Admin/cmd/setresult.mhtml
 www/htdocs/OSSTemplate/css/OSSTemplate.css.cgi
 www/htdocs/OSSTemplate/css/.htaccess
 www/htdocs/OSSTemplate/css/calendar.css

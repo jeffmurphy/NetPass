@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/clienthistory.mhtml,v 1.1 2005/04/20 04:15:56 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/clienthistory.mhtml,v 1.2 2005/05/01 05:44:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,20 +15,22 @@ $action	  => '';
 
 <%perl>
 
-my @rwGroups = ('Admin', 'QuarAdmin');
-my @roGroups = ('Reports');
 my $readOnly = "disabled";
-my @aclGroups = ();
 
-if (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ])) {
-        $readOnly = "";
-} elsif (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ])) {
-        $readOnly = "disabled";
-} else {
-        print $q->p({-class=>'error'},
-                "Sorry, permission denied.<BR>You must be in one of these groups: ",
-                join(',', @rwGroups, @roGroups));
+my ($isRW, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin', 'QuarAdmin' ]);
+my ($isRO, $roGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Reports' ]);
+my ($isRoot, $junk)   = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+
+if (! $isRW && ! $isRO ) {
+        print $q->p({-class=>'error'}, "Sorry, you don't have access to this form.");
         return;
+}
+
+if ($isRoot || $isRW) {
+        $readOnly = "";
+} 
+else {
+        $readOnly = "disabled";
 }
 
 my @rows;
@@ -45,7 +47,7 @@ if ($action eq "Submit" && defined $mac && defined $notes &&
 
 	if (!$rv) {
 		print $q->p({-class=>'error'},
-			"Fatal Error Unable to add to History");
+			"Unable to add to History: $rv");
 	}
 }
 
@@ -55,7 +57,7 @@ print $q->start_form(-method=>"POST", action => "clienthistory.mhtml");
 
 push @rows, 
 	$q->TR(
-		$q->th({-colspan=>1}, "Add Client History")
+		$q->th({-colspan=>1}, "Add To Client History")
 	).
 	$q->TR({-class=>'gray', -align=>"center"},
 		$q->td(
@@ -76,34 +78,28 @@ push @rows,
 	);
 
 my $history = $np->db->getClientHistory(-mac => $mac) if defined $mac;
-
-push @table,
-        $q->TR(
-                $q->th({-colspan=>1}, "Client History")
-        );
-
-foreach my $dt (sort {$b cmp $a} keys %$history) {
-	my $user	= $history->{$dt}->{username};
-	my $notes	= $history->{$dt}->{notes};
-	my $macaddr	= $history->{$dt}->{macAddress};
-	$notes		=~ s/\n/<BR>/g;
-	push @table, 
-		$q->TR({-class=>'gray'},
-			$q->td({-align=>"left"},
-				"<DL>
-			   	    <DT>$dt: Submitted by $username for mac = $macaddr</DT>
-			       	       <DD>$notes</DD>
-				 </DL>
-				"
-			)
-		);
-}
+my $results = $np->db->getResults(-mac => $mac, -status => 'any');
 
 print $q->hidden(-name=>"mac", -value=>$mac);
 print $q->table( {-border=>0, -width=>600}, @rows);
 print $q->br();
-print $q->table( {-border=>0, -width=>600}, @table);
-print $q->end_form();
-
 </%perl>
+
+<table border="0">
+<tr><th>Client History</th><th>Results History</th></tr>
+<tr class='gray'><td align='left'>
+%foreach my $dt (sort {$b cmp $a} keys %$history) {
+%	my $user	= $history->{$dt}->{username};
+%	my $notes	= $history->{$dt}->{notes};
+%	my $macaddr	= $history->{$dt}->{macAddress};
+%	$notes		=~ s/\n/<BR>/g;
+<DL><DT><%$dt%>: Submitted by <%$username%> for mac = <%$macaddr%></DT>
+    <DD><%$notes%></DD></DL>
+%}
+</td><td align='left' style='vertical-align:top;'><PRE>
+%for(my $i = 0 ; $i < $#{$results->{'type'}} ; $i++) {
+<%$results->{'dt'}->[$i]%> <%$results->{'type'}->[$i]%> <%$results->{'id'}->[$i]%> <%$results->{'status'}->[$i]%>
+%}
+</pre></td></tr></table>
+</form>
 

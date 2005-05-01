@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.18 2005/04/29 00:30:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.19 2005/05/01 05:44:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,16 +67,65 @@ better integrate them into UB NetPass. <P>
 
 These tools might require additional access. If you get an access denied, click on the 
 "Apply for an account" link and apply for a  "Network Documentation" account. <P>
-%}
-
-
 
 <ul>
   <li> <a target="_blank" href="http://netstats.cit.buffalo.edu/Maps/Layer2Traceroute.cgi">Layer 2
        Traceroute</a>
   <li> <a target="_blank" href="http://netstats.cit.buffalo.edu/oss-bin/macip.cgi">IP to MAC Translator</a>
 </ul>
+%}
 
+<script language="JavaScript"><!--
+function quarctl_setresult_rv(r) {
+	if (r) {
+		var ra = r.split(/\s+/);
+		var i = 0;
+		while (i < ra.length && ra[i] != "OK" && ra[i] != "NOK") { i++ }
+
+		// OK rowid 
+		// NOK rowid
+
+		if ( (ra.length > 2) && (ra[i] == "OK")) {
+			var o = document.getElementById('results-row-'+ra[i+1]);
+			if (o) {
+				o.style.display = 'none';
+			}
+		}
+	}
+}
+
+function quarctl_changeResult(ma, rid) {
+	if (ma && rid) {
+		var o = document.getElementById('results-status-'+rid);
+		if (o) {
+			var url = "cmd/setresult.mhtml?printable=2&ma="+ma+"&rid="+rid+"&st="+o.value;
+			xmlhttp.open("GET", url, true);
+			xmlhttp.onreadystatechange = function() {
+				if (xmlhttp.readyState == 4) {
+					quarctl_setresult_rv(xmlhttp.responseText);
+				}
+			};
+			xmlhttp.send(null);
+		}
+	}
+	return false;
+}
+
+function quarctl_onchange_status(ma) {
+	if (ma) {
+		var mf = document.getElementById('message:' + ma);
+		var sf = document.getElementById('status:' + ma);
+		if (mf && sf) {
+			if ( (sf.value == "QUAR") || (sf.value == "PQUAR") ) {
+				mf.disabled = false;
+			} else {
+				mf.disabled = true;
+			}
+		}
+	}
+}
+
+--></script>
 
 <%perl>
 print $q->start_form(-method => "POST");
@@ -210,100 +259,114 @@ if($count==0) {
 
 my @rows = ();
 
-push(@rows, $q->TR(
-                   $q->td({-colspan=>8}, '&nbsp;').
-                   $q->td({-colspan=>1, -align=>"right"},
-                          $q->submit(-name  => "submit", -value => "Save Changes", $readOnly)
-                   )
-            )
-);
+</%perl>
+<table width='80%'>
+<tr><td colspan=8></td>
+    <td colspan=2 align='right'><input type='submit' name='submit' value='Save Changes' <%$readOnly%>></td>
+</tr>
+<tr><th>Registered On</th><th>Last Seen</th><th><%$np->cfg->policy(-key => 'USERNAME_PROMPT', -network => $ENV{'REMOTE_ADDR'}) || "Username"%>
+    <th>IP Address</th><th>MAC Address</th><th>Unquar<BR>When?</th><th>Status</th><th>Incident<BR>History</th><th>Results<br><span style='font-size:10pt;'>Pending/U-Fixed</span></th><th>Add Result</th></tr>
 
-push(@rows, $q->TR(
-		   	$q->th("First Seen") .
-		   	$q->th("Last Seen") .
-		   	$q->th($np->cfg->policy(-key => 'USERNAME_PROMPT', -network => $ENV{'REMOTE_ADDR'}) || "Username") .
-			$q->th("IP Address") .
-			$q->th("Mac Address") .
-			$q->th("Unquar<BR>When?") .
-			$q->th("Status") .
-			$q->th("History") .
-			$q->th("Add Result")
-	   )
-);
+%while (my $row = $results->fetchrow_hashref() ) {
+%	my $myPendingResults = $np->db->getResults(-mac => $row->{'macAddress'}, -status => 'pending');
+%	my $myUFixedResults  = $np->db->getResults(-mac => $row->{'macAddress'}, -status => 'user-fixed');
+%	my $nPR = 0;
+%	my $nUFR = 0;
+%       my $macAddress = $row->{'macAddress'};
+%       my $disabled = ($row->{'status'} =~ /^[P]{0,1}QUAR$/i) ? "" : "disabled";
+%
+%	if (ref($myPendingResults) eq "HASH") {
+%		$nPR = $#{$myPendingResults->{'type'}} + 1;
+%	} else {
+%		print "<P class='error'>getResults($macAddress) failed: $myPendingResults</P>";
+%	}
+%	if (ref($myUFixedResults) eq "HASH") {
+%		$nUFR = $#{$myUFixedResults->{'type'}} + 1;
+%	} else {
+%		print "<P class='error'>getResults($macAddress) failed: $myUFixedResults</P>";
+%	}
 
-while (my $row = $results->fetchrow_hashref() ) {
-	push( @rows,	$q->TR( 
-				$q->td({-align=>'center'}, $row->{lastSeen})    .
-				$q->td({-align=>'center'}, $row->{registeredOn}) .
-				$q->td({-align=>'center'}, $row->{username})     .
-				$q->td({-align=>'center'}, $row->{ipAddress})   .
-				$q->td({-align=>'center'}, "<code>", NetPass::padMac($row->{macAddress})), "</code>"   .
-                                $q->td({-align=>'center'},
-                                        $q->popup_menu(
-                                                        -name    => "uqlinkup:" . $row->{macAddress},
-                                                        -values  => [ 'no', 'yes' ],
-                                                        -labels  => {
-                                                                        "no" => "Web Visit",
-                                                                        "yes" => "Link Up"
-                                                                     },
-                                                        -default => $row->{uqlinkup}, $readOnly
-                                        ), "\n",),
+<tr>
+	<td align='center'><%$row->{'lastSeen'}%>
+                <input type='hidden' name='ids'                          value="<%$macAddress%>">
+                <input type='hidden' name='ipAddr:<%$macAddress%>'       value="<%$row->{'ipAddress'}%>">
+                <input type='hidden' name='messageOrig:<%$macAddress%>'  value="--None--">
+                <input type='hidden' name='uqlinkupOrig:<%$macAddress%>' value="<%$row->{'uqlinkup'}%>">
+                <input type='hidden' name='statusOrig:<%$macAddress%>'   value="<%$row->{'status'}%>">
+        </td>
+	<td align='center'><%$row->{'registeredOn'}%></td>
+	<td align='center'><%$row->{'username'}%></td>
+	<td align='center'><%$row->{'ipAddress'}%></td>
+	<td align='center'><code><%$row->{'macAddress'}%></code></td>
+	<td align='center'><%$q->popup_menu(-name    => "uqlinkup:" . $row->{'macAddress'},
+                                            -values  => [ 'no', 'yes' ],
+                                            -labels  => {
+                                                         "no" => "Web Visit",
+                                                         "yes" => "Link Up"
+                                                        },
+                                            -default => $row->{'uqlinkup'}, $readOnly)%></td>
+	<td align='center'><%$q->popup_menu(-name    => "status:" . $row->{'macAddress'},
+                                            -values  => $statuses,
+                                            -labels  => {
+                                                          "" => "Default Description"
+                                                        },
+					    -id => 'status:' . $macAddress,
+					    -onchange => qq{quarctl_onchange_status('$macAddress');},
+                                            -default => $row->{'status'}, $readOnly)%></td>
+	<td align='center'><a href="clienthistory.mhtml?mac=<%$macAddress%>">[ view ]</a></td>
+	<td align='center'><a onclick='return showHideObj2("results-<%$macAddress%>");' href="">[ <%$nPR%>/<%$nUFR%> ]</a></td>
+	<td align='center'><%$q->popup_menu(-name    => "message:" . $row->{macAddress},
+                                            -values  => $msgs,
+					    -id      => 'message:'. $macAddress,
+                                            -default => "--None--", $readOnly||$disabled)%></td>
+</tr>
+	<tr style='display:none;' id='results-<%$macAddress%>'><td colspan=7></td><td colspan=3>
+%	if ($nUFR || $nPR) {
+		<table width='100%'>
+		<tr><th>Type</th><th>ID</th><th>Time Entered</th><th>Status</th></tr>
+%		for(my $rn = 0 ; $rn <= $#{$myPendingResults->{'type'}} ; $rn++) {
+			<tr id='results-row-<%$myPendingResults->{'rowid'}->[$rn]%>'>
+			<td><%$myPendingResults->{'type'}->[$rn]%></td>
+			<td><%$myPendingResults->{'id'}->[$rn]%></td>
+			<td><%$myPendingResults->{'dt'}->[$rn]%></td>
+			<td><%$q->popup_menu(-name     => 'result:'.$macAddress, 
+                                             -values   => [ 'pending', 'fixed', 'user-fixed' ],
+                                             -default  => $myPendingResults->{'status'}->[$rn],
+					     -id       => qq{results-status-$myPendingResults->{'rowid'}->[$rn]},
+                                             -onchange => qq{quarctl_changeResult('$macAddress',
+                                                                                  '$myPendingResults->{'rowid'}->[$rn]')})%></td>
+			</tr>
+%		}
+%		for(my $rn = 0 ; $rn <= $#{$myUFixedResults->{'type'}} ; $rn++) {
+			<tr id='results-row-<%$myPendingResults->{'rowid'}->[$rn]%>'>
+			<td><%$myUFixedResults->{'type'}->[$rn]%></td>
+			<td><%$myUFixedResults->{'id'}->[$rn]%></td>
+			<td><%$myUFixedResults->{'dt'}->[$rn]%></td>
+			<td><%$q->popup_menu(-name     => 'result:'.$macAddress, 
+                                             -values   => [ 'pending', 'fixed', 'user-fixed' ],
+                                             -default  => $myUFixedResults->{'status'}->[$rn],
+					     -id       => qq{results-status-$myPendingResults->{'rowid'}->[$rn]},
+                                             -onchange => qq{quarctl_changeResult('$macAddress',
+                                                                                  '$myUFixedResults->{'rowid'}->[$rn]')})%></td>
+			</tr>
+%		}
+		</table>
+%	} else {
+		No results worth mentioning.
+%       }
+	</td></tr>
+%}
 
-                                $q->td({-align=>'center'},
-                                        $q->popup_menu(
-                                                        -name    => "status:" . $row->{macAddress},
-                                                        -values  => $statuses,
-                                                        -labels  => {
-                                                                        "" => "Default Description"
-                                                                     },
-                                                        -default => $row->{status}, $readOnly
-                                        ), "\n",
-                                        $q->hidden(
-                                                        -name    => "ids",
-                                                        -value   => $row->{macAddress}
-                                        ), "\n",
-					$q->hidden( 	-name => 'ipAddr:' . $row->{macAddress},
-							-value =>  $row->{ipAddress}
-					), "\n",
-					$q->hidden( 	-name => 'messageOrig:' . $row->{macAddress},
-							-value =>  defne($row->{message}) ? $row->{message} : "--None--"
-					), "\n",
-					$q->hidden( 	-name => 'uqlinkupOrig:' . $row->{macAddress},
-							-value =>  $row->{uqlinkup}
-					), "\n",
-					$q->hidden( 	-name => 'statusOrig:' . $row->{macAddress},
-							-value =>  $row->{status}
-					),
-                                ) .
-				$q->td({-align=>'center'},
-					$q->a({-href => "clienthistory.mhtml?mac=".$row->{macAddress}},
-						 "[ view ]")
-				) . 
-                                $q->td({-align=>'center'},
-                                        $q->popup_menu(
-                                                        -name    => "message:" . $row->{macAddress},
-                                                        -values  => $msgs,
-                                                        -default => defne($row->{message}) ?  $row->{message} : "--None--", $readOnly
-                                        )
-                                )
-			));
-}
-$results->finish();
+<tr><td colspan=8></td>
+    <td colspan=2 align='right'><input type='submit' name='submit' value='Save Changes' <%$readOnly%>></td>
+</tr>
+</table>
 
-push(@rows, $q->TR(
-                   $q->td({-colspan=>8}, '&nbsp;').
-                   $q->td({-colspan=>1, -align=>"right"},
-                          $q->submit(-name  => "submit", -value => "Save Changes", $readOnly)
-                   )
-            )
-);
+% end_of_page:;
+<P>
+<form>
 
-print $q->table({-width=>'80%'}, @rows);
-
-end_of_page:;
-
-print $q->p();
-print $q->end_form();
+<%perl>
 
 #######################
 
@@ -375,7 +438,7 @@ sub getQuars {
 		push(@params, $uqlinkup);
 	}
 
-	my $query = "SELECT DATE_FORMAT(lastSeen, '%Y-%m-%d %H:%i:%s') as lastSeen, DATE_FORMAT(registeredOn, '%Y-%m-%d %H:%i:%s') as registeredOn, username, macAddress, ipAddress, OS, status, message, uqlinkup FROM register";
+	my $query = "SELECT DATE_FORMAT(lastSeen, '%Y-%m-%d %H:%i:%s') as lastSeen, DATE_FORMAT(registeredOn, '%Y-%m-%d %H:%i:%s') as registeredOn, username, macAddress, ipAddress, OS, status, uqlinkup FROM register";
 	
 	if($#clause>-1) {
 		$query .= " WHERE " . join(" $type ", @clause)
@@ -471,7 +534,6 @@ sub saveQuarChanges {
 		return "Failed to prepare sql: ".$dbh->errstr;
 	}
 
-	#my $results   = { 'mac' => [], type => [], id => [] };
 	my $resultsRV = '';
 
         foreach my $mac (@$ids) {
@@ -482,7 +544,9 @@ sub saveQuarChanges {
 		my $u_unc = 1;
 
 		print "debug: processing mac $mac<P><UL>\n" if $D;
-		if ( ($args->{"message:$mac"} eq $args->{"messageOrig:$mac"}) ) {
+		# if message is "" then status is probably unquar and the field
+		# is disabled, resulting in an empty value.
+		if ( ($args->{"message:$mac"} eq "") || ($args->{"message:$mac"} eq $args->{"messageOrig:$mac"}) ) {
 			if ($D) {
 				print "debug: message is unchanged.<P>\n";
 				print qq{M=|$args->{"message:$mac"}|<P>\n};
@@ -572,7 +636,8 @@ sub saveQuarChanges {
 			if ($args->{"message:$mac"} eq "--None--") {
 				return "Error: $mac PQUAR requires that you specify a message.";
 			} else {
-				push @params, $args->{"message:$mac"};
+				#push @params, $args->{"message:$mac"};
+				push @params, undef;
 				$resultsRV = $np->db->addResult(-mac => $mac, -type => 'manual', 
 								   -id => $args->{"message:$mac"});
 			}
@@ -582,7 +647,8 @@ sub saveQuarChanges {
 			if ($args->{"message:$mac"} eq "--None--") {
 				push @params, undef;
 			} else {
-				push @params, $args->{"message:$mac"};
+				push @params, undef;
+				#push @params, $args->{"message:$mac"};
 				$resultsRV = $np->db->addResult(-mac => $mac, -type => 'manual', 
 								-force => 1,
 								-id => $args->{"message:$mac"});

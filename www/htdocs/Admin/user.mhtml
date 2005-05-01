@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.20 2005/04/29 00:30:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.21 2005/05/01 05:44:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -36,8 +36,7 @@ my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' 
 
 if (!$isRoot && !$isReadWrite) {
         print $q->p({-class=>'error'},
-                "Sorry, permission denied.<BR>You must have one of: ".
-                join(', ', @rwACLs). " permissions on at least one group to use this form.");
+                "Sorry, you don't have access to this form.");
         return;
 }
 

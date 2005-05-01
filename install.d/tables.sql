@@ -20,58 +20,64 @@ CREATE TABLE register (
 	switchPort	SMALLINT,
 
 	PRIMARY KEY(macAddress)
-) TYPE=NDBCLUSTER;
+) ENGINE=NDBCLUSTER;
 
 CREATE TABLE results (
+	rowid           INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
 	macAddress	VARCHAR(32)	NOT NULL,
 	dt		DATETIME	NOT NULL,
 	testType	VARCHAR(32),    #enum('nessus', 'snort', 'manual')  NOT NULL,
 	ID		VARCHAR(128),
 	status		enum('pending', 'user-fixed', 'fixed') NOT NULL default 'pending',
-	INDEX (macAddress),
-	INDEX (macAddress, testType),
-	INDEX (macAddress, status),
-) TYPE=NDBCLUSTER;
+	PRIMARY KEY(rowid)
+) ENGINE=NDBCLUSTER;
+
+CREATE INDEX results_idx1 ON results (macAddress);
+CREATE INDEX results_idx2 ON results (macAddress, testType);
+CREATE INDEX results_idx3 ON results (macAddress, status);
 
 CREATE TABLE policy (
 	name		VARCHAR(128) NOT NULL,
 	val		VARCHAR(128) NOT NULL,
 	PRIMARY KEY(name)
-) TYPE=NDBCLUSTER;
+) ENGINE=NDBCLUSTER;
 
 CREATE TABLE users (
 	username	VARCHAR(128) NOT NULL,
 	groups          VARCHAR(128) NOT NULL,
 	PRIMARY KEY (username)
-) TYPE=NDBCLUSTER;
+) ENGINE=NDBCLUSTER;
 
-reate table config (
+CREATE TABLE config (
 	rev	integer unsigned not null auto_increment,
 	dt	datetime not null,
 	xlock   integer not null default 0,
 	user	varchar(128) not null,
 	log     text,
 	config	text,
-	primary key (rev),
-	index (dt)
+	PRIMARY KEY (rev)
 ) type=ndbcluster;
+
+CREATE INDEX config_idx1 ON config (dt);
 
 CREATE TABLE passwd (
 	username	VARCHAR(128) NOT NULL,
 	password	VARCHAR(128),
 	PRIMARY KEY(username)
-) TYPE=NDBCLUSTER;
+) ENGINE=NDBCLUSTER;
 
 INSERT INTO users VALUES ('netpass', 'default+Admin');
 INSERT INTO passwd VALUES ('netpass', ENCRYPT('netpass', 'xx'));
 	
 CREATE TABLE pages (
+	rowid		INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
 	network         VARCHAR(128) NOT NULL default 'default',
 	name		VARCHAR(128) NOT NULL,
 	content		TEXT,
-	UNIQUE INDEX (name, network)
-) TYPE=NDBCLUSTER;
+	PRIMARY KEY (rowid)
+) ENGINE=NDBCLUSTER;
 
+CREATE UNIQUE INDEX pages_idx1 ON pages (name, network);
 
 CREATE TABLE portMoves (
 	serverid	VARCHAR(128)     NOT NULL,
@@ -87,7 +93,7 @@ CREATE TABLE portMoves (
 	INDEX (status),            /* we often query on status    */
         INDEX (requested),
         INDEX (switchIP, switchPort)
-) TYPE=NDBCLUSTER;
+) ENGINE=MyISAM;
 
 CREATE TABLE audit (
 	ts		DATETIME           NOT NULL,
@@ -105,18 +111,21 @@ CREATE TABLE audit (
 	INDEX (ipAddress),
 	INDEX (macAddress(12)),
 	INDEX (ts)
-) TYPE=NDBCLUSTER;
+) ENGINE=MyISAM;
 
 CREATE TABLE clientHistory (
+	chid		INTEGER UNSIGNED AUTO_INCREMENT NOT NULL,
 	macAddress      VARCHAR(32)	NOT NULL,
 	username        VARCHAR(32)	NOT NULL,
 	dt		DATETIME	NOT NULL,
 	notes		TEXT		NOT NULL,
-	INDEX(macAddress),
-	INDEX(dt)
-) TYPE=NDBCLUSTER;
+	PRIMARY KEY (chid)
+) ENGINE=NDBCLUSTER;
 
-CREATE TABLE `nessusScans` (
+CREATE INDEX clientHistory_idx1 ON clientHistory (macAddress);
+CREATE INDEX clientHistory_idx2 ON clientHistory (dt);
+
+CREATE TABLE nessusScans (
   `pluginID` int(10) unsigned NOT NULL default '0',
   `name` varchar(255) default NULL,
   `family` varchar(255) default NULL,
@@ -134,9 +143,10 @@ CREATE TABLE `nessusScans` (
   `cve` varchar(255) default NULL,
   `bugtraq` varchar(255) default NULL,
   `other_refs` varchar(255) default NULL,
-  PRIMARY KEY  (`pluginID`),
-  KEY `status` (`status`)
-) TYPE=NDBCLUSTER;
+  PRIMARY KEY  (`pluginID`)
+) ENGINE=NDBCLUSTER;
+
+CREATE INDEX nessusScans_idx1 ON nessusScans (status);
 
 CREATE TABLE `snortRules` (
   `snortID` int(10) unsigned NOT NULL default '0',
@@ -156,12 +166,9 @@ CREATE TABLE `snortRules` (
   `other_refs` varchar(255) default NULL,
   PRIMARY KEY  (`snortID`),
   KEY `status` (`status`)
-) TYPE=NDBCLUSTER;
+) ENGINE=NDBCLUSTER;
 
-#		ENUM('httpd', 'nessusd', 'garp', 'squid', 'resetport', 
-#				'portmover', 'macscan', 'netpass', 'npcfgd', 
-#				'npstatusd', 'npsnortctl', 'npsnortd', 'unquar-all',
-#				'quar-all'),
+CREATE INDEX snortRules_idx1 ON snortRules (status);
 
 CREATE TABLE appStarter (
 	rowid		INTEGER UNSIGNED AUTO_INCREMENT,
@@ -170,26 +177,33 @@ CREATE TABLE appStarter (
 	action		ENUM('start', 'stop', 'restart'),
 	actionAs        VARCHAR(16),
 	status		ENUM('pending', 'completed'),
-	PRIMARY KEY (rowid),
-	INDEX (status)
-) TYPE=NDBCLUSTER;
+	PRIMARY KEY (rowid)
+) ENGINE=NDBCLUSTER;
+
+CREATE INDEX appStarter_idx1 ON appStarter (status);
 
 CREATE TABLE stats_procs (
+	rowid	INTEGER UNSIGNED AUTO_INCREMENT,
   `serverid` varchar(128) NOT NULL,
   `dt` datetime NOT NULL,
   `proc` varchar(128) NOT NULL,
   `count` integer NOT NULL,
-  INDEX(dt),
-  INDEX(proc)
-) TYPE=NDBCLUSTER;
+  PRIMARY KEY (rowid)
+) ENGINE=NDBCLUSTER;
+
+CREATE INDEX stats_procs_idx1 ON stats_procs (dt);
+CREATE INDEX stats_procs_idx1 ON stats_procs (proc);
 
 CREATE TABLE urlFilters (
+	rowid    INTEGER UNSIGNED AUTO_INCREMENT,
 	url	varchar(254) not null,
 	dst	varchar(254),
 	network varchar(128) not null,
 	action  enum('permit', 'soft-redirect', 'hard-redirect', 'block') not null,
-	unique index (url, network)
+	PRIMARY KEY (rowid)
 );
+
+CREATE UNIQUE INDEX on urlFilters (url, network);
 
 
 insert into urlFilters values ('itpolicies\.buffalo\.edu', NULL, 'default', 'permit');

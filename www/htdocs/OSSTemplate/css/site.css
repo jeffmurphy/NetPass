@@ -1,5 +1,5 @@
 /* 
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.5 2005/04/23 15:32:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.6 2005/05/01 05:44:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -27,7 +27,7 @@ TD, P {
 
 TH {
 	font-weight: bold;
-        font-size: 14pt;
+        font-size: 12pt;
 	color: #FFFFFF;
 	background: #000000;
 

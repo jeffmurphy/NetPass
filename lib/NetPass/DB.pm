@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.36 2005/04/29 00:30:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.37 2005/05/01 05:44:10 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -2070,7 +2070,7 @@ expand the results set by saying -status=>'any')
 
  Returns
 
- HASHREF              on success (so addResult && die should work)
+ HASHREF              on success
  "invalid mac"        if mac doesnt look right ([0-9a-f]) or is "remote"
  "invalid type"       if type is invalid
  "invalid parameters" if the routine was called improperly
@@ -2083,7 +2083,9 @@ expand the results set by saying -status=>'any')
  print
    $hr->{'type'}->[0]     , ' ',
    $hr->{'id'}->[0]       , ' ',
+   $hr->{'row'}->[0]      , ' ',
    $hr->{'timestamp'}->[0], ' ',
+   $hr->{'dt'}->[0]       , ' ',
    $hr->{'status'}->[0];
 
 =cut
@@ -2128,7 +2130,7 @@ sub getResults {
     $t ||= '';
     $i ||= '';
 
-    my $sql = "SELECT unix_timestamp(dt) AS timestamp, testType AS type, status, id FROM results WHERE macAddress = " . $self->dbh->quote($m);
+    my $sql = "SELECT unix_timestamp(dt) AS timestamp, dt, testType AS type, status, id, rowid FROM results WHERE macAddress = " . $self->dbh->quote($m);
 
     $sql .= " AND testType = ".$self->dbh->quote($t)  if ($t ne "");
     $sql .= " AND ID = ".$self->dbh->quote($i)        if ($i ne "");
@@ -2138,6 +2140,8 @@ sub getResults {
 
     $self->reconnect() || return "db failure";
 
+    #_log("DEBUG", "sql=$sql\n");
+
     my $rv = $self->dbh->selectall_arrayref($sql);
 
     if (!defined($rv)) {
@@ -2145,19 +2149,22 @@ sub getResults {
             return "db failure\n".$self->dbh->errstr;
     }
 
-    my $hv = { 'timestamp' => [], 'type' => [], 'status' => [], 'id' => [], 'sql' => $sql };
+    my $hv = { 'timestamp' => [], 'dt' => [], 'type' => [], 'status' => [], 
+	       'rowid' => [], 'id' => [], 'sql' => $sql };
 
     foreach my $row (@{$rv}) {
 	    push @{$hv->{'timestamp'}}, $row->[0];
-	    push @{$hv->{'type'}}     , $row->[1];
-	    push @{$hv->{'status'}}   , $row->[2];
-	    push @{$hv->{'id'}}       , $row->[3];
+	    push @{$hv->{'dt'}}       , $row->[1];
+	    push @{$hv->{'type'}}     , $row->[2];
+	    push @{$hv->{'status'}}   , $row->[3];
+	    push @{$hv->{'id'}}       , $row->[4];
+	    push @{$hv->{'rowid'}}    , $row->[5];
     }
 
     return $hv;
 }
 
-=head2 updateResult(-mac => '', -type => '', -id => '', -status => [fixed|user-fixed|pending])
+=head2 updateResult(-mac => '', -ip => '', -rowid => '', -status => [fixed|user-fixed|pending])
 
 Set the status of the matching result to whatever you specified. 
 
@@ -2173,11 +2180,11 @@ sub updateResult {
 
     my $parms = parse_parms({
 			     -parms => \@_,
-			     -required => [ qw(-mac -type -id -status) ],
+			     -required => [ qw(-rowid -status) ],
 			     -defaults => {
-					   -mac       => undef,
-					   -type      => '',
-					   -id        => '',
+					   -rowid     => '',
+					   -mac       => '',
+					   -ip        => '',
 					   -status    => 'user-fixed',
 					  }
 			    }
@@ -2186,41 +2193,21 @@ sub updateResult {
     return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
       if (!defined($parms));
     
-    my ($m, $t, $i, $s) = $parms->get('-mac', '-type', '-id', '-status');
+    my ($mac, $ip, $rid, $s) = $parms->get('-mac', '-ip', '-rowid', '-status');
     
     if ($s !~ /^(pending|fixed|user-fixed)$/) {
 	    _log("WARNING", "invalid 'status' of '$s' given\n");
 	    return "invalid paramters (status=$s)";
     }
 
-    if ($m =~ /REMOTE/) {
-	    _log("WARNING", "cant modify result for remote client\n");
-	    return "invalid mac";
-    }
-
-    $m = NetPass::padMac($m);
-
-    if ($m !~ /^[0-9a-f]+$/) {
-	    _log("WARNING", "$m invalid mac address. not 0-9a-f\n");
-	    return "invalid mac";
-    }
-
-    $t ||= '';
-    $i ||= '';
-
-    my $sql = "UPDATE results SET status = ".$self->dbh->quote($s)." WHERE macAddress = " . $self->dbh->quote($m);
-
-    $sql .= " AND testType = ".$self->dbh->quote($t)  if ($t ne "");
-    $sql .= " AND ID = ".$self->dbh->quote($i)        if ($i ne "");
+    my $sql = "UPDATE results SET status = ".$self->dbh->quote($s)." WHERE rowid = " . $self->dbh->quote($rid);
 
     $self->reconnect() || return "db failure";
 
     my $rv = $self->dbh->do($sql);
 
-    #_log("DEBUG", "sql=$sql\n");
-
     if (!defined($rv)) {
-            _log ("ERROR", qq{$m sql failure sql="$sql" err=}.$self->dbh->errstr);
+            _log ("ERROR", qq{$mac $ip sql failure sql="$sql" err=}.$self->dbh->errstr);
             return "db failure\n".$self->dbh->errstr;
     }
 
@@ -2785,7 +2772,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.36 2005/04/29 00:30:07 jeffmurphy Exp $
+$Id: DB.pm,v 1.37 2005/05/01 05:44:10 jeffmurphy Exp $
 
 =cut
 

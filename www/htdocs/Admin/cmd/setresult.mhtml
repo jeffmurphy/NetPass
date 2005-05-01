@@ -1,0 +1,42 @@
+<%doc>
+</%doc>
+<%args>
+	$ma => '';
+	$rid => '';
+	$st => '';
+</%args>
+<%perl>
+	$ma = NetPass::padMac($ma);
+	my $rv = $np->db->getRegisterInfo(-mac => $ma);
+	if (ref($rv) ne "HASH") {
+		print "NOK $rid $rv\n";
+	} 
+	else {
+		# validate perms
+		# find mac's network
+		# find mac's netgroup
+		# do you have quaradmin or admin on the network or netgroup?
+
+		my $nw = $np->cfg->getMatchingNetwork(-ip => $rv->{$ma}->{'ipAddress'});
+		if ($nw eq "none") {
+			print "NOK $rid client's IP is not a part of NetPass\n";
+		}
+		else {
+			my $ng = $np->cfg->getNetgroup($nw);
+			my ($isOK, $groups) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin', 'QuarAdmin' ]);
+			my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+			if ($isRoot || ($isOK && (grep (/^$nw$/, @$groups) || grep (/^$ng$/, @$groups)))) {
+				$rv = $np->db->updateResult(-mac => $ma, -rowid => $rid, 
+							    -status => $st);
+				if ($rv) {
+					print "NOK $rid failed: $rv\n";
+				} else {
+					print "OK $rid\n";
+				}
+			} 
+			else {
+				print "NOK $rid permission denied\n";
+			}
+		}
+	}
+</%perl>

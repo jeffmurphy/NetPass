@@ -21,6 +21,7 @@ if ($nres > -1) {
 
 	if ($nres == 0) {
 		my $sid = $results->{'id'}->[0];
+		my $rid = $results->{'rowid'}->[0];
 		my ($shortName, $info, $description, $type);
 		$type = $results->{'type'}->[0];
 
@@ -42,7 +43,7 @@ if ($nres > -1) {
 		}
 
 		print qq{<tr><td colspan=3 align="right"> };
-		print $q->submit(-name=>"fixed:$type:$sid", -value=>'Fixed') unless $pquar;
+		print $q->submit(-name=>"fixed:$type:$sid:$rid", -value=>'Fixed') unless $pquar;
 		print qq{</td>};
 		print qq{</tr><tr><td colspan=3>};
 
@@ -66,6 +67,7 @@ if ($nres > -1) {
 		my $autoexpand = ($nres <= ($np->cfg->policy(-key => 'RESULTS_EXPAND', -network =>$ip)-1));
 		for(my $resultNum = 0 ; $resultNum <= $nres ; $resultNum++) {
 			my $sid = $results->{'id'}->[$resultNum];
+			my $rid = $results->{'rowid'}->[$resultNum];
 			my ($shortName, $info, $description, $type);
 			$type = $results->{'type'}->[$resultNum];
 
@@ -83,7 +85,7 @@ if ($nres > -1) {
 				$type        = "manual";
 				$shortName   = "Database failure.";
 				$info        = "msg:dbfailure";
-				$description = "Sorry, something didn't work out quite right when I was looking at my database.";
+				$description = "Sorry, something didn't work out quite right while I was looking at my database.";
 			}
 			
 			print qq{<tr><td width="3%" align=center>};
@@ -95,7 +97,7 @@ if ($nres > -1) {
 			}
 			print qq{</td><td>$shortName</td>};
 			print qq{<td width="1%" align="right"> };
-			print $q->submit(-name=>"fixed:$type:$sid", -value=>'Fixed') unless $pquar;
+			print $q->submit(-name=>"fixed:$type:$sid:$rid", -value=>'Fixed') unless $pquar;
 			print qq{</td>};
 			print qq{</tr><tr><td colspan=3 class="gray">};
 

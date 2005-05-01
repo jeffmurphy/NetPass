@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.6 2005/04/19 04:01:23 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.7 2005/05/01 05:44:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -86,9 +86,6 @@
 		goto scan_finished;
     	}
 
-    	$m->session->{'nessus'} = [];
-    	$m->session->{'nessus_defaults'} = {};
-
 	print $q->table( { -width   => "500",  # $progress_bar_width (see callback above)
 			   -border  => 0,
 			   -bgcolor => '#EFEFEF'
@@ -132,8 +129,6 @@
 		foreach my $nes ( @holes ) {
                		my $sid = $nes->ScanID;
 			$m->comp('/Audit', msg => [ "Found vulnerability: $sid" ] );
-			push(@{$m->session->{'nessus'}}, $sid);
-			$m->session->{'nessus_defaults'}->{$sid} = $nes->Description;
 			$np->db->addResult(-type => 'nessus', -mac => $mac, -id => $sid);
 		}
 	}
@@ -142,18 +137,7 @@
 
 	$nessus = undef;	
 
-	# DEBUG TESTING
-	#push(@{$m->session->{'nessus'}}, 10024);
-	#push(@{$m->session->{'nessus'}}, 11633);
-	#push(@{$m->session->{'nessus'}}, 10283);
-	#push(@{$m->session->{'nessus'}}, 10390);
-	#push(@{$m->session->{'nessus'}}, 10794);
-	# DEBUG TESTING
-
-
-    	my $number_of_holes = $#{$m->session->{'nessus'}}+1;
-
-    	if($number_of_holes > 0) {
+    	if($#holes > -1) {
 		_log("DEBUG", "$mac $ip end scan need remediation\n");
 		$m->comp('/Audit', msg => [ 'Scan Complete. Machine is not Clean. Forwarding to Remediation Step.' ] );
 		$m->session->{'phase'} = 'REMEDIATE';

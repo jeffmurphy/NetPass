@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.9 2005/04/27 03:54:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Remediate,v 1.10 2005/05/01 05:44:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -42,17 +42,12 @@ if($msg) {
 
 print $q->br;
 
-$m->session->{'nessus'}          = [] if(!$m->session->{'nessus'});
-$m->session->{'nessus_defaults'} = {} if(!$m->session->{'nessus_defaults'});
-
 foreach my $sid (keys %ARGS) {
 	if($ARGS{$sid} eq 'Fixed') {
-		my ($type, $id) = (split(':', $sid))[1,2];
-		_log ("INFO", "$mac $ip user claims $type:$id is fixed.\n");
-		my @foo = grep(!/^$sid/, @{$m->session->{'nessus'}});
-		$m->session->{'nessus'} = \@foo;
-		my $rv = $np->db->updateResult(-mac => $mac, -type => $type, -id => $id, 
-					-status => 'user-fixed');
+		my ($type, $id, $rid) = (split(':', $sid))[1,2,3];
+		_log ("INFO", "$mac $ip user claims $type:$id:$rid is fixed.\n");
+		my $rv = $np->db->updateResult(-mac => $mac, -ip => $ip,
+					       -rowid => $rid, -status => 'user-fixed');
 		if ($rv) {
 			_log ("ERROR", "$mac $ip failed to updateResult($type:$id): $rv\n");
 		}

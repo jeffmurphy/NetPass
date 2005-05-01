@@ -6,6 +6,16 @@
 </%args>
 <%perl>
 
+my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+if (! $isRoot ) {
+	if ($lock) {
+		print "NOK lock permission denied\n";
+	} else {
+		print "NOK unlock permission denied\n";
+	}
+	return;
+}
+
 my $lstat = $np->db->isConfigLocked();
 my $rv;
 

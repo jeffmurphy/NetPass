@@ -1,6 +1,7 @@
 <%doc>
 </%doc>
 <%args>
+	$enabledWhenLocked => '';
 </%args>
 
 <script language="JavaScript">

@@ -1,5 +1,5 @@
 /*
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/js/OSSTemplate.js,v 1.3 2005/04/21 18:08:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/js/OSSTemplate.js,v 1.4 2005/05/01 05:44:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -54,6 +54,7 @@ function showHideObj2 (obj) {
         } else {
                 x.style.display = "none";
         }
+	return false;
 } // end func
 
 function hideObj (obj) {
