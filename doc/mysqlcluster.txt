@@ -63,6 +63,7 @@ DataDir= /var/lib/mysql-cluster
 [MYSQLD]
 [MYSQLD]
 
-4. copy ndb_mgmd from npw1-d and place in /var/lib/mysql-cluster
+4. download and install MySQL-ndb-management-4.1.11-0.i386.rpm from either
+dev.mysql.com or http://foobar.cit.buffalo.edu/netpass/ttt/ 
 # use startup script included with netpass to start mgmd daemon
 5. /etc/init.d/ndbmgmd start
