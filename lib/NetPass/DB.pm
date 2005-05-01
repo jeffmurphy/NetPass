@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.37 2005/05/01 05:44:10 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.38 2005/05/01 05:55:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -2083,7 +2083,7 @@ expand the results set by saying -status=>'any')
  print
    $hr->{'type'}->[0]     , ' ',
    $hr->{'id'}->[0]       , ' ',
-   $hr->{'row'}->[0]      , ' ',
+   $hr->{'rowid'}->[0]    , ' ',
    $hr->{'timestamp'}->[0], ' ',
    $hr->{'dt'}->[0]       , ' ',
    $hr->{'status'}->[0];
@@ -2772,7 +2772,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.37 2005/05/01 05:44:10 jeffmurphy Exp $
+$Id: DB.pm,v 1.38 2005/05/01 05:55:45 jeffmurphy Exp $
 
 =cut
 
