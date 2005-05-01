@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.19 2005/05/01 05:44:12 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.20 2005/05/01 19:46:04 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -85,7 +85,7 @@ function quarctl_setresult_rv(r) {
 		// OK rowid 
 		// NOK rowid
 
-		if ( (ra.length > 2) && (ra[i] == "OK")) {
+		if ( (ra.length >= 2) && (ra[i] == "OK")) {
 			var o = document.getElementById('results-row-'+ra[i+1]);
 			if (o) {
 				o.style.display = 'none';
@@ -338,14 +338,14 @@ my @rows = ();
 			</tr>
 %		}
 %		for(my $rn = 0 ; $rn <= $#{$myUFixedResults->{'type'}} ; $rn++) {
-			<tr id='results-row-<%$myPendingResults->{'rowid'}->[$rn]%>'>
+			<tr id='results-row-<%$myUFixedResults->{'rowid'}->[$rn]%>'>
 			<td><%$myUFixedResults->{'type'}->[$rn]%></td>
 			<td><%$myUFixedResults->{'id'}->[$rn]%></td>
 			<td><%$myUFixedResults->{'dt'}->[$rn]%></td>
 			<td><%$q->popup_menu(-name     => 'result:'.$macAddress, 
                                              -values   => [ 'pending', 'fixed', 'user-fixed' ],
                                              -default  => $myUFixedResults->{'status'}->[$rn],
-					     -id       => qq{results-status-$myPendingResults->{'rowid'}->[$rn]},
+					     -id       => qq{results-status-$myUFixedResults->{'rowid'}->[$rn]},
                                              -onchange => qq{quarctl_changeResult('$macAddress',
                                                                                   '$myUFixedResults->{'rowid'}->[$rn]')})%></td>
 			</tr>

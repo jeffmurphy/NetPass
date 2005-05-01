@@ -1,4 +1,26 @@
 <%doc>
+MODULE
+	ShowResults (Mason)
+
+DESCRIPTION
+	This module fetches the results from the database for
+	the client specified in the session (mac address) and
+	displays those results. 
+
+	If there is only one result, the javascript expand/collapse
+	thing is suppressed. If there is more than one result, 
+	the JS E/C thing is used if JS is available. 
+
+	RESULTS_EXPAND determines the threshold at which point results
+	are shown collapsed by default.
+
+	We also examine each result. If the user has previous results
+	that match in all respects and whose status is "user-fixed" then
+	we apply the 'strike' system. This means that if the sum
+	of previous 'user-fixed' results and the current result is 
+	greater than the strikes setting, the user can no longer 
+	simply click 'Fixed'. They must contact an Admin to have their
+	previous results changed to a status of "fixed". 
 </%doc>
 <%args>
 	$mac   => '';
@@ -11,8 +33,37 @@
 
 <%perl>
 my $results = $np->db->getResults(-mac => $mac);
-my $nres    = $#{$results->{'type'}};
+my $nres    = -1; 
+if (ref($results) eq "HASH") {
+	$nres = $#{$results->{'type'}};
+} else {
+	_log("ERROR", "$mac $ip getResults failed: $results\n");
+}
 
+# determine which results are no longer fixable because the user
+# has exhausted their strikes. if strikes is zero, then strike system
+# is disabled for this IP. if the MAC is not yet registered, then
+# the strike system is also disabled. Once they register, all 'user-fixed'
+# results are converted to 'fixed' (netpass.mhtml)
+
+my $struckOut = {};
+my $maxStrikes = $np->cfg->policy(-key => 'STRIKES', -network => $ip);
+
+if ($np->db->macIsRegistered($mac) && $maxStrikes) {
+
+	for(my $rn = 0 ; $rn <= $nres ; $rn++) {
+		my $uf = $np->db->getResults(-mac    => $mac,
+					     -status => 'user-fixed',
+					     -type   => $results->{'type'}->[$rn],
+					     -id     => $results->{'id'}->[$rn]);
+		_log("DEBUG", "$mac $ip history on ".$results->{'type'}->[$rn].":".
+			$results->{'id'}->[$rn]. " is ". $#{$uf->{'type'}});
+		# +1 bc $# is zero relative, +1 again because it's prev result + cur result
+		if ( (ref($uf) eq "HASH") && ($#{$uf->{'type'}}+2 > $maxStrikes) ) {
+			$struckOut->{$uf->{'type'}->[0]} -> {$uf->{'id'}->[0]} = 1;
+		}
+	}
+} 
 
 if ($nres > -1) {
 
@@ -39,11 +90,12 @@ if ($nres > -1) {
 			$type        = "manual";
 			$shortName   = "Database failure.";
 			$info        = "msg:dbfailure";
-			$description = "Sorry, something didn't work out quite right when I was looking at my database.";
+			$description = "Sorry, something didn't work out quite right while I was looking at my database.";
 		}
 
 		print qq{<tr><td colspan=3 align="right"> };
-		print $q->submit(-name=>"fixed:$type:$sid:$rid", -value=>'Fixed') unless $pquar;
+		print $q->submit(-name=>"fixed:$type:$sid:$rid", -value=>'Fixed') 
+			unless ($pquar || ($struckOut->{$type}->{$sid} == 1));
 		print qq{</td>};
 		print qq{</tr><tr><td colspan=3>};
 
@@ -55,6 +107,7 @@ if ($nres > -1) {
 		# is supplied by nessus or snort. 
 
 		if($info =~ /^(nessus:|snort:)$/) {
+			$description =~ s/\\n/\n/g;
 			print $q->pre($description);
 		} 
 		elsif($info =~ /^msg:/) {
@@ -97,7 +150,8 @@ if ($nres > -1) {
 			}
 			print qq{</td><td>$shortName</td>};
 			print qq{<td width="1%" align="right"> };
-			print $q->submit(-name=>"fixed:$type:$sid:$rid", -value=>'Fixed') unless $pquar;
+			print $q->submit(-name=>"fixed:$type:$sid:$rid", -value=>'Fixed') 
+				unless ($pquar || ($struckOut->{$type}->{$sid} == 1));
 			print qq{</td>};
 			print qq{</tr><tr><td colspan=3 class="gray">};
 

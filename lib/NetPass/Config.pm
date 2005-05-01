@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.31 2005/05/01 13:02:49 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.32 2005/05/01 19:46:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -760,6 +760,8 @@ RETURN VALUES
 sub policy {
 	my $self = shift;
 
+	_log("DEBUG", $self->debug."\n");
+
         my $parms = parse_parms({
 				 -parms => \@_,
 				 -legal => [qw(-key -network -val)],
@@ -769,7 +771,7 @@ sub policy {
 			   );
 
 	if (!defined($parms)) {
-		warn Carp::longmess("invalid parameters ".Class::ParmList->error);
+		_log("ERROR", Carp::longmess("invalid parameters ".Class::ParmList->error)."\n");
 		return undef;
 	}
 
@@ -1537,7 +1539,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.31 2005/05/01 13:02:49 mtbell Exp $
+$Id: Config.pm,v 1.32 2005/05/01 19:46:03 jeffmurphy Exp $
 
 =cut
 

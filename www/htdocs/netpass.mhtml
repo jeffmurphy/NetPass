@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.7 2005/04/24 03:42:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.8 2005/05/01 19:46:04 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -96,11 +96,41 @@ if($m->session->{'phase'} eq 'LOGIN') {
 		print "<meta http-equiv=\"Refresh\" content=\"15;$url\">";
 	}
 
+	my $existingHost = $np->db->macIsRegistered($mac);
+
 	_log("DEBUG", "$mac $ip registerHost()\n");
       	$np->db->registerHost($m->session->{'remote_mac'},
 			     $m->session->{'remote_addr'},
                              $m->session->{'remote_os'},
                              $m->session->{'username'});
+
+	# if this wasn't a pre-existing (already registered) host, then any
+	# user-fixed results are converted to 'fixed'. the situation is:
+	# a new client arrives, and clicks 'fixed' a bunch of times. since they
+	# arent yet registered, they won't appear in quarctl, so an admin cant
+	# change the results to 'fixed'. because of that, we dont apply strikes to
+	# unregistered hosts. they can click 'fixed' as much as they like (but will
+	# never get out of quarantine until they register). but, since we disable
+	# strikes for unregistered hosts, but are still recording results for them,
+	# once they register, all of those 'user-fixed' results get attached to
+	# their registration and can exhaust their alotted strikes. so we change
+	# them to 'fixed' upon registration - this allows us to keep some history
+	# on the client, and give them a clean slate to start out with.
+
+	if (!$existingHost) {
+		_log("DEBUG", "$mac $ip changing user-fixed to fixed\n");
+		my $ufr = $np->db->getResults(-mac => $mac, -status => 'user-fixed');
+		if (ref($ufr) eq "HASH") {
+			for (my $rn = 0 ; $rn <= $#{$ufr->{'rowid'}} ; $rn++) {
+				my $rv = $np->db->updateResult(-mac => $mac, -ip => $ip,
+								-rowid => $ufr->{'rowid'}->[0],
+								-status => 'fixed');
+				if ($rv) {
+					_log("ERROR", "$mac $ip updateResult failed: $rv\n");
+				}
+			}
+		}
+	}
 
 	my $sw = $m->session->{'switch'};
 	my $po = $m->session->{'port'};
