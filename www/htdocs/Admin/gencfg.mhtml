@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.11 2005/05/01 05:44:12 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.12 2005/05/01 17:39:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -27,16 +27,12 @@ setWhereAmI('General Config');
 
 <%perl>
 
-use Config::General;
-
 my ($isRoot, $groups) = $m->comp('/Admin/MemberOf', 'group' => 'default', 'acl' => [ 'Admin' ]);
 
 if (! $isRoot  ) {
         print $q->p({-class=>'error'}, qq{Sorry, permission denied.<BR>(You must be an Admin for group "default".)});
         return;
 }
-
-my %config = $np->cfg->{'cfg'}->getall();
 
 my $restartnetpass = 0;
 my $restartnessus  = 0;
@@ -81,9 +77,10 @@ print $q->start_form(-method => "POST");
 
 <h2>General Configuration</h2>
 
+<input disabled id='submitButton' type='submit' name='submit' value='Commit Changes'> <P>
+
 % $m->comp('/Admin/LockConfig', 'enableWhenLocked' => 'submitButton');
 
-<input id='submitButton' type='submit' name='submit' value='Commit Changes'> <P>
 
 <TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
@@ -100,6 +97,15 @@ print $q->start_form(-method => "POST");
                         -default  => $np->cfg->policy(-key => 'MULTI_MAC'),
                     )%>
 <!--<a href="help.mhtml?printable=1&topic=MULTI_MAC" target='new' style='align:right;'>?</a>-->
+</TD></TR>
+<TR>
+<TD CLASS='left'>Strikes</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:STRIKES',
+                        -value  => $np->cfg->policy(-key => 'STRIKES'),
+                        -size   => 3,
+                    )%>
 </TD></TR>
 <TR>
 <TD CLASS='left'>RESULTS_DISPLAY</TD>

@@ -1,7 +1,7 @@
 <%doc>
 </%doc>
 <%args>
-	$enabledWhenLocked => '';
+	$enableWhenLocked => '';
 </%args>
 
 <script language="JavaScript">
@@ -15,40 +15,45 @@ function lockConfig_results(r) {
 		b.innerHTML = "Lock Config";
 	}
 	lockOpPending = false;
-	var ra = r.split(/\s/);
+	var ra = r.split(/\s+/);
+	var i = 0;
+	while (i < ra.length && ra[i] != "OK" && ra[i] != "NOK") { i++ }
 
-	if (ra[0] == "OK") {
+	if (ra[i] == "OK") {
 		// something succeeded
-		if (ra[1] == "lock") {
+		if (ra[i+1] == "lock") {
 			// we got the lock, change button to
 			// green and text to 'unlock'
 			b.style.backgroundColor = '#77FF77';
 			b.innerHTML = 'Config is Locked (by you)<BR>Unlock Config';
 			adjust_onClick(b, "return lockConfig(0, 0);");
+			enable_element('submitButton');
 		} else {
 			// we got the unlock, button -> yellow
 			// text -> 'lock'
 			b.style.backgroundColor = '#FFFF77';
 			b.innerHTML = 'Config is Unlocked<BR>Lock Config';
 			adjust_onClick(b, "return lockConfig(1, 0);");
+			disable_element('submitButton');
 		}
 	} else {
 		// something failed
-//alert(r + " ral:" + ra.length + ' 1:' + ra[0] + ' 2:' + ra[1] + ' 3:' + ra[2]);
 
-		if (ra[1] == "lock") {
+		if (ra[i+1] == "lock") {
 			// we didnt get the lock, change button to
 			// red and text to 'force lock'
 			b.style.backgroundColor = '#FF7777';
-			b.innerHTML = 'Config is Locked by '+ra[2]+'<BR>Force Lock Config';
+			b.innerHTML = 'Config is Locked by '+ra[i+2]+'<BR>Force Lock Config';
 			adjust_onClick(b, "return lockConfig(1, 1);");
+			disable_element('submitButton');
 		} else {
 			// we didnt get the unlock, 
 			// button -> red
 			// text -> 'force unlock'
 			b.style.backgroundColor = '#FF7777';
-			b.innerHTML = 'Config is Locked by '+ra[2]+'<BR>Force Unlock Config';
+			b.innerHTML = 'Config is Locked by '+ra[i+2]+'<BR>Force Unlock Config';
 			adjust_onClick(b, "return lockConfig(0, 1);");
+			disable_element('submitButton');
 		}
 	}
 }
@@ -90,26 +95,53 @@ function adjust_onClick(obj, fn) {
 	}
 }
 
+function enable_element(o) {
+	if (!o) return;
+	var o2;
+	if (typeof o == "string") {
+		o2 = document.getElementById(o);
+		if (!o2) return;
+	} else {
+		o2 = o;
+	}
+
+	o2.disabled = false;
+}
+
+function disable_element(o) {
+	if (!o) return;
+
+	var o2;
+
+	if (typeof o == "string") {
+		o2 = document.getElementById(o);
+		if (!o2) return;
+	}
+	else {
+		o2 = o;
+	}
+
+	o2.disabled = true;
+}
+
 
 -->
 </script>
 <style>
-DIV.unlockedButton {
-	text-align: center;
-	width: 10em;
-	float: right;
-	display: block;
-	border: outset 2px black;
-	padding: 2px 5px 2px 5px;
+DIV.lockButton {
+	text-align:       center;
+	width:            10em;
+	float:            right;
+	display:          block;
+	border:           outset 2px black;
+	padding:          2px 5px 2px 5px;
 	background-color: #FFFF77;
-	cursor: pointer;
+	cursor:           pointer;
 }
 </style>
 
 <div onclick="return false;" id='lockButton'
-	class='unlockedButton'>Thinking ...</div> 
-
-<!--<div class='unlockedButton'>Testing<BR>Foobar</div>-->
+	class='lockButton'>Thinking ...</div> 
 
 <%perl>
 my $lstat = $np->db->isConfigLocked();
@@ -118,10 +150,10 @@ if (ref($lstat) eq "HASH") {
 	# the config is locked
 	if ($lstat->{'user'} eq $m->session->{'username'}) {
 		# by us, so show the unlock button
-		print qq{<script>lockConfig_results("OK lock");</script>};
+		print qq{<script>lockConfig_results("OK lock");enable_element('$enableWhenLocked');</script>};
 	} else {
 		# but not by us, show the force unlock button
-		print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");</script>};
+		print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");disable_element('$enableWhenLocked');</script>};
 	}
 } 
 elsif ($lstat) {
@@ -129,6 +161,6 @@ elsif ($lstat) {
 } 
 else {
 	# the config is not locked, show the lock button
-	print qq{<script>lockConfig_results("OK unlock");</script>};
+	print qq{<script>lockConfig_results("OK unlock");disable_element('$enableWhenLocked');</script>};
 }
 </%perl>
