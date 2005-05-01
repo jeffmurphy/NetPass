@@ -117,7 +117,7 @@ foreach my $sid (sort keys %$data) {
 						-desc	=> $data->{$sid}{desc}	
 				            );
 
-	if ($rv != 1) {
+	if ($rv ne 1) {
 		warn "failed to add $sid $rv";
 	}
 }

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.30 2005/04/27 03:54:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.31 2005/05/01 13:02:49 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -531,8 +531,9 @@ sub snortEnabled {
 
 =head2 $sensors = $cfg-E<gt>getSnortSensors(network)
 
-Returns a HASHREF with the keys being address of the machine npsnortd
-is running on and the values the port. Returns C<undef> on failure.
+Returns a HASHREF with hostname:port of the sensor being the keys and
+the values either ro|rw representing whether sensor modification is
+permitted or not. Returns C<undef> on failure.
 
 =cut
 
@@ -547,9 +548,8 @@ sub getSnortSensors {
     if (recur_exists($self->{'cfg'}, 'network', $nw, 'snort', 'servers')) {
         my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort');
         foreach ($s->keys('servers')) {
-                my($h, $p) = split(':', $_, 2);
-                $sensors->{$h} = $p;
-
+		my $v = $s->obj('servers')->value($_);
+                $sensors->{$_} = ($v =~ /rw|ro/) ? $v : 'ro';
         }
         return $sensors;
     }
@@ -557,9 +557,8 @@ sub getSnortSensors {
     if (recur_exists($self->{'cfg'}, 'snort', 'servers')) {
         my $s = $self->{'cfg'}->obj('snort');
         foreach ($s->keys('servers')) {
-                my($h, $p) = split(':', $_, 2);
-                $sensors->{$h} = $p;
-
+		my $v = $s->obj('servers')->value($_);
+                $sensors->{$_} = ($v =~ /rw|ro/) ? $v : 'ro';
         }
         return $sensors;
     }
@@ -1538,7 +1537,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.30 2005/04/27 03:54:07 jeffmurphy Exp $
+$Id: Config.pm,v 1.31 2005/05/01 13:02:49 mtbell Exp $
 
 =cut
 
