@@ -36,7 +36,7 @@ echo "      mysql     = $M"
 #Error 1296: Got error 241 'Invalid schema object version' from ndbcluster when dumping table `users` at row: 0
 # on the first attempt (when you run this on another server)
 
-for i in users config ; do 
+for i in users config pages nessusScans snortRules ; do 
 	myecho "Backing up $i table to /tmp/$i.sql .."
 	$MD -ce -u root netpass $i 2> /dev/null > /tmp/${i}.sql
 	$MD -ce -u root netpass $i 2> /dev/null > /tmp/${i}.sql
@@ -69,7 +69,7 @@ $M -fu root netpass < $B/tables.sql
 
 myecho "Re-importing config data ..."
 
-for i in users config ; do 
+for i in users config  pages nessusScans snortRules ; do 
 	myecho "      from /tmp/$i.sql to table $i ..."
 	$M -fu root netpass < /tmp/${i}.sql
 done
