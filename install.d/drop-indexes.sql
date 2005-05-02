@@ -1,0 +1,15 @@
+USE netpass;
+DROP INDEX results_idx1 ON results;
+DROP INDEX results_idx2 ON results;
+DROP INDEX results_idx3 ON results;
+DROP INDEX config_idx1 ON config;
+DROP INDEX pages_idx1 ON pages;
+DROP INDEX clientHistory_idx1 ON clientHistory;
+DROP INDEX clientHistory_idx2 ON clientHistory;
+DROP INDEX nessusScans_idx1 ON nessusScans;
+DROP INDEX snortRules_idx1 ON snortRules;
+DROP INDEX appStarter_idx1 ON appStarter;
+DROP INDEX stats_procs_idx1 ON stats_procs;
+DROP INDEX stats_procs_idx2 ON stats_procs;
+DROP INDEX urlFilters_idx1 ON urlFilters;
+DROP INDEX testConfig_idx1 ON testConfig;

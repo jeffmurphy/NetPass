@@ -4,145 +4,76 @@ myecho() {
 	echo `date` $*
 }
 
+B="install.d"
 
-# 0.9x to 0.96
+[ ! -d $B ] && {
+    echo "run this script from the root of the netpass source tree"
+    echo "for example:  cd /tmp/NetPass && install.d/convertdb"
+    exit 255
+}
 
-for i in portMoves register audit ; do 
+MD=`which mysqldump 2>/dev/null `
+M=`which mysql 2>/dev/null`
+
+[ x"$MD" = "x" ] && {
+    echo "can't find mysqldump command. update your PATH."
+    exit 255;
+}
+
+
+[ x"$M" = "x" ] && {
+    echo "can't find mysql command. update your PATH."
+    exit 255;
+}
+
+echo "using mysqldump = $MD"
+echo "      mysql     = $M"
+
+
+# 2.00beta to 2.00beta (mysql cluster patch)
+
+# we do the dump twice. cluster will sometimes report
+#Error 1296: Got error 241 'Invalid schema object version' from ndbcluster when dumping table `users` at row: 0
+# on the first attempt (when you run this on another server)
+
+for i in users config ; do 
 	myecho "Backing up $i table to /tmp/$i.sql .."
-	mysqldump -ce -u root netpass $i > /tmp/${i}.sql
+	$MD -ce -u root netpass $i 2> /dev/null > /tmp/${i}.sql
+	$MD -ce -u root netpass $i 2> /dev/null > /tmp/${i}.sql
 done
 
 ##########################################################
 
-myecho "Upgrading portMoves table.."
+myecho "Dropping indexes ..."
 
-
-mysql -u root netpass <<EOF
-
-ALTER TABLE portMoves ADD requestedBy VARCHAR(128) DEFAULT '';
-CREATE INDEX portMoves_idx1 ON portMoves (requested);
-CREATE INDEX portMoves_idx2 ON portMoves (switchIP, switchPort);
-
-EOF
+$M -fu root netpass > /dev/null 2>&1 < $B/drop-indexes.sql
 
 
 ##########################################################
 
 
-myecho "Upgrading register table.."
+myecho "Dropping tables ..."
 
-mysql -s -f -u root netpass > /dev/null 2>&1  <<EOF
-
-DROP TABLE register2;
-
-EOF
+$M -s -f -u root netpass > /dev/null 2>&1  < $B/drop-tables.sql
 
 
 ##########################################################
 
 
+myecho "Creating tables ..."
 
-mysql -u root netpass <<EOF
-
-CREATE TABLE register2 (
-	macAddress	TINYTEXT     NOT NULL,
-	ipAddress       VARCHAR(64)  NOT NULL,
-	firstSeen	DATETIME     NOT NULL,
-	registeredOn	DATETIME,
-	status          ENUM('QUAR', 'PQUAR', 'UNQUAR', 'PUNQUAR') NOT NULL,
-	uqlinkup        ENUM('yes', 'no') NOT NULL DEFAULT 'no',
-	message         TEXT,
-	username	VARCHAR(16)  NOT NULL,
-	OS		VARCHAR(255),
-	switchIP	VARCHAR(128),
-	switchPort	SMALLINT,
-
-	PRIMARY KEY(macAddress(12))
-) TYPE=MyISAM;
-
-
-INSERT INTO register2 (macAddress, 
-                       ipAddress, firstSeen, registeredOn, status,
-                       uqlinkup, message, username, OS, switchIP, switchPort)
- SELECT RIGHT(CONCAT('000000000000', LOWER(HEX(register.macAddress))), 12),
-                       register.ipAddress, register.firstSeen, register.registeredOn, 
-		       register.status,
-                       register.uqlinkup, register.message, register.username, 
-		       register.OS, register.switchIP, register.switchPort
-        FROM register;
-
-DROP TABLE register;
-
-ALTER TABLE register2 RENAME register;
-
-EOF
+$M -fu root netpass < $B/tables.sql
 
 
 ##########################################################
 
+myecho "Re-importing config data ..."
 
+for i in users config ; do 
+	myecho "      from /tmp/$i.sql to table $i ..."
+	$M -fu root netpass < /tmp/${i}.sql
+done
 
-myecho "Upgrading audit table.."
-
-mysql -s -f -u root netpass > /dev/null 2>&1 <<EOF
-
-DROP TABLE audit2;
-
-EOF
-
-
-# because the audit table is fairly large, we apply the indices 
-# after the copy. this should speed the copy up quite a bit.
-
-
-mysql -u root netpass <<EOF
-
-CREATE TABLE audit2 (
-	ts		DATETIME           NOT NULL,
-	server          VARCHAR(128),
-	username	VARCHAR(32),
-	ipAddress	VARCHAR(64),
-	macAddress	TINYTEXT,
-	severity	ENUM('DEBUG', 'ALERT', 'CRITICAL', 'ERROR',
-			     'WARNING', 'NOTICE', 'INFO') 
-                                            NOT NULL,
-	location	VARCHAR(255),
-	message		text	    NOT NULL
-
-) TYPE=MyISAM;
-
-
-INSERT INTO audit2 (macAddress, 
-			ts, server, username, ipAddress, severity, location,
-			message)
- SELECT RIGHT(CONCAT('000000000000', LOWER(HEX(audit.macAddress))), 12),
-			audit.ts, audit.server, audit.username, 
-			audit.ipAddress, audit.severity, audit.location,
-			audit.message
-        FROM audit;
-
-DROP TABLE audit;
-
-ALTER TABLE audit2 RENAME audit;
-
-EOF
-
-
-myecho "Indexing audit table.."
-
-
-mysql -u root netpass <<EOF
-
-CREATE INDEX audit_idx1 ON audit (username(8));
-CREATE INDEX audit_idx2 ON audit (ipAddress);
-CREATE INDEX audit_idx3 ON audit (macAddress(12));
-CREATE INDEX audit_idx4 ON audit (ts);
-CREATE FULLTEXT INDEX audit_idx5 ON audit (message);
-
-EOF
-
-
-myecho "Done indexing audit table.."
-myecho "Upgrade complete."
+myecho "Upgrade complete. Run this script on all netpass servers."
 
 exit 0

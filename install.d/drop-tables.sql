@@ -1,0 +1,17 @@
+use netpass;
+DROP TABLE register;
+DROP TABLE results;
+DROP TABLE policy;
+DROP TABLE users;
+DROP TABLE config;
+DROP TABLE passwd;
+DROP TABLE pages;
+DROP TABLE portMoves;
+DROP TABLE audit;
+DROP TABLE clientHistory;
+DROP TABLE nessusScans;
+DROP TABLE snortRules;
+DROP TABLE appStarter;
+DROP TABLE stats_procs;
+DROP TABLE urlFilters;
+DROP TABLE testConfig;

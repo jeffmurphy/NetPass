@@ -13,7 +13,6 @@ CREATE TABLE register (
 	registeredOn	DATETIME,
 	status          ENUM('QUAR', 'PQUAR', 'UNQUAR', 'PUNQUAR') NOT NULL,
 	uqlinkup        ENUM('yes', 'no') NOT NULL DEFAULT 'no',
-	message         TEXT,
 	username	VARCHAR(16)  NOT NULL,
 	OS		VARCHAR(255),
 	switchIP	VARCHAR(128),
@@ -114,12 +113,12 @@ CREATE TABLE audit (
 ) ENGINE=MyISAM;
 
 CREATE TABLE clientHistory (
-	chid		INTEGER UNSIGNED AUTO_INCREMENT NOT NULL,
+	rowid		INTEGER UNSIGNED AUTO_INCREMENT NOT NULL,
 	macAddress      VARCHAR(32)	NOT NULL,
 	username        VARCHAR(32)	NOT NULL,
 	dt		DATETIME	NOT NULL,
 	notes		TEXT		NOT NULL,
-	PRIMARY KEY (chid)
+	PRIMARY KEY (rowid)
 ) ENGINE=NDBCLUSTER;
 
 CREATE INDEX clientHistory_idx1 ON clientHistory (macAddress);
@@ -170,6 +169,17 @@ CREATE TABLE `snortRules` (
 
 CREATE INDEX snortRules_idx1 ON snortRules (status);
 
+CREATE TABLE testConfig (
+	rowid		INTEGER UNSIGNED NOT NULL AUTO_INCREMENT,
+	testType	VARCHAR(32) NOT NULL,
+	ID		VARCHAR(128) NOT NULL,
+	status		enum('enabled', 'disabled') NOT NULL default 'disabled',
+	network         VARCHAR(128) NOT NULL default 'default',
+	PRIMARY KEY (rowid)
+) ENGINE=NDBCLUSTER;
+
+CREATE INDEX testConfig_idx1 ON testConfig (testType, ID, status, network);
+	
 CREATE TABLE appStarter (
 	rowid		INTEGER UNSIGNED AUTO_INCREMENT,
 	requested	DATETIME,
@@ -192,7 +202,7 @@ CREATE TABLE stats_procs (
 ) ENGINE=NDBCLUSTER;
 
 CREATE INDEX stats_procs_idx1 ON stats_procs (dt);
-CREATE INDEX stats_procs_idx1 ON stats_procs (proc);
+CREATE INDEX stats_procs_idx2 ON stats_procs (proc);
 
 CREATE TABLE urlFilters (
 	rowid    INTEGER UNSIGNED AUTO_INCREMENT,
@@ -203,45 +213,45 @@ CREATE TABLE urlFilters (
 	PRIMARY KEY (rowid)
 );
 
-CREATE UNIQUE INDEX on urlFilters (url, network);
+CREATE UNIQUE INDEX urlFilters_idx1 ON urlFilters (url, network);
 
 
-insert into urlFilters values ('itpolicies\.buffalo\.edu', NULL, 'default', 'permit');
-insert into urlFilters values ('netpass\.buffalo\.edu', NULL, 'default', 'permit');
-insert into urlFilters values ('cert\.org', NULL, 'default', 'permit');
-insert into urlFilters values ('download\.microsoft\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('lavasoftusa\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('microsoft\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('protect\.microsoft\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('redhat\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('securityresponse\.symantec\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('service1\.symantec\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('support\.microsoft\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('swquery\.apple\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('swscan\.apple\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('symantecliveupdate\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('us\.mcafee\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('vil\.nai\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('windows\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('windowsupdate\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('windowsupdate\.microsoft\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('wings\.buffalo\.edu', NULL, 'default', 'permit');
-insert into urlFilters values ('www\.microsoft\.com', NULL, 'default', 'permit');
-insert into urlFilters values ('www\.sans\.org', NULL, 'default', 'permit');
-insert into urlFilters values ('www\.sophos\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'itpolicies\.buffalo\.edu', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'netpass\.buffalo\.edu', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'cert\.org', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'download\.microsoft\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'lavasoftusa\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'microsoft\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'protect\.microsoft\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'redhat\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'securityresponse\.symantec\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'service1\.symantec\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'support\.microsoft\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'swquery\.apple\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'swscan\.apple\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'symantecliveupdate\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'us\.mcafee\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'vil\.nai\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'windows\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'windowsupdate\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'windowsupdate\.microsoft\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'wings\.buffalo\.edu', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'www\.microsoft\.com', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'www\.sans\.org', NULL, 'default', 'permit');
+insert into urlFilters values (NULL,'www\.sophos\.com', NULL, 'default', 'permit');
 
 
-insert into urlFilters values ('command\.weatherbug\.com', NULL, 'default', 'block');
-insert into urlFilters values ('isapi60\.weatherbug\.com', NULL, 'default', 'block');
-insert into urlFilters values ('wisapidata\.weatherbug\.com', NULL, 'default', 'block');
-insert into urlFilters values ('config\.180solutions\.com', NULL, 'default', 'block');
-insert into urlFilters values ('ping\.180solutions\.com', NULL, 'default', 'block');
-insert into urlFilters values ('desktop3\.weather\.com', NULL, 'default', 'block');
-insert into urlFilters values ('image\.weather\.com', NULL, 'default', 'block');
-insert into urlFilters values ('www\.statblaster\.com/updatestats', NULL, 'default', 'block');
-insert into urlFilters values ('www\.mydailyhoroscope\.net/mdh/AdResponse\.aspx', NULL, 'default','block');
-insert into urlFilters values ('204\.177\.92\.204/w/getclientid', NULL, 'default', 'block');
-insert into urlFilters values ('client\.warez\.com/data/gcache\.php', NULL, 'default', 'block');
-insert into urlFilters values ('http://sports\.espn\.go\.com/espn/espnmotion/ESPNMotionXMLv4', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'command\.weatherbug\.com', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'isapi60\.weatherbug\.com', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'wisapidata\.weatherbug\.com', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'config\.180solutions\.com', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'ping\.180solutions\.com', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'desktop3\.weather\.com', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'image\.weather\.com', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'www\.statblaster\.com/updatestats', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'www\.mydailyhoroscope\.net/mdh/AdResponse\.aspx', NULL, 'default','block');
+insert into urlFilters values (NULL,'204\.177\.92\.204/w/getclientid', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'client\.warez\.com/data/gcache\.php', NULL, 'default', 'block');
+insert into urlFilters values (NULL,'http://sports\.espn\.go\.com/espn/espnmotion/ESPNMotionXMLv4', NULL, 'default', 'block');
 
-insert into urlFilters values ('DEFAULT', 'http://npvip-d.cit.buffalo.edu/?url=%u', 'default', 'hard-redirect');
+insert into urlFilters values (NULL,'DEFAULT', 'http://npvip-d.cit.buffalo.edu/?url=%u', 'default', 'hard-redirect');

@@ -97,8 +97,11 @@ install.d/tables.sql
 install.d/ldirectord.cf
 install.d/testpm
 install.d/snmptrapd
+install.d/drop-tables.sql
 install.d/install-ipvs.sh
+install.d/drop-indexes.sql
 install.d/sysconfig.snort
+install.d/create-indexes.sql
 lib/Bundle/NetPass/API.pm
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm
