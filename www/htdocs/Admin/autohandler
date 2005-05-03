@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.9 2005/04/25 19:15:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.10 2005/05/03 16:13:30 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -38,9 +38,10 @@ if ($printable == 0) {
 <DIV class='indent'>
 <a class="sbLinks" href="/Admin/gencfg.mhtml" title="">General</a><br>
 <a class="sbLinks" href="/Admin/network.mhtml" title="">Network</a><br>
+<a class="sbLinks" href="/Admin/netgroups.mhtml" title="">Netgroup</a><br>
 <a class="sbLinks" href="/Admin/urlfilter.mhtml" title="">URL Filter</a><br>
-<a class="sbLinks" href="/Admin/Editor/" title="">Message Editor</a><br>
 <a class="sbLinks" href="/Admin/greset.mhtml" title="">Global Reset</a><br>
+<a class="sbLinks" href="/Admin/Scan/ids.mhtml" title="">IDS Config</a><br>
 </DIV>
 <DIV class='sbText'>Authentication</DIV>
 <DIV class='indent'>
@@ -52,10 +53,10 @@ if ($printable == 0) {
 <a class="sbLinks" href="/Admin/mr.mhtml" title="">Manual Register</a><br>
 <a class="sbLinks" href="/Admin/qc.mhtml" title="">QuarControl</a><br>
 <a class="sbLinks" href="/Admin/Scan/" title="">Scan Config</a><br>
-<a class="sbLinks" href="/Admin/Scan/ids.mhtml" title="">IDS Config</a><br>
+<a class="sbLinks" href="/Admin/Editor/" title="">Message Editor</a><br>
 </DIV>
 <DIV class='sbText'>Logs and Reports</DIV>
-<DIV class='indent'>
+<DIV class='indent' style='border-bottom: solid 1px white;'>
 <a class="sbLinks" href="/Admin/audit.mhtml" title="">Audit Logs</a><br>
 <a class="sbLinks" href="/Admin/reports.mhtml" title="">Reports</a><br>
 </DIV>

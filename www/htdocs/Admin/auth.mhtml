@@ -3,6 +3,11 @@
 <%args>
 </%args>
 
+<script language='JavaScript'><!--
+var pageDirty = false;
+setWhereAmI('Authentication &gt; Methods');
+--></script>
+
 <TABLE WIDTH=800 ID="authMethods" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
 <TR><TH COLSPAN=2>Authentication Methods</TH></TR>

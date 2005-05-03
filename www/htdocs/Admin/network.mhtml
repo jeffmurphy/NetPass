@@ -1,0 +1,80 @@
+<%doc>
+DESCRIPTION
+
+This form allows you to:
+
+ - add/remove networks
+ - configure per-network settings
+	- comment
+	- ha enabled/disabled + settings
+	- garp enabled/disabled + settings
+	- netgroup membership
+	- interface
+	- nonquar/quar vlan id
+	- switches
+ - configure perl-network policy
+	- any of the policy settings
+
+PERMISSIONS
+
+	RW	default/Admin
+	RO	none
+</%doc>
+<%args>
+	$submit => '';
+</%args>
+<%perl>
+return unless $m->comp('/Admin/Login', %ARGS);
+
+my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+if (!$isRoot) {
+	print qq{<p class='error'>Sorry, you don't have access to this form.};
+	return;
+}
+
+# these group names can not be used as 'netgroups'
+
+my $reservedGroups = { 'default' => 1, 'clientAccess' => 1 };
+
+# fetch all known networks and netgroups
+
+my $allNetworks = $np->cfg->getNetworks();
+my $allNetgroups = ();
+foreach my $nw (@$allNetworks) {
+        my $ng = $np->cfg->getNetgroup($nw);
+        push @$allNetgroups, $ng if ($ng ne "") && (!grep(/^$ng$/, @$allNetgroups));
+}
+
+</%perl>
+
+<h2> Network Configuration </h2>
+
+% $m->comp('/Admin/LockConfig');
+% my $WH = "-" x 20;
+
+<script language='JavaScript'><!--
+var pageDirty = false;
+setWhereAmI('Configuration &gt; Network');
+--></script>
+
+
+<form method="post">
+<table border=0>
+<tr>
+    <th>Netgroups</th>
+    <th>Networks</th>
+</tr>
+<tr>
+    <td style='text-align:center;'>
+	<%$q->scrolling_list(-name => 'netgroups', -values => [ $WH, sort @$allNetgroups ], -size => 15, -multiple => 'false')%><BR>
+	<input id='addNetgroup' name='addNetgroup' size=20 value='Add Netgroup...' disabled>
+    </td>
+    <td style='text-align:center;'>
+       <%$q->scrolling_list(-name => 'networks',  -values => [ $WH, sort @$allNetworks ], -size => 15, -multiple => 'false')%><BR>
+       <input id='addNetwork' name='addNetwork' size=20 value='Add Network...' disabled>
+    </td>
+</tr>
+</table>
+<table id='networkPolicy'>
+</table>
+</form>

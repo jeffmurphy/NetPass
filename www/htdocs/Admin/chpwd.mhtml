@@ -8,6 +8,11 @@
 	$new2     => '';
 </%args>
 
+<script language='JavaScript'><!--
+var pageDirty = false;
+setWhereAmI('Change Password');
+--></script>
+
 <%perl>
 # if we are root admin or root usereditor, 
 # then "old" password isnt prompted for

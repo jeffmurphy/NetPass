@@ -140,6 +140,7 @@ lib/RUNONCE.pm
 www/components/Admin/Login
 www/components/Admin/MemberOf
 www/components/Admin/LockConfig
+www/components/Admin/TableEditPolicy
 www/components/Client/BeginScan
 www/components/Client/GetInfo
 www/components/Client/Login
@@ -179,12 +180,14 @@ www/htdocs/Admin/mr.mhtml
 www/htdocs/Admin/qc.mhtml
 www/htdocs/Admin/user.mhtml
 www/htdocs/Admin/urlfilter.mhtml
+www/htdocs/Admin/network.mhtml
 www/htdocs/Admin/clienthistory.mhtml
 www/htdocs/Admin/help.mhtml
 www/htdocs/Admin/chpwd.mhtml
 www/htdocs/Admin/auth.mhtml
-www/htdocs/Admin/lockcfg.mhtml
+www/htdocs/Admin/cmd/lockcfg.mhtml
 www/htdocs/Admin/cmd/setresult.mhtml
+www/htdocs/Admin/netgroups.mhtml
 www/htdocs/OSSTemplate/css/OSSTemplate.css.cgi
 www/htdocs/OSSTemplate/css/.htaccess
 www/htdocs/OSSTemplate/css/calendar.css

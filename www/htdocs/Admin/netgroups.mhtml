@@ -1,0 +1,98 @@
+<%doc>
+DESCRIPTION
+
+This form allows you to:
+
+ - add/remove netgroups
+ - configure per-netgroup policy
+	- any of the policy settings
+
+PERMISSIONS
+
+	RW	default/Admin
+	RO	none
+</%doc>
+<%args>
+	$submit    => '';
+	$netgroups => '';
+	$networks  => '';
+</%args>
+<%perl>
+return unless $m->comp('/Admin/Login', %ARGS);
+
+my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+if (!$isRoot) {
+	print qq{<p class='error'>Sorry, you don't have access to this form.};
+	return;
+}
+
+# these group names can not be used as 'netgroups'
+
+my $reservedGroups = { 'default' => 1, 'clientAccess' => 1 };
+
+# fetch all known networks and netgroups
+
+my $allNetworks = $np->cfg->getNetworks();
+my $allNetgroups = ();
+foreach my $nw (@$allNetworks) {
+        my $ng = $np->cfg->getNetgroup($nw);
+        push @$allNetgroups, $ng if ($ng ne "") && (!grep(/^$ng$/, @$allNetgroups));
+}
+
+</%perl>
+
+<h2> Network Configuration </h2>
+
+% $m->comp('/Admin/LockConfig', 'enableWhenLocked' => 'addNetgroup');
+% my $WH = "-" x 20;
+
+<script language='JavaScript'>//<!--
+var pageDirty = false;
+setWhereAmI('Configuration &gt; Netgroups');
+
+function netgroup_onchange_netgroups() {
+	var o = document.getElementById("netgroups");
+	if (!o) return;
+	if (o.options[0].selected == true) { //IE
+		o.options[0].selected == false;
+		return;
+	}
+	document.forms[0].submit();
+}
+
+var reservedGroups = new Array;
+<%perl>
+foreach my $rg ($WH, keys %$reservedGroups) {
+	print qq{reservedGroups.push('$rg');\n};
+}
+</%perl>
+//--></script>
+
+<form method="post">
+<table border=0>
+<tr>
+    <th>Netgroups</th>
+    <th>Networks</th>
+</tr>
+<tr>
+    <td style='text-align:center; vertical-align: top;'>
+	<%$q->scrolling_list(-name => 'netgroups', -values => [ $WH, sort @$allNetgroups ], 
+		-default => $netgroups, -id => 'netgroups',
+		-attributes => { $WH => { 'disabled' => 1 } },
+		-onchange => 'netgroup_onchange_netgroups();',
+		-size => 15, -multiple => 'false')%><P>
+	<input id='addNetgroup' name='addNetgroup' size=20 value='Add Netgroup...' disabled>
+    </td>
+    <td style='text-align:center; vertical-align: top;'>
+       <%$q->scrolling_list(-name => 'networks', -id => 'networks',  -values => [ $WH, sort @$allNetworks ], 
+				-attributes => { $WH => { 'disabled' => 1 } },
+				-default => $networks, -size => 15, -multiple => 'false')%><BR>
+    </td>
+</tr>
+</table>
+<P>
+% if ($netgroups) {
+% 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Netgroup General Settings for '.$netgroups, 'network' => $netgroups);
+% }
+
+</form>
