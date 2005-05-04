@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.34 2005/05/04 03:09:44 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.35 2005/05/04 03:27:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1011,7 +1011,7 @@ sub policyLocation {
 =head2 removePolicy(-key => '', -network => '', -location => [global|group|network])
 
 Remove the policy variable from the specified location. You can't remove
-policy variables from the "global" location, depite being listed.
+policy variables from the "global" location, despite being listed.
 
 RETURNS
 
@@ -1043,7 +1043,7 @@ sub removePolicy {
 
         if ( ($location eq "global") && recur_exists($self->{'cfg'}, 'policy', $pvar)) {
 		# global policy settings cant be deleted.
-		return "cant delete global policy variable";
+		return "cant remove global policy variable";
         }
 
 	my $nw2 = $nw;
@@ -1731,7 +1731,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.34 2005/05/04 03:09:44 jeffmurphy Exp $
+$Id: Config.pm,v 1.35 2005/05/04 03:27:17 jeffmurphy Exp $
 
 =cut
 
