@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.12 2005/05/01 17:39:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.13 2005/05/04 20:22:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -75,7 +75,7 @@ print $q->start_form(-method => "POST");
 
 </%perl>
 
-<h2>General Configuration</h2>
+<h2>General (Global) Configuration</h2>
 
 <input disabled id='submitButton' type='submit' name='submit' value='Commit Changes'> <P>
 
@@ -84,7 +84,7 @@ print $q->start_form(-method => "POST");
 
 <TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
-<TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=2>General</TH></TR>
+<TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=2>General (Global)</TH></TR>
 </THEAD>
 <TBODY>
 <TR>

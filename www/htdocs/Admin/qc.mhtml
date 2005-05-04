@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.20 2005/05/01 19:46:04 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.21 2005/05/04 20:22:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -601,7 +601,7 @@ sub saveQuarChanges {
 		# db based on mac
 
 		my $nw       = $np->cfg->getMatchingNetwork(-ip => $args->{"ipAddr:$mac"});
-		my $netgroup = $np->cfg->getNetgroup($nw);
+		my $netgroup = $np->cfg->getNetgroup(-network => $nw);
 
 		if ($nw eq "none") {
 			print qq{<p class='error'>Update failed for $mac because it's network is unknown to NetPass.</P>};

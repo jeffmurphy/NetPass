@@ -12,9 +12,9 @@ function userform_changeToUser(o) {
 
 	var selectedUser = undefined; 
 
-	userform_unHighLight("AvailableGroupList");
-	userform_unHighLight("AccessControlList");
-	userform_disableList("AccessControlList");
+	unHighLightList("AvailableGroupList");
+	unHighLightList("AccessControlList");
+	disableList("AccessControlList");
 
 	// IE doesnt support <option disabled>
 	//http://msdn.microsoft.com/workshop/author/dhtml/reference/properties/disabled_3.asp
@@ -58,7 +58,7 @@ function userform_changeToUser(o) {
 
 		dbg(1, RN + ": unhighlight ACL");
 
-		userform_unHighLight("AccessControlList");
+		unHighLightList("AccessControlList");
 
 		// populate the grouplist with the currently
 		// selected user's groups, removing them from the
@@ -238,77 +238,10 @@ function userform_lookupSelectedGroup() {
 	return undefined;
 }
 
-function userform_unHighLight(oname, item) {
-	var RN  = "userform_unHighLightACL";
-	if (oname == undefined) oname = "AccessControlList";
-
-	var acl = document.getElementById(oname);
-	if (acl) {
-		for(var i = 0 ; i < acl.options.length ; i++) {
-			if (i && item) {
-				if (item == acl.options[i].value)
-					acl.options[i].selected = false;
-			} else {
-				acl.options[i].selected = false;
-			}
-		}
-	} else {
-		dbg (1, RN + ": error cant find " + oname + " object");
-	}
-}
-
-function userform_highLight(oname, item) {
-	var RN  = "userform_highLightACL";
-	if (oname == undefined) oname = "AccessControlList";
-	var acl = document.getElementById(oname);
-	if (acl) {
-		for(var i = 1 ; i < acl.options.length ; i++) {
-			//dbg (1, RN + ": " + acl.options[i].value + " == " + item + "?");
-			if (item) {
-				if (acl.options[i].value == item)
-					acl.options[i].selected = true;
-			} 
-			else {
-				acl.options[i].selected = true;
-			}
-		}
-	} else {
-		dbg (1, RN + ": error cant find " + oname + " object");
-	}
-}
-
-
-function userform_disableList(oname) {
-	var RN  = "userform_disableList";
-
-	var l = document.getElementById(oname);
-	if (l) {
-		for(var i = 1 ; i < l.options.length ; i++) {
-			l.options[i].selected = false;
-			l.options[i].disabled = true;
-		}
-	} else {
-		dbg (1, RN + ": error cant find " + oname + " object");
-	}
-}
-
-function userform_enableList(oname) {
-	var RN  = "userform_enableList";
-
-	var l = document.getElementById(oname);
-	if (l) {
-		for(var i = 1 ; i < l.options.length ; i++) {
-			l.options[i].disabled = false;
-		}
-	} else {
-		dbg (1, RN + ": error cant find " + oname + " object");
-	}
-}
-
 function userform_onchange_availableGroups() {
-	userform_unHighLight("GroupList");
-	userform_unHighLight("AccessControlList");
-	userform_disableList("AccessControlList");
+	unHighLightList("GroupList");
+	unHighLightList("AccessControlList");
+	disableList("AccessControlList");
 }
 
 function userform_enableModAll() {
@@ -347,9 +280,9 @@ function userform_showACLforGroup() {
 	var RN = "userform_showACLforGroup";
 	var su = userform_lookupSelectedUser();
 
-	userform_unHighLight("AccessControlList");
-	userform_unHighLight("AvailableGroupList");
-	userform_enableList("AccessControlList");
+	unHighLightList("AccessControlList");
+	unHighLightList("AvailableGroupList");
+	enableList("AccessControlList");
 
 	var o = document.getElementById("GroupList");
 
@@ -360,7 +293,7 @@ function userform_showACLforGroup() {
 
 		if (o.options[0].selected) {
 			o.options[0].selected = false; //IE
-			userform_unHighLight("GroupList");
+			unHighLightList("GroupList");
 			return;
 		}
 
@@ -382,14 +315,14 @@ function userform_showACLforGroup() {
 		if (selected > 1) {
 			// clear the ACL and enable the modify all 
 			// buttons
-			userform_unHighLight("AccessControlList");
+			unHighLightList("AccessControlList");
 			userform_enableModAll();
 		}
 		else {
 			for(var acl in userhash[su][o.value]) {
 				userform_disableModAll();
 				dbg(1, RN + ": acl/"+su+"/"+o.value+"="+acl);
-				userform_highLight("AccessControlList", acl);
+				highLightList("AccessControlList", acl);
 			} 
 		}
 	}
@@ -407,8 +340,8 @@ function userform_addGroupToUser() {
 	var agl = document.getElementById('AvailableGroupList');
 	var gl  = document.getElementById('GroupList');
 	if (agl && gl) {
-		userform_unHighLight("GroupList");
-		userform_unHighLight("AccessControlList");
+		unHighLightList("GroupList");
+		unHighLightList("AccessControlList");
 		for (var i = agl.options.length-1 ; i > 0 ; i--) {
 			dbg (1, RN + ": move agl/" + i + " to gl");
 			if (agl.options[i].selected) {
@@ -418,7 +351,7 @@ function userform_addGroupToUser() {
 				userhash[su][opt.value] = new Object;
 			}
 		}
-		userform_enableList("AccessControlList");
+		enableList("AccessControlList");
 		DBG_objDump(userhash, "userhash");
 		userform_setAclHash();
 		sortList("GroupList");
@@ -444,8 +377,8 @@ function userform_remGroupFromUser() {
 				delete userhash[su][opt.value];
 			}
 		}
-		userform_unHighLight("AccessControlList");
-		userform_disableList("AccessControlList");
+		unHighLightList("AccessControlList");
+		disableList("AccessControlList");
 		DBG_objDump(userhash, "userhash");
 		userform_setAclHash();
 		sortList("GroupList");
@@ -493,7 +426,7 @@ function userform_onblur_addUser(o) {
 	var no = new Option(o.value, o.value, false, false);
 	ul.options[ul.options.length] = no;
 
-	userform_unHighLight("UserList");
+	unHighLightList("UserList");
 	ul.options[ul.options.length-1].selected = true;
 
 	if(o) o.value = "Add user...";

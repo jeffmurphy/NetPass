@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.22 2005/05/04 03:09:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.23 2005/05/04 20:22:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -61,7 +61,7 @@ my $allNetworks = $np->cfg->getNetworks();
 
 my $allNetgroups = ();
 foreach my $nw (@$allNetworks) {
-	my $ng = $np->cfg->getNetgroup($nw);
+	my $ng = $np->cfg->getNetgroup(-network => $nw);
 	push @$allNetgroups, $ng if ($ng ne "");
 }
 

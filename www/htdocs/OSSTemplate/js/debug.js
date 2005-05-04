@@ -16,7 +16,6 @@ function DBG_init() {
         if (DBGLEVEL)
                 dbgwin = window.open("about:blank", "DEBUGOUTPUT",
                              "resizable,width=400,height=400,scrollbars");
-
 }
 
 function dbg(l, msg) {

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.38 2005/05/01 05:55:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.39 2005/05/04 20:22:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -601,7 +601,7 @@ sub getPage {
 		    my $network = $npcfg->getMatchingNetwork(-ip => $ip);
 		    my $netgroup;
 		    if ($network =~ /\//) {
-			    $netgroup = $npcfg->getNetgroup($network);
+			    $netgroup = $npcfg->getNetgroup(-network => $network);
 			    if ($netgroup ne "") {
 				    $page = $self->getPage2($sql. " AND network = ".$self->dbh->quote($netgroup));
 				    goto done if defined($page);
@@ -2772,7 +2772,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.38 2005/05/01 05:55:45 jeffmurphy Exp $
+$Id: DB.pm,v 1.39 2005/05/04 20:22:17 jeffmurphy Exp $
 
 =cut
 

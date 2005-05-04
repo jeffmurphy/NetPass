@@ -8,10 +8,10 @@
 
 <TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
-<TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=2><%$tableName%></TH></TR>
+<TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=4><%$tableName%></TH></TR>
 </THEAD>
 <TBODY>
-<tr><th>Option</th><th>Value</th><th>Use Default</th><th>Default Value</th></tr>
+<tr><th>Option</th><th>Value</th><th>Use Default</th><th><a href="gencfg.mhtml">Default (Global) Value</a></th></tr>
 <TR>
 <TD CLASS='left'>MULTI_MAC</TD>
 <TD CLASS='right' >
@@ -235,11 +235,11 @@
 <%$q->popup_menu (
                         -name     => 'policy:nessus',
                         -values   => ['on', 'off'],
-                        -default  => ($np->cfg->policy(-key => 'resetport', -network => $network)) ? 'on': 'off',
+                        -default  => ($np->cfg->policy(-key => 'nessus', -network => $network)) ? 'on': 'off',
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'resetport', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:resetport"></td>
-<td class='left'><%$np->cfg->policy(-key => 'resetport')?"on":"off"%></td>
+<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'nessus', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:nessus"></td>
+<td class='left'><%$np->cfg->policy(-key => 'nessus')?"on":"off"%></td>
 </TR>
 <TR>
 <TD CLASS='left'>LDAP Query URL</TD>

@@ -61,3 +61,69 @@ function sortList(ln) {
 		}
 	}
 }
+
+function unHighLightList(oname, item) {
+        var RN  = "unHighLightList";
+
+        var acl = document.getElementById(oname);
+        if (acl) {
+                for(var i = 0 ; i < acl.options.length ; i++) {
+                        if (i && item) {
+                                if (item == acl.options[i].value)
+                                        acl.options[i].selected = false;
+                        } else {
+                                acl.options[i].selected = false;
+                        }
+                }
+        } else {
+                dbg (1, RN + ": error cant find " + oname + " object");
+        }
+}
+
+
+function highLightList(oname, item) {
+        var RN  = "highLightList";
+
+        var acl = document.getElementById(oname);
+        if (acl) {
+                for(var i = 1 ; i < acl.options.length ; i++) {
+                        if (item) {
+                                if (acl.options[i].value == item)
+                                        acl.options[i].selected = true;
+                        }
+                        else {
+                                acl.options[i].selected = true;
+                        }
+                }
+        } else {
+                dbg (1, RN + ": error cant find " + oname + " object");
+        }
+}
+
+
+function disableList(oname) {
+	var RN  = "disableList";
+
+	var l = document.getElementById(oname);
+	if (l) {
+		for(var i = 1 ; i < l.options.length ; i++) {
+			l.options[i].selected = false;
+			l.options[i].disabled = true;
+		}
+	} else {
+		dbg (1, RN + ": error cant find " + oname + " object");
+	}
+}
+
+function enableList(oname) {
+	var RN  = "enableList";
+
+	var l = document.getElementById(oname);
+	if (l) {
+		for(var i = 1 ; i < l.options.length ; i++) {
+			l.options[i].disabled = false;
+		}
+	} else {
+		dbg (1, RN + ": error cant find " + oname + " object");
+	}
+}

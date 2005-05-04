@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.8 2005/04/27 03:54:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.9 2005/05/04 20:22:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -128,7 +128,7 @@ if ($register) {
 	}
 
 	if ( ! $isRoot ) {
-		my $netgroup = $np->cfg->getNetgroup($nw);
+		my $netgroup = $np->cfg->getNetgroup(-network => $nw);
 		if ( !grep(/^$nw$/, @$rwGroups) && !grep(/^$netgroup$/, @$rwGroups) ) {
 			$err = "You don't have permission to register an IP address on the $nw network.";
 		}

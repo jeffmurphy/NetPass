@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.35 2005/05/04 03:27:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.36 2005/05/04 20:22:14 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -995,7 +995,7 @@ sub policyLocation {
                 push @$rv, "group";
         }
 
-	$nw = $self->{'cfg'}->getMatchingNetwork(-ip => $nw);
+	$nw = $self->getMatchingNetwork(-ip => $nw);
 
 	return 0 
 	  if ($location eq "network" && !recur_exists($self->{'cfg'}, 'network', $nw, 'policy', $pvar));
@@ -1055,7 +1055,9 @@ sub removePolicy {
 		return 0;
 	}
 
-	$nw = $self->{'cfg'}->getMatchingNetwork(-ip => $nw);
+	$nw = $self->getMatchingNetwork(-ip => $nw);
+
+        return 0 if $nw eq "none";
 
 	if ( ($location eq "network") && 
 	     recur_exists($self->{'cfg'}, 'network', $nw, 'policy', $pvar)) {
@@ -1093,6 +1095,7 @@ sub createNetgroup {
     return Carp::longmess("invalid parameters ".Class::ParmList->error) if (!defined($parms));
     
     my ($name) = $parms->get('-name');
+    my $oname = $name;
 
     return "invalid parameters" if (!defined($name) || ($name eq ""));
 
@@ -1102,7 +1105,7 @@ sub createNetgroup {
     if (recur_exists($self->{'cfg'}, "group", $name)) {
 	    return "group exists";
     }
-    $self->{'cfg'}->obj("group")->$name({});
+    $self->{'cfg'}->obj("group")->$name({'name' => $oname}); # damn C::G
     return 0;
 }
 
@@ -1155,13 +1158,19 @@ sub getMatchingNetwork {
     if ($ip ne "") {
 	    _log("DEBUG", qq{ip="$ip"\n}) if $self->debug;
 
-	    if ($ip =~ /\//) { # looks like a network already
+	    if ($ip =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}$/) { # looks like a network already
 		    if (recur_exists($self->{'cfg'}, "network", $ip)) {
 			    return $ip;
 		    } else {
 			    return "none";
 		    }
 	    }
+
+            # doesnt look like an IP.
+
+	    if ($ip !~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/) {
+                   return "none";
+	   }
 
 	    my $ip_ = ip2int(host2addr($ip));
 	    
@@ -1194,11 +1203,38 @@ sub getMatchingNetwork {
     return "none";
 }
 
+
+=head2 getNetgroup(-network => '')
+
+Return the netgroup that the given network is a member of. If -network is an 
+IP address, we'll resolve it first to a network.
+
+RETURNS
+
+ groupname            on success
+ ''                   if not a member of anygroup
+
+=cut
+
 sub getNetgroup {
 	my $self    = shift;
-	my $network = shift;
 
-	return '' if (!defined($network) || ($network eq "none"));
+	$self->reloadIfChanged();
+
+	my $parms = parse_parms({
+				 -parms    => \@_,
+				 -legal    => [qw(-network)],
+				 -required => [qw(-network)],
+				 -defaults => { -network => '' }
+				}
+			       );
+	
+	if (!defined($parms)) {
+		warn Carp::longmess("invalid parameters ".Class::ParmList->error);
+		return undef;
+	}
+	
+	my ($network) = $parms->get('-network');
 
 	my $nw = $self->getMatchingNetwork(-ip => $network);
 	my $netgroup = '';
@@ -1208,6 +1244,178 @@ sub getNetgroup {
 	}
 
 	return $netgroup;
+}
+
+=head2 getNetgroupMembers(-group => '')
+
+Return an arrayref of all members of the given netgroup.
+
+RETURNS
+
+ ARRAYREF             on success
+ 'invalid parameters' improperly called
+
+=cut
+
+sub getNetgroupMembers {
+	my $self    = shift;
+
+	$self->reloadIfChanged();
+
+	my $parms = parse_parms({
+				 -parms    => \@_,
+				 -legal    => [qw(-group)],
+				 -required => [qw(-group)],
+				 -defaults => { -group => '' }
+				}
+			       );
+	
+	if (!defined($parms)) {
+		return Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+	
+	my ($group) = $parms->get('-group');
+
+	my $allnw = $self->getNetworks();
+        my @members = ();
+        if (ref($allnw) eq "ARRAY") {
+                foreach my $nw (@$allnw) {
+	                if (recur_exists ($self->{'cfg'}, "network", $nw, "group")) {
+		                my $netgroup =  $self->{'cfg'}->obj('network')->obj($nw)->value('group');
+                                if ($netgroup eq $group) {
+                                        push @members, $nw;
+                                }
+                        }
+                }
+	}
+
+	return \@members;
+}
+
+=head2 getNetgroups()
+
+Return an arrayref of all netgroups.
+
+RETURNS
+
+ ARRAYREF             on success
+ 'invalid parameters' improperly called
+
+=cut
+
+sub getNetgroups {
+	my $self    = shift;
+
+	$self->reloadIfChanged();
+
+        my @ngs = ();
+
+	foreach my $ng ($self->{'cfg'}->keys('group')) {
+		push @ngs, $self->{'cfg'}->obj('group')->obj($ng)->value('name')
+		  if recur_exists($self->{'cfg'}, 'group', $ng, 'name');
+	}
+	return \@ngs;
+}
+
+=head2 delNetgroup(-group => '')
+
+Delete the given netgroup. Any networks in the netgroup will have their
+membership removed but will otherwise be unchanged.
+
+RETURNS
+
+ 0                    on success
+ 'invalid parameters' improperly called
+
+=cut
+
+sub delNetgroup {
+	my $self    = shift;
+
+	$self->reloadIfChanged();
+
+	my $parms = parse_parms({
+				 -parms    => \@_,
+				 -legal    => [qw(-group)],
+				 -required => [qw(-group)],
+				 -defaults => { -group => '' }
+				}
+			       );
+	
+	if (!defined($parms)) {
+		return Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+	
+	my ($group) = $parms->get('-group');
+
+	my $g2 = $group;
+	$g2 =~ s/\s/%20/g;
+	$g2 =~ tr [A-Z] [a-z];
+
+        if (recur_exists($self->{'cfg'}, 'group', $g2)) {
+		_log("DEBUG", "remove $g2\n");
+                $self->{'cfg'}->obj('group')->delete($g2);
+        }
+
+	my $allnw = $self->getNetworks();
+        if (ref($allnw) eq "ARRAY") {
+                foreach my $nw (@$allnw) {
+	                if (recur_exists ($self->{'cfg'}, "network", $nw, "group")) {
+		                my $netgroup =  $self->{'cfg'}->obj('network')->obj($nw)->value('group');
+                                if ($netgroup eq $group) {
+                                        $self->{'cfg'}->obj('network')->obj($nw)->delete('group');
+                                }
+                        }
+                }
+	}
+
+	return 0;
+}
+
+=head2 setNetgroup(-network => '', -group => '')
+
+Placed the specified network into the specified group. A network can only be 
+a member of one group. If -group is not specified, the network is removed
+from any group it is it. If -group is specified and the network is already 
+part of a group, it is removed from that group and placed into the one you
+specified.
+
+RETURNS
+
+ 0                    on success
+ "no such network"    given network doesnt exist
+ "invalid parameters" routine called incorrectly
+
+=cut
+
+sub setNetgroup {
+	my $self = shift;
+	$self->reloadIfChanged();
+
+	my $parms = parse_parms({
+				 -parms    => \@_,
+				 -legal    => [qw(-network -group)],
+				 -required => [qw(-network)],
+				 -defaults => { -network => '', -group => '' }
+				}
+			       );
+	
+	return Carp::longmess("invalid parameters ".Class::ParmList->error) if (!defined($parms));
+	
+	my ($network, $netgroup) = $parms->get('-network', '-group');
+
+	if (!recur_exists($self->{'cfg'}, 'network', $network)) {
+		return "no such network";
+	}
+
+	if ($netgroup eq "") {
+		# delete from group
+		$self->{'cfg'}->obj('network')->obj($network)->delete('group');
+	} else {
+		# set the group
+		$self->{'cfg'}->obj('network')->obj($network)->group($netgroup);
+	}
+	return 0;
 }
 
 =head2 my ($r, $w) = $cfg-E<gt>getCommunities(hostname)
@@ -1731,7 +1939,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.35 2005/05/04 03:27:17 jeffmurphy Exp $
+$Id: Config.pm,v 1.36 2005/05/04 20:22:14 jeffmurphy Exp $
 
 =cut
 

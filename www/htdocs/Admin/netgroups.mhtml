@@ -26,6 +26,9 @@ if (!$isRoot) {
 	return;
 }
 
+my $ip = $ENV{'REMOTE_ADDR'};
+my $whoami = $m->session->{'username'};
+
 # these group names can not be used as 'netgroups'
 
 my $reservedGroups = { 'default' => 1, 'clientAccess' => 1 };
@@ -33,24 +36,135 @@ my $reservedGroups = { 'default' => 1, 'clientAccess' => 1 };
 # fetch all known networks and netgroups
 
 my $allNetworks = $np->cfg->getNetworks();
-my $allNetgroups = ();
+my $allNetgroups = [];
+my $groupMembers = {};
+
+</%perl>
+<script language="JavaScript">
+DBG_init();
+var netgroup_Map = new Object();
+<%perl>
+my $beenthere = {};
 foreach my $nw (@$allNetworks) {
-        my $ng = $np->cfg->getNetgroup($nw);
+        my $ng = $np->cfg->getNetgroup(-network => $nw);
+
+	print qq{netgroup_Map['$ng'] = new Array(); //ng->nw\n}	if ($ng ne "" && !exists $beenthere->{$ng});
+	$beenthere->{$ng} = 1;
+	print qq{netgroup_Map['$nw'] = new Array(); //nw->ng\n}	if ($nw ne "" && !exists $beenthere->{$nw});
+	$beenthere->{$nw} = 1;
+	print qq{netgroup_Map['$ng'].push('$nw');\n} if ($ng ne "");
+	print qq{netgroup_Map['$nw'].push('$ng');\n} if ($ng ne "");
+	print qq{//$nw is not a part of any netgroup\n} if ($ng eq "");
+
         push @$allNetgroups, $ng if ($ng ne "") && (!grep(/^$ng$/, @$allNetgroups));
+	$groupMembers->{$ng} = [] if (ref($groupMembers->{$ng}) ne "ARRAY");
+	push @{$groupMembers->{$ng}}, $nw;
 }
 </%perl>
+</script>
 
 <h2> Network Configuration </h2>
+
+Notes:
+<ul>
+<li>Netgroups are not case-sensitive. 
+<li>Empty netgroups will be deleted.
+<li>To add a new netgroup:
+<ol>
+  <li> Click inside the "Add Netgroup.." box. 
+  <li> Type in a netgroup name ("default", "clientAccess" and network-names are not permitted).
+  <li> Click a network (or networks) to add to the netgroup.
+  <li> Click 'Commit Changes'
+</ol>
+<LI>To specify group-specific parameters (and over-ride the Global settings):
+<ol>
+  <li>Select the Netgroup you wish to edit. Currently only Admin/default can edit
+      these parameters. In the future, having Admin for the specific group will
+      allow you to edit the parameters.
+  <li>Uncheck the "Use Default" box for the parameter you wish to over-ride.
+  <li>Select or enter a new value.
+  <li>Click 'Commit Changes'
+</ol>
+</ul>
 
 <%perl>
 $m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addNetgroup', 'submitButton' ]);
 my $WH = "-" x 20;
 
-my $restartnetpass = 0;
-my $restartnessus  = 0;
-my $restarthttpd   = 0;
-
 if ($submitButton eq 'Commit Changes') {
+	if (! grep(/^$netgroups$/, @$allNetgroups) ) {
+		# add the netgroup because we don't already know about it
+
+		_log("DEBUG", "$ip $whoami added netgroup $netgroups\n");
+		$np->db->audit(-severity => 'NOTICE', -ip => $ip, -user => $whoami,
+				"added netgroup $netgroups");
+		$np->cfg->createNetgroup(-name => $netgroups);
+	}
+
+	if ($netgroups ne "") {
+		# the netgroup should be in the config at this point. associate
+		# networks with it.
+
+		# if $nw is present in $groupMembers, but not in $networks
+		# then removed it. else add it.
+
+
+		foreach my $nw (@$allNetworks) {
+			my $_networks;
+			if (ref($networks) eq "ARRAY") {
+				$_networks = $networks;
+			} else {
+				$_networks = [ $networks ];
+			}
+			
+			if (grep(/^$nw$/, @$_networks)) {
+				# the user wants $nw to be a part of this netgroup
+				_log("DEBUG", "$ip $whoami placed $nw into netgroup $netgroups\n");
+				$np->db->audit(-severity => 'NOTICE', -ip => $ip, -user => $whoami,
+						"placed $nw into netgroup $netgroups");
+
+				$np->cfg->setNetgroup(-network => $nw, -group => $netgroups);
+			} else {
+				# the user does not want this network to be a part
+				# of this netgroup. if it is, remove it, else if 
+				# it's part of another netgroup, leave it.
+
+				my $x = $np->cfg->getNetgroup(-network => $nw);
+				if ($x eq $netgroups) {
+					_log("DEBUG", "$ip $whoami removed $nw from netgroup $netgroups\n");
+					$np->db->audit(-severity => 'NOTICE', -ip => $ip, -user => $whoami,
+							"removed $nw from netgroup $netgroups");
+					$np->cfg->setNetgroup(-network => $nw);
+				}
+			}
+		}
+	}
+
+        # if a netgroup has no members, delete it
+
+	my $newANGs = [];
+	_log("DEBUG", "purge\n");
+	my $rv = '';
+
+        foreach my $ngn (@{$np->cfg->getNetgroups()}) {
+	_log("DEBUG", "purge $ngn\n");
+		my $members = $np->cfg->getNetgroupMembers(-group => $ngn);
+		if (ref($members) eq "ARRAY" && ($#{$members} == -1)) {
+			_log("DEBUG", "$ip $whoami $ngn has no members. deleting.\n");
+			$np->db->audit(-severity => 'NOTICE', -ip => $ip, -user => $whoami,
+					"$ngn has no members. deleting.");
+			if ( $rv = $np->cfg->delNetgroup(-group => $ngn) ) {
+				_log("DEBUG", "$ip $whoami failed to delete empty netgroup $ngn: $rv\n");
+			}
+		} else {
+	_log("DEBUG", "still OK $ngn\n");
+			push @$newANGs, $ngn;
+		}
+	}
+
+	$allNetgroups = $newANGs;
+	$rv = '';
+
 	foreach my $ak ( keys %ARGS ) {
 		if ($ak =~ /^(\S+):(\S+)$/) {
 			my $section = $1;
@@ -58,9 +172,10 @@ if ($submitButton eq 'Commit Changes') {
 
 			if ($section eq "policy") {
 				if ($ARGS{"usedefault:$var"}) {
-					$np->cfg->removePolicy(-key => $var, 
-								-location => 'group',
-								-network => $netgroups);
+					my $rv2 = $np->cfg->removePolicy(-key => $var, 
+									-location => 'group',
+									-network => $netgroups);
+					$rv .= " $rv2" if ($rv2);
 				} else {
 					$np->cfg->policy(-key => $var, -network => $netgroups,
 							 -val => $ARGS{$ak});
@@ -69,7 +184,10 @@ if ($submitButton eq 'Commit Changes') {
 		}
 	}
 
-	my $rv = $np->cfg->save(-user => $m->session->{'username'});
+	if ($rv eq "") {
+		$rv = $np->cfg->save(-user => $m->session->{'username'});
+	}
+
 	if ($rv) {
 		print "<P class='error'>Failed to save configuration: $rv</P>";
 	} else {
@@ -90,13 +208,14 @@ if ($submitButton eq 'Commit Changes') {
 		-default => $netgroups, -id => 'netgroups',
 		-attributes => { $WH => { 'disabled' => 1 } },
 		-onchange => 'netgroup_onchange_netgroups();',
-		-size => 15, -multiple => 'false')%><P>
-	<input id='addNetgroup' name='addNetgroup' size=20 value='Add Netgroup...' disabled>
+		-size => 15)%><P>
+	<input id='addNetgroup' name='addNetgroup' size=20 value='Add Netgroup...' disabled
+	onblur='netgroup_onblur_addNetgroup(this);' onfocus='netgroup_onfocus_addNetgroup(this);'>
     </td>
     <td style='text-align:center; vertical-align: top;'>
        <%$q->scrolling_list(-name => 'networks', -id => 'networks',  -values => [ $WH, sort @$allNetworks ], 
 				-attributes => { $WH => { 'disabled' => 1 } },
-				-default => $networks, -size => 15, -multiple => 'false')%><P>
+				-default => $networks, -size => 15, -multiple => 'true')%><P>
 	<input type='submit' name='submitButton' id='submitButton' value='Commit Changes' disabled>
     </td>
 </tr>
@@ -110,10 +229,10 @@ if ($submitButton eq 'Commit Changes') {
 <script language='JavaScript'>
 var pageDirty = false;
 setWhereAmI('Configuration &gt; Netgroups');
-var reservedGroups = new Array;
+var netgroup_reservedGroups = new Object;
 <%perl>
 foreach my $rg ($WH, keys %$reservedGroups) {
-	print qq{reservedGroups.push('$rg');\n};
+	print qq{netgroup_reservedGroups['$rg'] = 1;\n};
 }
 </%perl>
 </script>

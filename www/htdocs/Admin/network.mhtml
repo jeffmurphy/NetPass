@@ -41,7 +41,7 @@ my $reservedGroups = { 'default' => 1, 'clientAccess' => 1 };
 my $allNetworks = $np->cfg->getNetworks();
 my $allNetgroups = ();
 foreach my $nw (@$allNetworks) {
-        my $ng = $np->cfg->getNetgroup($nw);
+        my $ng = $np->cfg->getNetgroup(-network => $nw);
         push @$allNetgroups, $ng if ($ng ne "") && (!grep(/^$ng$/, @$allNetgroups));
 }
 
