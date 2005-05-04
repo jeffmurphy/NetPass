@@ -80,8 +80,8 @@ function userform_changeToUser(o) {
 				}
 			}
 		}
-		userform_sortList("GroupList");
-		userform_sortList("AvailableGroupList");
+		sortList("GroupList");
+		sortList("AvailableGroupList");
 
 		if (usingAuthDB) {
 			var pwd = document.getElementById('passwdDialog');
@@ -421,8 +421,8 @@ function userform_addGroupToUser() {
 		userform_enableList("AccessControlList");
 		DBG_objDump(userhash, "userhash");
 		userform_setAclHash();
-		userform_sortList("GroupList");
-		userform_sortList("AvailableGroupList");
+		sortList("GroupList");
+		sortList("AvailableGroupList");
 	} else {
 		dbg (1, RN + ": cant find AvailableGroupList and/or GroupList object");
 	}
@@ -448,8 +448,8 @@ function userform_remGroupFromUser() {
 		userform_disableList("AccessControlList");
 		DBG_objDump(userhash, "userhash");
 		userform_setAclHash();
-		userform_sortList("GroupList");
-		userform_sortList("AvailableGroupList");
+		sortList("GroupList");
+		sortList("AvailableGroupList");
 	} else {
 		dbg (1, RN + ": cant find AvailableGroupList and/or GroupList object");
 	}
@@ -470,33 +470,6 @@ function userform_onfocus_addUser(o) {
 
 }
 
-function userform_sortList(ln) {
-
-	if (ln) {
-		var l = document.getElementById(ln);
-		if (l && l.options.length) {
-			var oa = new Array();
-			for (var i = 1 ; i < l.options.length ; i++) {
-				oa[oa.length] = new Option( l.options[i].text, 
-							    l.options[i].value, 
-							    l.options[i].defaultSelected, 
-							    l.options[i].selected);
-				oa = oa.sort( function(a,b) {
-						      if ((a.value+"") < (b.value+"")) { return -1; }
-						      if ((a.value+"") > (b.value+"")) { return 1; }
-						      return 0; } 
-					      );
-				for ( i = 0 ; i < oa.length ; i++) {
-					l.options[i+1] = new Option(oa[i].text,
-								    oa[i].value,
-								    oa[i].defaultSelected,
-								    oa[i].selected)
-						;
-				}
-			}
-		}
-	}
-}
 
 function userform_onblur_addUser(o) {	
 	var RN = "userform_onblur_addUser";
@@ -524,5 +497,5 @@ function userform_onblur_addUser(o) {
 	ul.options[ul.options.length-1].selected = true;
 
 	if(o) o.value = "Add user...";
-	userform_sortList("UserList");
+	sortList("UserList");
 }

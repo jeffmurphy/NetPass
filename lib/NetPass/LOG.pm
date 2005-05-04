@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/LOG.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/LOG.pm,v 1.2 2005/05/04 03:09:44 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -55,7 +55,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: LOG.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+$Id: LOG.pm,v 1.2 2005/05/04 03:09:44 jeffmurphy Exp $
 
 =cut
 
@@ -131,6 +131,7 @@ sub _log {
 	    $_SL =~ tr [A-Z] [a-z];
 	    $_SL = ($_SL eq "error") ? "err" : $_SL;
 	    #print STDERR "level: $_SL\n";
+	    $s =~ s/%/%%/g;
 	    syslog($_SL, $s);
 	}
 }

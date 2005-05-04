@@ -5,128 +5,23 @@
 </%args>
 
 <script language="JavaScript">
-<!--
 var lockOpPending = false;
+var lockConfig_EE = new Array;
 
-function lockConfig_results(r) {
-	var b = document.getElementById('lockButton');
-	if (b) {
-		b.disabled = '';
-		b.innerHTML = "Lock Config";
-	}
-	lockOpPending = false;
-	var ra = r.split(/\s+/);
-	var i = 0;
-	while (i < ra.length && ra[i] != "OK" && ra[i] != "NOK") { i++ }
-
-	if (ra[i] == "OK") {
-		// something succeeded
-		if (ra[i+1] == "lock") {
-			// we got the lock, change button to
-			// green and text to 'unlock'
-			b.style.backgroundColor = '#77FF77';
-			b.innerHTML = 'Config is Locked (by you)<BR>Unlock Config';
-			adjust_onClick(b, "return lockConfig(0, 0);");
-			enable_element('submitButton');
-		} else {
-			// we got the unlock, button -> yellow
-			// text -> 'lock'
-			b.style.backgroundColor = '#FFFF77';
-			b.innerHTML = 'Config is Unlocked<BR>Lock Config';
-			adjust_onClick(b, "return lockConfig(1, 0);");
-			disable_element('submitButton');
+<%perl>
+	if (ref($enableWhenLocked) eq "ARRAY") {
+		foreach my $x (@$enableWhenLocked) {
+			print qq{lockConfig_EE.push('$x');\n};
 		}
-	} else {
-		// something failed
-
-		if (ra[i+1] == "lock") {
-			// we didnt get the lock, change button to
-			// red and text to 'force lock'
-			b.style.backgroundColor = '#FF7777';
-			b.innerHTML = 'Config is Locked by '+ra[i+2]+'<BR>Force Lock Config';
-			adjust_onClick(b, "return lockConfig(1, 1);");
-			disable_element('submitButton');
-		} else {
-			// we didnt get the unlock, 
-			// button -> red
-			// text -> 'force unlock'
-			b.style.backgroundColor = '#FF7777';
-			b.innerHTML = 'Config is Locked by '+ra[i+2]+'<BR>Force Unlock Config';
-			adjust_onClick(b, "return lockConfig(0, 1);");
-			disable_element('submitButton');
-		}
-	}
-}
-
-function lockConfig(lock, force) {
-	// lock: 0 = unlock, 1 = lock
-	// force: 0 = no, 1 = yes
-
-	if (lockOpPending) return;
-
-	var b = document.getElementById('lockButton');
-	if (b) {
-		b.innerHTML = "Wait ...";
-		adjust_onClick(b, "return false;");
-		b.disabled = true;
-	}
-
-	lockOpPending = true;
-	var url = "cmd/lockcfg.mhtml?printable=2&lock="+lock +"&force="+force;
-	xmlhttp.open("GET", url , true);
-	xmlhttp.onreadystatechange=function() {
-		if (xmlhttp.readyState == 4) {
-			lockConfig_results(xmlhttp.responseText);
-		}
-	};
-	xmlhttp.send(null);
-	return false;
-}
-
-function lockConfig_show_unlock() {
-	var b = document.getElementById('lockButton');
-}
-
-function adjust_onClick(obj, fn) {
-	if (browserType_IE) {
-		obj.onclick = eval("x=function(e){"+fn+"}");
-	} else {
-		obj.setAttribute('ONCLICK', fn);
-	}
-}
-
-function enable_element(o) {
-	if (!o) return;
-	var o2;
-	if (typeof o == "string") {
-		o2 = document.getElementById(o);
-		if (!o2) return;
-	} else {
-		o2 = o;
-	}
-
-	o2.disabled = false;
-}
-
-function disable_element(o) {
-	if (!o) return;
-
-	var o2;
-
-	if (typeof o == "string") {
-		o2 = document.getElementById(o);
-		if (!o2) return;
 	}
 	else {
-		o2 = o;
+		print qq{lockConfig_EE.push('$enableWhenLocked');\n};
 	}
-
-	o2.disabled = true;
-}
-
-
--->
+</%perl>
 </script>
+<script src="/resources/js/lockcfg.js" type="text/javascript"></script>
+<script src="/resources/js/common.js" type="text/javascript"></script>
+
 <style>
 DIV.lockButton {
 	text-align:       center;
@@ -150,10 +45,10 @@ if (ref($lstat) eq "HASH") {
 	# the config is locked
 	if ($lstat->{'user'} eq $m->session->{'username'}) {
 		# by us, so show the unlock button
-		print qq{<script>lockConfig_results("OK lock");enable_element('$enableWhenLocked');</script>};
+		print qq{<script>lockConfig_results("OK lock");lockConfig_enableElements();</script>};
 	} else {
 		# but not by us, show the force unlock button
-		print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");disable_element('$enableWhenLocked');</script>};
+		print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");lockConfig_disableElements();</script>};
 	}
 } 
 elsif ($lstat) {
@@ -161,6 +56,6 @@ elsif ($lstat) {
 } 
 else {
 	# the config is not locked, show the lock button
-	print qq{<script>lockConfig_results("OK unlock");disable_element('$enableWhenLocked');</script>};
+	print qq{<script>lockConfig_results("OK unlock");lockConfig_disableElements();</script>};
 }
 </%perl>

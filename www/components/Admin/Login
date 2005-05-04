@@ -1,11 +1,13 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.9 2005/04/29 00:30:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.10 2005/05/04 03:09:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
 #   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
 
-This component outputs a login prompt form.
+This component outputs a login prompt form. It returns 1 if the user has successfully
+logged in, otherwise it returns 0.
+
 </%doc>
 
 
@@ -29,10 +31,11 @@ This component outputs a login prompt form.
 			$m->session->{'logged_in'} = 1; # FIX/Client/Login
 			$m->session->{'username'}  = $username;
 			$m->session->{'my_groups'} = $np->db->getUserGroups($username);
-			if ($m->caller(-1)->path =~ /^\/Admin/) {
-				$m->redirect($m->caller(-1)->path);
+			my $uri = $r->uri;
+			if ($uri =~ /^\/Admin/) {
+				$m->redirect($uri);
 			} else {
-				$m->redirect('/Admin');
+				$m->redirect('/Admin/index.mhtml');
 			}
 
                 	return 1;

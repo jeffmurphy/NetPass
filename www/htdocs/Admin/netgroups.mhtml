@@ -13,9 +13,9 @@ PERMISSIONS
 	RO	none
 </%doc>
 <%args>
-	$submit    => '';
-	$netgroups => '';
-	$networks  => '';
+	$submitButton => '';
+	$netgroups    => '';
+	$networks     => '';
 </%args>
 <%perl>
 return unless $m->comp('/Admin/Login', %ARGS);
@@ -38,35 +38,45 @@ foreach my $nw (@$allNetworks) {
         my $ng = $np->cfg->getNetgroup($nw);
         push @$allNetgroups, $ng if ($ng ne "") && (!grep(/^$ng$/, @$allNetgroups));
 }
-
 </%perl>
 
 <h2> Network Configuration </h2>
 
-% $m->comp('/Admin/LockConfig', 'enableWhenLocked' => 'addNetgroup');
-% my $WH = "-" x 20;
-
-<script language='JavaScript'>//<!--
-var pageDirty = false;
-setWhereAmI('Configuration &gt; Netgroups');
-
-function netgroup_onchange_netgroups() {
-	var o = document.getElementById("netgroups");
-	if (!o) return;
-	if (o.options[0].selected == true) { //IE
-		o.options[0].selected == false;
-		return;
-	}
-	document.forms[0].submit();
-}
-
-var reservedGroups = new Array;
 <%perl>
-foreach my $rg ($WH, keys %$reservedGroups) {
-	print qq{reservedGroups.push('$rg');\n};
+$m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addNetgroup', 'submitButton' ]);
+my $WH = "-" x 20;
+
+my $restartnetpass = 0;
+my $restartnessus  = 0;
+my $restarthttpd   = 0;
+
+if ($submitButton eq 'Commit Changes') {
+	foreach my $ak ( keys %ARGS ) {
+		if ($ak =~ /^(\S+):(\S+)$/) {
+			my $section = $1;
+			my $var     = $2;
+
+			if ($section eq "policy") {
+				if ($ARGS{"usedefault:$var"}) {
+					$np->cfg->removePolicy(-key => $var, 
+								-location => 'group',
+								-network => $netgroups);
+				} else {
+					$np->cfg->policy(-key => $var, -network => $netgroups,
+							 -val => $ARGS{$ak});
+				}
+			}
+		}
+	}
+
+	my $rv = $np->cfg->save(-user => $m->session->{'username'});
+	if ($rv) {
+		print "<P class='error'>Failed to save configuration: $rv</P>";
+	} else {
+		print "<P class='error'>Netgroup Configuration Saved.</P>";
+	}
 }
 </%perl>
-//--></script>
 
 <form method="post">
 <table border=0>
@@ -86,13 +96,50 @@ foreach my $rg ($WH, keys %$reservedGroups) {
     <td style='text-align:center; vertical-align: top;'>
        <%$q->scrolling_list(-name => 'networks', -id => 'networks',  -values => [ $WH, sort @$allNetworks ], 
 				-attributes => { $WH => { 'disabled' => 1 } },
-				-default => $networks, -size => 15, -multiple => 'false')%><BR>
+				-default => $networks, -size => 15, -multiple => 'false')%><P>
+	<input type='submit' name='submitButton' id='submitButton' value='Commit Changes' disabled>
     </td>
 </tr>
 </table>
 <P>
 % if ($netgroups) {
-% 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Netgroup General Settings for '.$netgroups, 'network' => $netgroups);
+% 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Netgroup General Settings for '.$netgroups, 'network' => $netgroups, 'suppressKeys' => { 'PID_DIR' => 1, 'BASE_DIR' => 1 } );
 % }
-
 </form>
+
+<script language='JavaScript'>
+var pageDirty = false;
+setWhereAmI('Configuration &gt; Netgroups');
+var reservedGroups = new Array;
+<%perl>
+foreach my $rg ($WH, keys %$reservedGroups) {
+	print qq{reservedGroups.push('$rg');\n};
+}
+</%perl>
+</script>
+<script src="/resources/js/common.js" type="text/javascript"></script>
+<script src="/resources/js/netgroups.js" type="text/javascript"></script>
+
+
+<%perl>
+my $lstat = $np->db->isConfigLocked();
+
+if (ref($lstat) eq "HASH") { 
+	# the config is locked
+	if ($lstat->{'user'} eq $m->session->{'username'}) {
+		# by us, so show the unlock button
+		print qq{<script>lockConfig_results("OK lock");lockConfig_enableElements();</script>};
+	} else {
+		# but not by us, show the force unlock button
+		print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");lockConfig_disableElements();</script>};
+	}
+} 
+elsif ($lstat) {
+	# there was a problem
+} 
+else {
+	# the config is not locked, show the lock button
+	print qq{<script>lockConfig_results("OK unlock");lockConfig_disableElements();</script>};
+}
+
+</%perl>

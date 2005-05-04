@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.33 2005/05/02 17:06:25 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.34 2005/05/04 03:09:44 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -736,7 +736,7 @@ group and finally the global policy.
 
 =back
 
-SETTING POLICY SEETINGS
+SETTING POLICY SETTINGS
 
 =over 4
 
@@ -774,8 +774,6 @@ sub policy {
 	}
 
 	my ($pvar, $nw, $val) = $parms->get('-key', '-network', '-val');
-
-
 
 	$nw = "" if ($nw eq "default");
 	$nw ||= "";
@@ -817,8 +815,26 @@ sub policy {
 		if (recur_exists ($self->{'cfg'}, "network", $nw, "group")) {
 			$netgroup =  $self->{'cfg'}->obj('network')->obj($nw)->value('group');
 			_log("DEBUG", "policy($pvar): nw=$nw is member of group $netgroup\n") if $self->debug;
+			$netgroup =~ s/\s/\%20/g; # Config::General bug workaround
+                                                  # reported 3-may-2005 (see once more below!)
+			$netgroup =~ tr [A-Z] [a-z]; # another Config::General bug
+			                             # reported 3-may-2005
+
 			if (recur_exists ($self->{'cfg'}, "group", $netgroup, "policy", $pvar)) {
 				_log("DEBUG", "policy($pvar): (nw=$nw) group=$netgroup has policy section. returning that.\n") if $self->debug;
+				return $self->{'cfg'}->obj('group')->obj($netgroup)->obj('policy')->value($pvar);
+			}
+		}
+
+		# if the above didnt work, perhaps we were given a group name
+
+		$netgroup = $nw;
+		$netgroup =~ s/\s/\%20/g; # Config::General bug workaround
+		$netgroup =~ tr [A-Z] [a-z]; # another Config::General bug
+		if (recur_exists($self->{'cfg'}, "group", $netgroup)) { 
+			_log ("DEBUG", "policy($pvar): (nw=$nw) looks like a netgroup.\n") if $self->debug;
+			if (recur_exists($self->{'cfg'}, 'group', $netgroup, 'policy', $pvar)) {
+				_log ("DEBUG", "policy($pvar): (nw=$nw) found it in netgroup policy\n") if $self->debug;
 				return $self->{'cfg'}->obj('group')->obj($netgroup)->obj('policy')->value($pvar);
 			}
 		}
@@ -869,6 +885,10 @@ sub policy {
 
 			_log("DEBUG", "group=$nw set group policy for $pvar\n") if $self->debug;
 
+			$nw =~ s/\s/\%20/g; # Config::General bug workaround
+                                            # reported 3-may-2005
+			$nw =~ tr [A-Z] [a-z]; # another Config::General bug
+
 			if (! recur_exists ($self->{'cfg'}, "group", $nw)) {
 				return undef; #"nosuch group";
 			}
@@ -876,18 +896,18 @@ sub policy {
 			if (! recur_exists ($self->{'cfg'}, "group", $nw, 'policy')) {
 				# create one
 				_log("DEBUG", "group=$nw create a group policy \n") if $self->debug;
-				$self->{'cfg'}->obj('network')->obj($nw)->policy({});
+				$self->{'cfg'}->obj('group')->obj($nw)->policy({});
 			}
 
 			if ( recur_exists ($self->{'cfg'}, "network", $nw, "policy", $pvar) ) {
 				_log("DEBUG", "group=$nw set group policy for $pvar (has oldval)\n") if $self->debug;
-				$oldvalue = $self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->value($pvar);
-				$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
+				$oldvalue = $self->{'cfg'}->obj('group')->obj($nw)->obj('policy')->value($pvar);
+				$self->{'cfg'}->obj('group')->obj($nw)->obj('policy')->$pvar($val);
 				return $oldvalue;
 			}
 
 			_log("DEBUG", "group=$nw set group policy for $pvar (no oldval)\n") if $self->debug;
-			$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->$pvar($val);
+			$self->{'cfg'}->obj('group')->obj($nw)->obj('policy')->$pvar($val);
 			return undef;
 
 		}
@@ -912,6 +932,180 @@ sub policy {
 
 	return undef;
 }
+
+
+=head2 policyLocation(-key => '', -network => '', -location => [''|global|group|network])
+
+Check if a given policy variable is set in the specified location. If location
+is '', then we return an ARRAY ref that contains the locations the given
+variable was found in. Otherwise we return 0 or 1 based on whether or not
+we found the variable in the specified location.
+
+RETURNS
+
+  0                     not found in specified location
+  1                     found in specified location
+  ARRAYREF              found in the following locations (may be empty)
+  "invalid parameters"  routine called incorrectly
+
+=cut
+
+sub policyLocation {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-key -network -location)],
+				 -required => [qw(-key)],
+				 -defaults => { -network => '', -location => '' }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters ". Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+
+	my ($pvar, $nw, $location) = $parms->get('-key', '-network', '-location');
+
+	_log("DEBUG", "checking for policy $nw:$pvar in location:$location\n") if $self->debug;
+
+	$pvar =~ tr [A-Z] [a-z]; # AutoLowerCase
+        $nw = "" if ($nw eq "default");
+
+        my $rv = [];
+
+	return 0 
+	  if ($location eq "global" && !recur_exists($self->{'cfg'}, 'policy', $pvar));
+
+        if (recur_exists($self->{'cfg'}, 'policy', $pvar)) {
+                return 1 if ($location eq "global");
+                push @$rv, "global";
+        }
+
+	my $nw2 = $nw;
+	$nw2 =~ s/\s/%20/g; # Config::General bug
+	$nw2 =~ tr [A-Z] [a-z]; # Config::General bug
+
+	if (($location eq "group") && !recur_exists($self->{'cfg'}, 'group', $nw2, 'policy', $pvar)) {
+		return 0;
+	}
+
+        if (recur_exists($self->{'cfg'}, 'group', $nw2, 'policy', $pvar)) {
+                return 1 if ($location eq "group");
+                push @$rv, "group";
+        }
+
+	$nw = $self->{'cfg'}->getMatchingNetwork(-ip => $nw);
+
+	return 0 
+	  if ($location eq "network" && !recur_exists($self->{'cfg'}, 'network', $nw, 'policy', $pvar));
+
+        if (recur_exists($self->{'cfg'}, 'network', $nw, 'policy', $pvar)) {
+                return 1 if ($location eq "network");
+                push @$rv, "network";
+        }
+
+	return $rv;
+}
+
+=head2 removePolicy(-key => '', -network => '', -location => [global|group|network])
+
+Remove the policy variable from the specified location. You can't remove
+policy variables from the "global" location, depite being listed.
+
+RETURNS
+
+  0                     success
+  "invalid parameters"  routine called incorrectly
+  "cant remove"         cant remove the variable
+
+=cut
+
+sub removePolicy {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-key -network -location)],
+				 -required => [qw(-key)],
+				 -defaults => { -network => '', -location => '' }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters ".Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+
+	my ($pvar, $nw, $location) = $parms->get('-key', '-network', '-location');
+
+	$pvar =~ tr [A-Z] [a-z]; # AutoLowerCase
+        $nw = "" if ($nw eq "default");
+
+        if ( ($location eq "global") && recur_exists($self->{'cfg'}, 'policy', $pvar)) {
+		# global policy settings cant be deleted.
+		return "cant delete global policy variable";
+        }
+
+	my $nw2 = $nw;
+	$nw2 =~ s/\s/%20/g; # Config::General bug
+	$nw2 =~ tr [A-Z] [a-z]; # Config::General bug
+
+	if (($location eq "group") && recur_exists($self->{'cfg'}, 'group', $nw2, 'policy', $pvar)) {
+		$self->{'cfg'}->obj('group')->obj($nw2)->obj('policy')->delete($pvar);
+		return 0;
+	}
+
+	$nw = $self->{'cfg'}->getMatchingNetwork(-ip => $nw);
+
+	if ( ($location eq "network") && 
+	     recur_exists($self->{'cfg'}, 'network', $nw, 'policy', $pvar)) {
+		$self->{'cfg'}->obj('network')->obj($nw)->obj('policy')->delete($pvar);
+		return 0;
+	}
+
+	return 0;
+}
+
+=head2 0|1 = $cfg-E<gt>createNetgroup(-name => $name)
+
+Create a new netgroup.
+
+RETURNS
+ 0                    on success
+ "group exists"       on failure (group already exists)
+ "invalid parameters" routine called improperly
+
+=cut
+
+sub createNetgroup {
+    my $self = shift;
+
+    $self->reloadIfChanged();
+
+    my $parms = parse_parms({
+			     -parms    => \@_,
+			     -legal    => [qw(-name)],
+			     -required => [qw(-name)],
+			     -defaults => { -name => '' }
+			    }
+			   );
+
+    return Carp::longmess("invalid parameters ".Class::ParmList->error) if (!defined($parms));
+    
+    my ($name) = $parms->get('-name');
+
+    return "invalid parameters" if (!defined($name) || ($name eq ""));
+
+    $name =~ s/\s/%20/g;  # Config::General bug
+    $name =~ tr [A-Z] [a-z]; # another Config::General bug
+
+    if (recur_exists($self->{'cfg'}, "group", $name)) {
+	    return "group exists";
+    }
+    $self->{'cfg'}->obj("group")->$name({});
+    return 0;
+}
+
 
 =head2 my $network = $cfg-E<gt>getMatchingNetwork(-ip => $ip, -switch => $ip, -port => $port)
 
@@ -1537,7 +1731,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.33 2005/05/02 17:06:25 jeffmurphy Exp $
+$Id: Config.pm,v 1.34 2005/05/04 03:09:44 jeffmurphy Exp $
 
 =cut
 
