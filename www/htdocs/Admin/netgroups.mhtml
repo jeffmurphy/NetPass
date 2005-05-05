@@ -63,7 +63,7 @@ foreach my $nw (@$allNetworks) {
 </%perl>
 </script>
 
-<h2> Network Configuration </h2>
+<h2> Netgroup Configuration </h2>
 
 Notes:
 <ul>
@@ -97,7 +97,7 @@ if ($submitButton eq 'Commit Changes') {
 
 		_log("DEBUG", "$ip $whoami added netgroup $netgroups\n");
 		$np->db->audit(-severity => 'NOTICE', -ip => $ip, -user => $whoami,
-				"added netgroup $netgroups");
+				-msg => [ "added netgroup $netgroups" ]);
 		$np->cfg->createNetgroup(-name => $netgroups);
 	}
 
@@ -121,7 +121,7 @@ if ($submitButton eq 'Commit Changes') {
 				# the user wants $nw to be a part of this netgroup
 				_log("DEBUG", "$ip $whoami placed $nw into netgroup $netgroups\n");
 				$np->db->audit(-severity => 'NOTICE', -ip => $ip, -user => $whoami,
-						"placed $nw into netgroup $netgroups");
+						-msg => ["placed $nw into netgroup $netgroups"]);
 
 				$np->cfg->setNetgroup(-network => $nw, -group => $netgroups);
 			} else {
@@ -133,7 +133,7 @@ if ($submitButton eq 'Commit Changes') {
 				if ($x eq $netgroups) {
 					_log("DEBUG", "$ip $whoami removed $nw from netgroup $netgroups\n");
 					$np->db->audit(-severity => 'NOTICE', -ip => $ip, -user => $whoami,
-							"removed $nw from netgroup $netgroups");
+							-msg=>["removed $nw from netgroup $netgroups"]);
 					$np->cfg->setNetgroup(-network => $nw);
 				}
 			}
@@ -152,7 +152,7 @@ if ($submitButton eq 'Commit Changes') {
 		if (ref($members) eq "ARRAY" && ($#{$members} == -1)) {
 			_log("DEBUG", "$ip $whoami $ngn has no members. deleting.\n");
 			$np->db->audit(-severity => 'NOTICE', -ip => $ip, -user => $whoami,
-					"$ngn has no members. deleting.");
+					-msg=>["$ngn has no members. deleting."]);
 			if ( $rv = $np->cfg->delNetgroup(-group => $ngn) ) {
 				_log("DEBUG", "$ip $whoami failed to delete empty netgroup $ngn: $rv\n");
 			}
