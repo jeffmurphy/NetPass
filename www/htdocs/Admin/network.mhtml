@@ -21,11 +21,22 @@ PERMISSIONS
 	RO	none
 </%doc>
 <%args>
-	$submitButton => '';
-	$network => '';
+	$submitButton        => '';
+	$network             => '';
+	$comment             => '';
+	$interface           => '';
+	$qvid                => '';
+	$uqvid               => '';
+        $haToggle            => '';
+	$primaryRedirector   => '';
+	$secondaryRedirector => '';
+	$haNPServers         => [];
+	$virtualIP           => '';
+	$garpToggle          => '';
+	$garpDelay           => 5;
+	$garpNumber          => 3;
 </%args>
 <%perl>
-
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
 if (!$isRoot) {
 	print qq{<p class='error'>Sorry, you don't have access to this form.};
@@ -35,13 +46,44 @@ if (!$isRoot) {
 my $ip = $ENV{'REMOTE_ADDR'};
 my $whoami = $m->session->{'username'};
 
+use Sys::Hostname;
+
+my $ng;
+
+$haNPServers = [ hostname, "xyz", "abc" ] if (ref ($haNPServers) ne "ARRAY" || $#{$haNPServers} == -1);
+$garpDelay  ||= 5;
+$garpNumber ||= 3;
+
+if ($network && $np->cfg->garp($network)) {
+	$garpDelay  = $np->cfg->garp($network, 'delay');
+	$garpNumber = $np->cfg->garp($network, 'number');
+}
+
+if ($network) {
+	$qvid       = $np->cfg->quarantineVlan($network);
+	$uqvid      = $np->cfg->nonquarantineVlan($network);
+	$interface  = $np->cfg->getInterface($network);
+	$comment    = $np->cfg->getNetComment($network);
+	$ng         = $np->cfg->getNetgroup(-network => $network);
+	$ng       ||= '';
+}
+if ($network && $np->cfg->ha($network)) {
+	$primaryRedirector   = $np->cfg->primary_redirector($network);
+	$secondaryRedirector = $np->cfg->secondary_redirector($network);
+	$haNPServers         = $np->cfg->ha_servers($network);
+	if (!defined($haNPServers)) {
+		$haNPServers = [ hostname ];
+	}
+	$virtualIP = $np->cfg->virtualIP($network);
+}
+
 # fetch all known networks and netgroups
 
 my $allNetworks = $np->cfg->getNetworks();
 my $allNetgroups = ();
 foreach my $nw (@$allNetworks) {
-        my $ng = $np->cfg->getNetgroup(-network => $nw);
-        push @$allNetgroups, $ng if ($ng ne "") && (!grep(/^$ng$/, @$allNetgroups));
+        my $_ng = $np->cfg->getNetgroup(-network => $nw);
+        push @$allNetgroups, $_ng if ($_ng ne "") && (!grep(/^$_ng$/, @$allNetgroups));
 }
 $m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addNetwork', 'submitButton' ], 'init' => 0);
 my $WH = "--Select a Network--";
@@ -75,37 +117,54 @@ DBG_init();
 
 
 <form method="post">
-<table border=0>
-<tr>
-    <td>
-       <%$q->popup_menu(-id => 'network', -name => 'network',  -values => [ $WH, sort @$allNetworks ], -onchange => 'network_onchange_network();')%>
+<table border=0 width=1000 id='networkConfig'>
+<tr class='selector'>
+    <td class='selector'>
+       <%$q->popup_menu(-id => 'network', -name => 'network',  -values => [ $WH, sort @$allNetworks ], 
+		-default => $network, -onchange => 'network_onchange_network();')%>
     </td>
-    <td>
+    <td class='selector'>
 	<input id='addNetwork' name='addNetwork' size=20 value='Add Network...' disabled
 	onblur='network_onblur_addNetwork(this);' onfocus='network_onfocus_addNetwork(this);'>
     </td>
-    <td>
+    <td class='selector'>
 	<input type='submit' name='submitButton' id='submitButton' value='Commit Changes' disabled>
     </td>
 </tr>
 % if ($network) {
-<tr><td colspan=3><PRE>
-	- comment
-	- ha enabled/disabled + settings
-		- primary-redirector
-		- secondary-redirector
-		- servers
-		- virtualip
-	- garp enabled/disabled + settings
-		- delay
-		- number
-	- netgroup membership (uneditable list + link)
-	- interface
-	- nonquar/quar vlan id
-	- switches (list + add new + link to switch config)</PRE>
+<tr><td class='left'>Comment:</td><td colspan=2><input size=32 maxlength=80 name='comment' value="<%$comment%>"></td></tr>
+<tr><td class='left'>Interface:</td><td colspan=2><input size=8 maxlength=16 name='interface' value="<%$interface%>"> (sans "/dev/")</td></tr>
+<tr><td class='left'>Quarantine VLANID:</td><td colspan=2><input size=6 maxlength=6 name='qvid' value="<%$qvid%>"></td></tr>
+<tr><td class='left'>Unquarantine VLANID:</td><td colspan=2><input size=6 maxlength=6 name='uqvid' value="<%$uqvid%>"></td></tr>
+<tr><td class='left'>Netgroup:</td><td colspan=2><a href="netgroups.mhtml?netgroups=<%$ng%>"><%$ng%></a></td></tr>
+
+
+<tr><td class='left'>HA:</td><td colspan=2> <%$q->popup_menu(-id => 'haToggle', -name => 'haToggle', -values => [ 'Disabled', 'Enabled' ], 
+	-onchange => 'network_onchange_haToggle(this);', -default => $np->cfg->ha($network) ? "Enabled" : "Disabled")%></td></tr>
+<tr class='haOptions' id='haOptions1'><td class='left'>Primary Redirector:</td>
+	<td colspan=2><input size=32 maxlength=255 name='primaryRedirector' value="<%$primaryRedirector%>"></td></tr>
+<tr class='haOptions' id='haOptions2'><td class='left'>Secondary Redirector:</td>
+	<td colspan=2><input size=32 maxlength=255 name='primaryRedirector' value="<%$secondaryRedirector%>"></td></tr>
+<tr class='haOptions' id='haOptions3'><td class='left'>Servers:<BR>
+<button id='delHaNPServer' onclick='return network_onclick_delHaNPServer();'>Delete</button><BR>
+<input  id='addHaNPServer' onfocus='return network_onfocus_addHaNPServer();' onblur='return network_onblur_addHaNPServer();' value="Add Server..."
+        size=12 maxlength=255></td>
+<td colspan=2><%$q->scrolling_list(-id => 'haNPServers', -name => 'haNPServers', -size => 4, -values => $haNPServers , -multiple => 'true')%></td></tr>
+<tr class='haOptions' id='haOptions4'><td class='left'>Virtual IP:</td><td colspan=2><input  id='virtualIP' name='virtualIP' size=16 maxlength=32
+	value="<%$virtualIP%>"></td></tr>
+
+<tr><td class='left'>GARP:</td><td colspan=2> <%$q->popup_menu(-id => 'garpToggle', -name => 'garpToggle', -values => [ 'Disabled', 'Enabled' ], 
+	-onchange => 'network_onchange_garpToggle(this);', -default => $np->cfg->garp($network) ? "Enabled" : "Disabled")%></td></tr>
+<tr class='garpOptions' id='garpOptions1'><td class='left'>Delay:</td><td colspan=2><input size=4 maxlength=8 name='garpDelay' value="<%$garpDelay%>"> seconds </td></tr>
+<tr class='garpOptions' id='garpOptions2'><td class='left'>Number:</td><td colspan=2><input size=4 maxlength=8 name='garpNumber' value="<%$garpNumber%>"></td></tr>
+
+<tr><td colspan=3>
+<PRE><B>TODO:
+	- switches (list + add new + link to switch config)
+        - when click netgroup .. highlight networks list</B>
+</PRE>
 </td></tr>
 <tr><td colspan=3>
-%       my $ng = $np->cfg->getNetgroup(-network => $network);
 %       my $ngtxt = $ng ? qq{<BR>(Part of the "<a href='netgroups.mhtml?netgroups=$ng'>$ng</a>" netgroup)} : "";
 % 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Network General Settings for '.$network.$ngtxt, 
 %		 'showDefault' => 1, 'formatFor' => 'network', 
@@ -119,9 +178,21 @@ DBG_init();
 
 <script src="/resources/js/common.js" type="text/javascript"></script>
 <script src="/resources/js/network.js" type="text/javascript"></script>
-
+<script language="JavaScript">
+% if ($network && $np->cfg->ha($network)) {
+	network_show_haOptions();
+% } else {
+	network_hide_haOptions();
+% }
+% if ($network && $np->cfg->garp($network)) {
+	network_show_garpOptions();
+% } else {
+	network_hide_garpOptions();
+% }
+</script>
 
 <%perl>
+
 my $lstat = $np->db->isConfigLocked();
 
 if (ref($lstat) eq "HASH") { 

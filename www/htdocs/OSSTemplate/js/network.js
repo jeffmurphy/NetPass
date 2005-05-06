@@ -1,3 +1,71 @@
+function network_show_haOptions() {
+	var i    = 1;
+	var done = false;
+	while (!done) {
+		var fn = 'haOptions'+ i++;
+		var o = document.getElementById(fn);
+		if (o)
+			o.style.display = "";
+		else
+			done = true;
+	}
+}
+
+function network_hide_haOptions() {
+	var i    = 1;
+	var done = false;
+	while (!done) {
+		var fn = 'haOptions' + i++;
+		var o = document.getElementById(fn);
+		if (o)
+			o.style.display = "none";
+		else
+			done = true;
+	}
+}
+
+function network_onchange_haToggle(o) {
+	if (o && o.value) {
+		if (o.value == "Enabled")  network_show_haOptions();
+		if (o.value == "Disabled") network_hide_haOptions();
+	}
+}
+
+
+function network_show_garpOptions() {
+	var i    = 1;
+	var done = false;
+	while (!done) {
+		var fn = 'garpOptions'+ i++;
+		var o = document.getElementById(fn);
+		if (o)
+			o.style.display = "";
+		else
+			done = true;
+	}
+}
+
+function network_hide_garpOptions() {
+	var i    = 1;
+	var done = false;
+	while (!done) {
+		var fn = 'garpOptions' + i++;
+		var o = document.getElementById(fn);
+		if (o)
+			o.style.display = "none";
+		else
+			done = true;
+	}
+}
+
+function network_onchange_garpToggle(o) {
+	if (o && o.value) {
+		if (o.value == "Enabled")  network_show_garpOptions();
+		if (o.value == "Disabled") network_hide_garpOptions();
+	}
+}
+
+
 
 function network_onblur_addNetwork(o) {
 	var RN = "network_onblur_addNetwork";

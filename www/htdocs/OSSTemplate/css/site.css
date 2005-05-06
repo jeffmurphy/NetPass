@@ -1,5 +1,5 @@
 /* 
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.7 2005/05/06 03:09:33 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.8 2005/05/06 20:13:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -175,4 +175,32 @@ TABLE#passwdChangeDialog TD.left {
 
 TABLE#passwdChangeDialog TD.right { 
   text-align: left;
+}
+
+TABLE#networkConfig { 
+  border-collapse: collapse;
+}
+
+TABLE#networkConfig TD.left { 
+  text-align: right;
+}
+
+TABLE#networkConfig TR.haOptions { 
+  background: #EFEFEF;
+}
+
+TABLE#networkConfig TR.garpOptions { 
+  background: #EFEFEF;
+}
+
+TABLE#networkConfig TD.selector { 
+  text-align:     center;
+  border-bottom:  solid 1px black;
+  border-top:     solid 1px black;
+  width:          33%;
+}
+
+TABLE#networkConfig TR.selector { 
+  border-bottom: 2px solid black;
+  border-top:    2px solid black;
 }
