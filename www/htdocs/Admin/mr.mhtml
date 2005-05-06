@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.9 2005/05/04 20:22:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.10 2005/05/06 03:09:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -171,7 +171,7 @@ sub saveReg {
 	$np->db->audit(  -user => $user,
 			-mac  => $mac,
 			-ip   => $ip,
-			-msg  => [ "manually registered by ".$m->session->{'logged_in'} ]
+			-msg  => [ "manually registered by ".$m->session->{'username'} ]
 		);
 
 	return "";

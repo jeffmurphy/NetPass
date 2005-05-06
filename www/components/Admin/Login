@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.10 2005/05/04 03:09:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.11 2005/05/06 03:09:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,8 +18,13 @@ logged in, otherwise it returns 0.
 </%args>
 
 <%perl>
+#use Data::Dumper; print "<PRE>", Dumper($m->session), "</PRE>";
+
 	return 1 if (exists $m->session->{'logged_in'} && 
 			($m->session->{'logged_in'} == 1));
+
+	delete $m->session->{'username'};
+	delete $m->session->{'my_groups'};
 
 	my $ip = $ENV{'REMOTE_ADDR'};
 
@@ -28,6 +33,9 @@ logged in, otherwise it returns 0.
         		                        $password);
 
 		if (defined($aok) && ($aok == 1)) {
+			_log("INFO", $username." is logging in to Admin tool\n");
+			$m->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+				-user => $username, -msg => [ "$username logged in to Admin tool" ]);
 			$m->session->{'logged_in'} = 1; # FIX/Client/Login
 			$m->session->{'username'}  = $username;
 			$m->session->{'my_groups'} = $np->db->getUserGroups($username);

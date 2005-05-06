@@ -1,5 +1,9 @@
 
 function lockConfig_results(r) {
+	var RN = "lockConfig_results";
+
+	dbg(1, RN + ": r="+r);
+
 	var b = document.getElementById('lockButton');
 	if (b) {
 		b.disabled = '';
@@ -63,7 +67,7 @@ function lockConfig(lock, force) {
 	}
 
 	lockOpPending = true;
-	var url = "cmd/lockcfg.mhtml?printable=2&lock="+lock +"&force="+force;
+	var url = "/Admin/cmd/lockcfg.mhtml?printable=2&lock="+lock +"&force="+force;
 	xmlhttp.open("GET", url , true);
 	xmlhttp.onreadystatechange=function() {
 		if (xmlhttp.readyState == 4) {

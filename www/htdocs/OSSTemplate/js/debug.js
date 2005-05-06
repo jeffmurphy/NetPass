@@ -1,25 +1,8 @@
-var DBGLEVEL = 0;
+var DBGLEVEL = 1;
 var dbgwin;
 var browserType_IE = 0;
 
-function DBG_init() {
-        var UA     = navigator.userAgent.toLowerCase ();
-        var is_ie  = (UA.indexOf ("msie") != -1 && document.all);
-        var is_ie5 = (UA.indexOf ("msie 5") != -1 && document.all);
-        var is_nav = !is_ie && (UA.indexOf ("mozilla") != -1);
-
-        if (is_ie) {
-                browserType_IE = 1;
-                //return;
-        }
-
-        if (DBGLEVEL)
-                dbgwin = window.open("about:blank", "DEBUGOUTPUT",
-                             "resizable,width=400,height=400,scrollbars");
-}
-
 function dbg(l, msg) {
-
         //if (browserType_IE) return;
 
         if ( (DBGLEVEL >= l) && dbgwin) {
@@ -49,4 +32,20 @@ function DBG_objDump(o, b) {
 	if (haskeys == false) {
 		dbg(1, "objDump: " + b + "=" + o + " (no keys)");
 	}
+}
+
+function DBG_init() {
+        var UA     = navigator.userAgent.toLowerCase ();
+        var is_ie  = (UA.indexOf ("msie") != -1 && document.all);
+        var is_ie5 = (UA.indexOf ("msie 5") != -1 && document.all);
+        var is_nav = !is_ie && (UA.indexOf ("mozilla") != -1);
+
+        if (is_ie) {
+                browserType_IE = 1;
+                //return;
+        }
+
+        if (DBGLEVEL)
+                dbgwin = window.open("about:blank", "DEBUGOUTPUT",
+                             "resizable,width=400,height=400,scrollbars");
 }

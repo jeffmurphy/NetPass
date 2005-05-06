@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.36 2005/05/04 20:22:14 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.37 2005/05/06 03:09:32 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -169,6 +169,8 @@ RETURNS
 
  0         on success
  "..."     on failure (can be a variety of things)
+
+=back 
 
 =cut
 
@@ -934,17 +936,24 @@ sub policy {
 }
 
 
-=head2 policyLocation(-key => '', -network => '', -location => [''|global|group|network])
+=head2 policyLocation(-key => '', -network => '', -location => [''|first|global|group|network])
 
 Check if a given policy variable is set in the specified location. If location
 is '', then we return an ARRAY ref that contains the locations the given
 variable was found in. Otherwise we return 0 or 1 based on whether or not
 we found the variable in the specified location.
 
+If "first" is given as the location, then we'll start at the most specific scope possible
+and work towards the most general scope. The first time we see the variable, we'll
+return the scope that we are at.
+
 RETURNS
 
   0                     not found in specified location
   1                     found in specified location
+  "network"             found here "first"
+  "group"               found here "first"
+  "global"              found here "first"
   ARRAYREF              found in the following locations (may be empty)
   "invalid parameters"  routine called incorrectly
 
@@ -965,44 +974,64 @@ sub policyLocation {
 		return "invalid parameters ". Carp::longmess("invalid parameters ".Class::ParmList->error);
 	}
 
-	my ($pvar, $nw, $location) = $parms->get('-key', '-network', '-location');
+	my ($pvar, $nwOrig, $location) = $parms->get('-key', '-network', '-location');
 
-	_log("DEBUG", "checking for policy $nw:$pvar in location:$location\n") if $self->debug;
+	_log("DEBUG", "checking for policy $nwOrig:$pvar in location:$location\n") if $self->debug;
 
 	$pvar =~ tr [A-Z] [a-z]; # AutoLowerCase
-        $nw = "" if ($nw eq "default");
+        $nwOrig = "" if ($nwOrig eq "default");
 
         my $rv = [];
+
+	my $nw = $self->getMatchingNetwork(-ip => $nwOrig);
+
+	if ($nw && ($nw ne "none")) {
+		return 0 
+		  if ($location eq "network" && !recur_exists($self->{'cfg'}, 'network', 
+							      $nw, 'policy', $pvar));
+		
+		if (recur_exists($self->{'cfg'}, 'network', $nw, 'policy', $pvar)) {
+			return 1 if ($location eq "network");
+			return "network" if ($location eq "first");
+			push @$rv, "network";
+		}
+
+		# if this network is part of a netgroup, check there too
+
+		my $ng = $self->getNetgroup(-network => $nw);
+		if ($ng) {
+			$ng =~ s/\s/%20/g;
+			$ng =~ tr [A-Z] [a-z];
+			push @$rv, "group"
+			  if (recur_exists($self->{'cfg'}, 'group', $ng, 'policy', $pvar));
+		}
+	}
+	else {
+		# perhaps this is a netgroup?
+		my $nw2 = $nwOrig;
+		$nw2 =~ s/\s/%20/g; # Config::General bug
+		$nw2 =~ tr [A-Z] [a-z]; # Config::General bug
+
+		if (($location eq "group") && !recur_exists($self->{'cfg'}, 'group',
+							    $nw2, 'policy', $pvar)) {
+			return 0;
+		}
+
+		if (recur_exists($self->{'cfg'}, 'group', $nw2, 'policy', $pvar)) {
+			return 1 if ($location eq "group");
+			return "group" if ($location eq "first");
+			push @$rv, "group";
+		}
+	}
+
 
 	return 0 
 	  if ($location eq "global" && !recur_exists($self->{'cfg'}, 'policy', $pvar));
 
         if (recur_exists($self->{'cfg'}, 'policy', $pvar)) {
                 return 1 if ($location eq "global");
+		return "global" if ($location eq "first");
                 push @$rv, "global";
-        }
-
-	my $nw2 = $nw;
-	$nw2 =~ s/\s/%20/g; # Config::General bug
-	$nw2 =~ tr [A-Z] [a-z]; # Config::General bug
-
-	if (($location eq "group") && !recur_exists($self->{'cfg'}, 'group', $nw2, 'policy', $pvar)) {
-		return 0;
-	}
-
-        if (recur_exists($self->{'cfg'}, 'group', $nw2, 'policy', $pvar)) {
-                return 1 if ($location eq "group");
-                push @$rv, "group";
-        }
-
-	$nw = $self->getMatchingNetwork(-ip => $nw);
-
-	return 0 
-	  if ($location eq "network" && !recur_exists($self->{'cfg'}, 'network', $nw, 'policy', $pvar));
-
-        if (recur_exists($self->{'cfg'}, 'network', $nw, 'policy', $pvar)) {
-                return 1 if ($location eq "network");
-                push @$rv, "network";
         }
 
 	return $rv;
@@ -1939,7 +1968,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.36 2005/05/04 20:22:14 jeffmurphy Exp $
+$Id: Config.pm,v 1.37 2005/05/06 03:09:32 jeffmurphy Exp $
 
 =cut
 

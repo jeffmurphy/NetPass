@@ -5,12 +5,17 @@
 	$force => 0;
 </%args>
 <%perl>
-
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+my $username = $m->session->{'username'} if exists $m->session->{'username'};
+$username ||= "unknown";
 if (! $isRoot ) {
 	if ($lock) {
+		$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+			-user => $username, -msg => [ "$username failed to lock cfg (permission denied)" ]);
 		print "NOK lock permission denied\n";
 	} else {
+		$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+			-user => $username, -msg => [ "$username failed to unlock cfg (permission denied)" ]);
 		print "NOK unlock permission denied\n";
 	}
 	return;
@@ -32,6 +37,9 @@ if ($lock) {
 							    -user => $m->session->{'username'});
 				if ($rv) {
 					# fail
+					$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+						-user => $username, 
+						-msg => [ "$username failed to force unlock cfg ($rv)" ]);
 					print "NOK lock unlockfailed $rv\n";
 				} else {
 					$rv = $np->db->lockConfig(-rev => $lstat->{'rev'},
@@ -39,23 +47,38 @@ if ($lock) {
 					if ($rv) {
 						# fail
 						print "NOK lock force err=$rv\n";
+						$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+							-user => $username, 
+							-msg => [ "$username failed to force lock cfg ($rv)" ]);
 					} else {
 						# success
 						print "OK lock\n";
+						$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+							-user => $username, 
+							-msg => [ "$username forced lock cfg" ]);
 					}
 				}
 			} else {
 				# we're not willing to break the lock
 				print "NOK lock lockedby=".$lstat->{'user'}."\n";
+				$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+					-user => $username, 
+					-msg => [ "$username failed lock cfg (lockedby=".$lstat->{'user'}.")" ]);
 			}
 		} else {
 			# config is already locked by us
 			print "OK lock alreadylocked\n";
+			$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+				-user => $username, 
+				-msg => [ "$username already has lock cfg" ]);
 		}
 	} 
 	elsif ($lstat) {
 		# an error occurred
 		print "NOK lock isConfigLockedErr $lstat\n";
+		$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+			-user => $username, 
+			-msg => [ "$username failed lock cfg $lstat" ]);
 	}
 	else {
 		# config is not locked, lock it
@@ -65,9 +88,15 @@ if ($lock) {
 		if ($rv) {
 			# fail
 			print "NOK lock err=$rv\n";
+			$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+				-user => $username, 
+				-msg => [ "$username failed lock cfg $lstat" ]);
 		} else {
 			# success
 			print "OK lock\n";
+			$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+				-user => $username, 
+				-msg => [ "$username locked cfg" ]);
 		}
 	}
 } else {
@@ -84,12 +113,21 @@ if ($lock) {
 				if ($rv) {
 					# error
 					print "NOK unlock $rv\n";
+					$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+						-user => $username, 
+						-msg => [ "$username failed force unlock cfg $rv" ]);
 				} else {
 					print "OK unlock\n";
+					$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+						-user => $username, 
+						-msg => [ "$username force unlocked cfg" ]);
 				}
 			} else {
 				# we're not willing to break the lock
 				print "NOK unlock lockedby=".$lstat->{'user'}."\n";
+				$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+					-user => $username, 
+					-msg => [ "$username failed unlocked cfg (locked by=".$lstat->{'user'}.")" ]);
 			}
 		} else {
 			# config is locked by us: unlock it
@@ -98,18 +136,30 @@ if ($lock) {
 			if ($rv) {
 				# fail
 				print "NOK unlock $rv\n";
+				$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+					-user => $username, 
+					-msg => [ "$username failed unlocked cfg $rv" ]);
 			} else {
 				print "OK unlock\n";
+				$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+					-user => $username, 
+					-msg => [ "$username unlocked cfg" ]);
 			}
 		}
 	} 
 	elsif ($lstat) {
 		# an error occurred
 		print "NOK unlock $lstat\n";
+		$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+			-user => $username, 
+			-msg => [ "$username failed unlocked cfg $lstat" ]);
 	}
 	else {
 		# config is not locked: NOP
 		print "OK unlock\n";
+		$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+			-user => $username, 
+			-msg => [ "$username unlocked cfg (wasn't locked)" ]);
 	}
 }
 </%perl>

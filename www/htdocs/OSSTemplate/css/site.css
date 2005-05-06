@@ -1,5 +1,5 @@
 /* 
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.6 2005/05/01 05:44:12 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.7 2005/05/06 03:09:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -154,6 +154,11 @@ TABLE.expandable TD.left {
 TABLE.expandable TD.right { 
   background: #EFEFEF;
   width: 80%;
+}
+
+TABLE.expandable TD.center {
+  background: #EFEFEF;
+  text-align: center;
 }
 
 TABLE.expandable TBODY { 

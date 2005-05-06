@@ -21,10 +21,10 @@ PERMISSIONS
 	RO	none
 </%doc>
 <%args>
-	$submit => '';
+	$submitButton => '';
+	$network => '';
 </%args>
 <%perl>
-return unless $m->comp('/Admin/Login', %ARGS);
 
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
 if (!$isRoot) {
@@ -32,9 +32,8 @@ if (!$isRoot) {
 	return;
 }
 
-# these group names can not be used as 'netgroups'
-
-my $reservedGroups = { 'default' => 1, 'clientAccess' => 1 };
+my $ip = $ENV{'REMOTE_ADDR'};
+my $whoami = $m->session->{'username'};
 
 # fetch all known networks and netgroups
 
@@ -44,37 +43,103 @@ foreach my $nw (@$allNetworks) {
         my $ng = $np->cfg->getNetgroup(-network => $nw);
         push @$allNetgroups, $ng if ($ng ne "") && (!grep(/^$ng$/, @$allNetgroups));
 }
+$m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addNetwork', 'submitButton' ], 'init' => 0);
+my $WH = "--Select a Network--";
 
 </%perl>
 
 <h2> Network Configuration </h2>
 
-% $m->comp('/Admin/LockConfig');
-% my $WH = "-" x 20;
+
+Notes:
+<ul>
+<li>Networks are in CIDR notation (A.B.C.D/M)
+<li>To add a new network:
+<ol>
+  <li> Click inside the "Add Network.." box. 
+  <li> Type in a network name (CIDR notation only)
+  <li> Click 'Commit Changes'
+</ol>
+<LI>To edit a network (once it's been added):
+<ol>
+  <li>Select the network from the drop-down menu.
+  <LI>Edit it's parameters.
+  <li>Click 'Commit Changes'
+</ol>
+</ul>
 
 <script language='JavaScript'><!--
-var pageDirty = false;
 setWhereAmI('Configuration &gt; Network');
+DBG_init();
 --></script>
 
 
 <form method="post">
 <table border=0>
 <tr>
-    <th>Netgroups</th>
-    <th>Networks</th>
-</tr>
-<tr>
-    <td style='text-align:center;'>
-	<%$q->scrolling_list(-name => 'netgroups', -values => [ $WH, sort @$allNetgroups ], -size => 15, -multiple => 'false')%><BR>
-	<input id='addNetgroup' name='addNetgroup' size=20 value='Add Netgroup...' disabled>
+    <td>
+       <%$q->popup_menu(-id => 'network', -name => 'network',  -values => [ $WH, sort @$allNetworks ], -onchange => 'network_onchange_network();')%>
     </td>
-    <td style='text-align:center;'>
-       <%$q->scrolling_list(-name => 'networks',  -values => [ $WH, sort @$allNetworks ], -size => 15, -multiple => 'false')%><BR>
-       <input id='addNetwork' name='addNetwork' size=20 value='Add Network...' disabled>
+    <td>
+	<input id='addNetwork' name='addNetwork' size=20 value='Add Network...' disabled
+	onblur='network_onblur_addNetwork(this);' onfocus='network_onfocus_addNetwork(this);'>
+    </td>
+    <td>
+	<input type='submit' name='submitButton' id='submitButton' value='Commit Changes' disabled>
     </td>
 </tr>
-</table>
-<table id='networkPolicy'>
+% if ($network) {
+<tr><td colspan=3><PRE>
+	- comment
+	- ha enabled/disabled + settings
+		- primary-redirector
+		- secondary-redirector
+		- servers
+		- virtualip
+	- garp enabled/disabled + settings
+		- delay
+		- number
+	- netgroup membership (uneditable list + link)
+	- interface
+	- nonquar/quar vlan id
+	- switches (list + add new + link to switch config)</PRE>
+</td></tr>
+<tr><td colspan=3>
+%       my $ng = $np->cfg->getNetgroup(-network => $network);
+%       my $ngtxt = $ng ? qq{<BR>(Part of the "<a href='netgroups.mhtml?netgroups=$ng'>$ng</a>" netgroup)} : "";
+% 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Network General Settings for '.$network.$ngtxt, 
+%		 'showDefault' => 1, 'formatFor' => 'network', 
+%		 'network' => $network, 'suppressKeys' => { 'PID_DIR' => 1, 'BASE_DIR' => 1 } );
+% }
+</td></tr>
 </table>
 </form>
+
+
+
+<script src="/resources/js/common.js" type="text/javascript"></script>
+<script src="/resources/js/network.js" type="text/javascript"></script>
+
+
+<%perl>
+my $lstat = $np->db->isConfigLocked();
+
+if (ref($lstat) eq "HASH") { 
+	# the config is locked
+	if ($lstat->{'user'} eq $m->session->{'username'}) {
+		# by us, so show the unlock button
+		print qq{<script>lockConfig_results("OK lock");lockConfig_enableElements();</script>};
+	} else {
+		# but not by us, show the force unlock button
+		print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");lockConfig_disableElements();</script>};
+	}
+} 
+elsif ($lstat) {
+	# there was a problem
+} 
+else {
+	# the config is not locked, show the lock button
+	print qq{<script>lockConfig_results("OK unlock");lockConfig_disableElements();</script>};
+}
+
+</%perl>

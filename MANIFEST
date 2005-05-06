@@ -210,6 +210,7 @@ www/htdocs/OSSTemplate/js/netgroups.js
 www/htdocs/OSSTemplate/js/xmlhttp.js
 www/htdocs/OSSTemplate/js/lockcfg.js
 www/htdocs/OSSTemplate/js/common.js
+www/htdocs/OSSTemplate/js/network.js
 www/htdocs/OSSTemplate/.htaccess
 www/htdocs/load-test.mhtml
 www/htdocs/autohandler

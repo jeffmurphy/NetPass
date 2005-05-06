@@ -1,17 +1,30 @@
 <%doc>
 </%doc>
 <%args>
-	$tableName => 'General';
-	$network   => '';
-        $suppressKeys => {};
+	$tableName         => 'General';
+	$network           => '';
+        $suppressKeys      => {};
+	$showDefault       => 0;
+	$formatFor         => 'group';
 </%args>
+
+<%perl>
+my $colspan = 2;
+$colspan +=3 if ($showDefault);
+my $C = qq{style='text-align:center;'};
+</%perl>
 
 <TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
-<TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=4><%$tableName%></TH></TR>
+<TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=<%$colspan%>><%$tableName%></TH></TR>
 </THEAD>
 <TBODY>
-<tr><th>Option</th><th>Value</th><th>Use Default</th><th><a href="gencfg.mhtml">Default (Global) Value</a></th></tr>
+<tr><th>Option</th><th>Value</th>
+% if ($showDefault) {
+<th>Override Default</th>
+<th colspan=2>Default Value</th>
+% }
+</tr>
 <TR>
 <TD CLASS='left'>MULTI_MAC</TD>
 <TD CLASS='right' >
@@ -22,8 +35,11 @@
                         -default  => $np->cfg->policy(-key => 'MULTI_MAC', -network => $network),
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'MULTI_MAC', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:MULTI_MAC"></td>
-<td class='left'><%$np->cfg->policy(-key => 'MULTI_MAC')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'MULTI_MAC', -network => $network, -location => $formatFor)?"":"checked"%> name="override:MULTI_MAC"></td>
+<td class='left'><%$np->cfg->policy(-key => 'MULTI_MAC')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'MULTI_MAC', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Strikes</TD>
@@ -34,8 +50,59 @@
                         -size   => 3,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'STRIKES', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:STRIKES"></td>
-<td class='left'><%$np->cfg->policy(-key => 'STRIKES')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'STRIKES', -network => $network, -location => $formatFor)?"":"checked"%> name="override:STRIKES"></td>
+<td class='left'><%$np->cfg->policy(-key => 'STRIKES')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'STRIKES', -network => $network)})%>)</td>
+% }
+</TR>
+<TR>
+<TD CLASS='left'>Disable Strikes For Manual Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_MANUAL',
+			-values => [ 'Yes', 'No' ],
+                        -default => $np->cfg->policy(-key => 'NO_STRIKES_FOR_MANUAL', -network => $network) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'NO_STRIKES_FOR_MANUAL', -network => $network, -location => $formatFor)?"":"checked"%> name="override:NO_STRIKES_FOR_MANUAL"></td>
+<td class='left'><%$np->cfg->policy(-key => 'NO_STRIKES_FOR_MANUAL') ? "yes" : "no"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'NO_STRIKES_FOR_MANUAL', -network => $network)})%>)</td>
+% }
+</TR>
+<TR>
+<TD CLASS='left'>Disable Strikes For Snort Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_SNORT',
+			-values => [ 'Yes', 'No' ],
+                        -default  => $np->cfg->policy(-key => 'NO_STRIKES_FOR_SNORT', -network => $network) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'NO_STRIKES_FOR_SNORT', -network => $network, -location => $formatFor)?"":"checked"%> name="override:NO_STRIKES_FOR_SNORT"></td>
+<td class='left'><%$np->cfg->policy(-key => 'NO_STRIKES_FOR_SNORT') ? "yes" : "no"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'NO_STRIKES_FOR_SNORT', -network => $network)})%>)</td>
+% }
+</TR>
+<TR>
+<TD CLASS='left'>Disable Strikes For Nessus Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_NESSUS',
+			-values => [ 'Yes', 'No' ],
+                        -default  => $np->cfg->policy(-key => 'NO_STRIKES_FOR_NESSUS', -network => $network) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'NO_STRIKES_FOR_NESSUS', -network => $network, -location => $formatFor)?"":"checked"%> name="override:NO_STRIKES_FOR_NESSUS"></td>
+<td class='left'><%$np->cfg->policy(-key => 'NO_STRIKES_FOR_NESSUS') ? "yes" : "no"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'NO_STRIKES_FOR_NESSUS', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>RESULTS_DISPLAY</TD>
@@ -46,8 +113,11 @@
                         -default  => $np->cfg->policy(-key => 'RESULTS_DISPLAY', -network => $network),
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'RESULTS_DISPLAY', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:RESULTS_DISPLAY"></td>
-<td class='left'><%$np->cfg->policy(-key => 'RESULTS_DISPLAY')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'RESULTS_DISPLAY', -network => $network, -location => $formatFor)?"":"checked"%> name="override:RESULTS_DISPLAY"></td>
+<td class='left'><%$np->cfg->policy(-key => 'RESULTS_DISPLAY')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'RESULTS_DISPLAY', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>RESULTS_EXPAND</TD>
@@ -58,8 +128,11 @@
                         -size   => 3,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'RESULTS_EXPAND', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:RESULTS_EXPAND"></td>
-<td class='left'><%$np->cfg->policy(-key => 'RESULTS_EXPAND')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'RESULTS_EXPAND', -network => $network, -location => $formatFor)?"":"checked"%> name="override:RESULTS_EXPAND"></td>
+<td class='left'><%$np->cfg->policy(-key => 'RESULTS_EXPAND')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'RESULTS_EXPAND', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>AUTO_REDIRECT</TD>
@@ -70,8 +143,11 @@
                         -default => ($np->cfg->policy(-key => 'AUTO_REDIRECT', -network => $network)) ? 'Yes' : 'No'
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'AUTO_REDIRECT', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:AUTO_REDIRECT"></td>
-<td class='left'><%$np->cfg->policy(-key => 'AUTO_REDIRECT')?"Yes":"No"%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'AUTO_REDIRECT', -network => $network, -location => $formatFor)?"":"checked"%> name="override:AUTO_REDIRECT"></td>
+<td class='left'><%$np->cfg->policy(-key => 'AUTO_REDIRECT')?"Yes":"No"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'AUTO_REDIRECT', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>COOKIE_DETECT</TD>
@@ -82,8 +158,11 @@
                         -default => ($np->cfg->policy(-key => 'COOKIE_DETECT', -network => $network)) ? 'Yes' : 'No'
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'COOKIE_DETECT', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:COOKIE_DETECT"></td>
-<td class='left'><%$np->cfg->policy(-key => 'COOKIE_DETECT')?"Yes":"No"%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'COOKIE_DETECT', -network => $network, -location => $formatFor)?"":"checked"%> name="override:COOKIE_DETECT"></td>
+<td class='left'><%$np->cfg->policy(-key => 'COOKIE_DETECT')?"Yes":"No"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'COOKIE_DETECT', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>COOKIE_NAME</TD>
@@ -94,8 +173,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'COOKIE_NAME', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:COOKIE_NAME"></td>
-<td class='left'><%$np->cfg->policy(-key => 'COOKIE_NAME')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'COOKIE_NAME', -network => $network, -location => $formatFor)?"":"checked"%> name="override:COOKIE_NAME"></td>
+<td class='left'><%$np->cfg->policy(-key => 'COOKIE_NAME')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'COOKIE_NAME', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>REDIR_URL_DEFAULT</TD>
@@ -106,8 +188,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'REDIR_URL_DEFAULT', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:REDIR_URL_DEFAULT"></td>
-<td class='left'><%$np->cfg->policy(-key => 'REDIR_URL_DEFAULT')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'REDIR_URL_DEFAULT', -network => $network, -location => $formatFor)?"":"checked"%> name="override:REDIR_URL_DEFAULT"></td>
+<td class='left'><%$np->cfg->policy(-key => 'REDIR_URL_DEFAULT')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'REDIR_URL_DEFAULT', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>SURVEY_ENABLED</TD>
@@ -118,8 +203,11 @@
                         -default => ($np->cfg->policy(-key => 'SURVEY_ENABLED', -network => $network)) ? 'Yes' : 'No'
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'SURVEY_ENABLED', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:SURVEY_ENABLED"></td>
-<td class='left'><%$np->cfg->policy(-key => 'SURVEY_ENABLED')?"Yes":"No"%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'SURVEY_ENABLED', -network => $network, -location => $formatFor)?"":"checked"%> name="override:SURVEY_ENABLED"></td>
+<td class='left'><%$np->cfg->policy(-key => 'SURVEY_ENABLED')?"Yes":"No"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'SURVEY_ENABLED', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>SURVEY_EMAIL</TD>
@@ -130,8 +218,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'SURVEY_EMAIL', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:SURVEY_EMAIL"></td>
-<td class='left'><%$np->cfg->policy(-key => 'SURVEY_EMAIL')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'SURVEY_EMAIL', -network => $network, -location => $formatFor)?"":"checked"%> name="override:SURVEY_EMAIL"></td>
+<td class='left'><%$np->cfg->policy(-key => 'SURVEY_EMAIL')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'SURVEY_EMAIL', -network => $network)})%>)</td>
+% }
 </TR>
 
 % if (!exists $suppressKeys->{'PID_DIR'}) {
@@ -144,8 +235,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'PID_DIR', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:PID_DIR"></td>
-<td class='left'><%$np->cfg->policy(-key => 'PID_DIR')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'PID_DIR', -network => $network, -location => $formatFor)?"":"checked"%> name="override:PID_DIR"></td>
+<td class='left'><%$np->cfg->policy(-key => 'PID_DIR')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'PID_DIR', -network => $network)})%>)</td>
+% }
 </TR>
 %}
 
@@ -159,8 +253,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'BASE_DIR', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:BASE_DIR"></td>
-<td class='left'><%$np->cfg->policy(-key => 'BASE_DIR')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'BASE_DIR', -network => $network, -location => $formatFor)?"":"checked"%> name="override:BASE_DIR"></td>
+<td class='left'><%$np->cfg->policy(-key => 'BASE_DIR')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'BASE_DIR', -network => $network)})%>)</td>
+% }
 </TR>
 %}
 
@@ -173,8 +270,11 @@
                         -default  => $np->cfg->policy(-key => 'PORT_SEARCH_ALGO', -network => $network),
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'PORT_SEARCH_ALGO', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:PORT_SEARCH_ALGO"></td>
-<td class='left'><%$np->cfg->policy(-key => 'PORT_SEARCH_ALGO')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'PORT_SEARCH_ALGO', -network => $network, -location => $formatFor)?"":"checked"%> name="override:PORT_SEARCH_ALGO"></td>
+<td class='left'><%$np->cfg->policy(-key => 'PORT_SEARCH_ALGO')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'PORT_SEARCH_ALGO', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>PORT_CACHE</TD>
@@ -185,8 +285,11 @@
                         -default  => ($np->cfg->policy(-key => 'PORT_CACHE', -network => $network)) ? 'ON' : 'OFF',
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'PORT_CACHE', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:PORT_CACHE"></td>
-<td class='left'><%$np->cfg->policy(-key => 'PORT_CACHE')?"on":"off"%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'PORT_CACHE', -network => $network, -location => $formatFor)?"":"checked"%> name="override:PORT_CACHE"></td>
+<td class='left'><%$np->cfg->policy(-key => 'PORT_CACHE')?"on":"off"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'PORT_CACHE', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>UNQUAR_ON_LINKUP</TD>
@@ -200,10 +303,13 @@
 				     'ON' : 'OFF',
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'UNQUAR_ON_LINKUP', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:UNQUAR_ON_LINKUP"></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'UNQUAR_ON_LINKUP', -network => $network, -location => $formatFor)?"":"checked"%> name="override:UNQUAR_ON_LINKUP"></td>
 % my $uqlu = $np->cfg->policy(-key => 'UNQUAR_ON_LINKUP');
 % $uqlu = ($uqlu =~ /itdepends/i)?$uqlu : ($uqlu ? "on" : "off");
-<td class='left'><%$uqlu%></td>
+<td class='left'><%$uqlu%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'UNQUAR_ON_LINKUP', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Enable ResetPort?</TD>
@@ -214,8 +320,11 @@
                         -default  => ($np->cfg->policy(-key => 'resetport', -network => $network)) ? 'on': 'off',
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'resetport', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:resetport"></td>
-<td class='left'><%$np->cfg->policy(-key => 'resetport')?"on":"off"%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'resetport', -network => $network, -location => $formatFor)?"":"checked"%> name="override:resetport"></td>
+<td class='left'><%$np->cfg->policy(-key => 'resetport')?"on":"off"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'resetport', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Enable MacScan?</TD>
@@ -226,8 +335,11 @@
                         -default  => ($np->cfg->policy(-key => 'macscan', -network => $network)) ? 'on': 'off',
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'macscan', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:macscan"></td>
-<td class='left'><%$np->cfg->policy(-key => 'macscan')?"on":"off"%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'macscan', -network => $network, -location => $formatFor)?"":"checked"%> name="override:macscan"></td>
+<td class='left'><%$np->cfg->policy(-key => 'macscan')?"on":"off"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'macscan', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Require Nessus to register?</TD>
@@ -238,8 +350,11 @@
                         -default  => ($np->cfg->policy(-key => 'nessus', -network => $network)) ? 'on': 'off',
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'nessus', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:nessus"></td>
-<td class='left'><%$np->cfg->policy(-key => 'nessus')?"on":"off"%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'nessus', -network => $network, -location => $formatFor)?"":"checked"%> name="override:nessus"></td>
+<td class='left'><%$np->cfg->policy(-key => 'nessus')?"on":"off"%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'nessus', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>LDAP Query URL</TD>
@@ -250,8 +365,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'LDAP_USER_QUERY', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:LDAP_USER_QUERY"></td>
-<td class='left'><%$np->cfg->policy(-key => 'LDAP_USER_QUERY')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'LDAP_USER_QUERY', -network => $network, -location => $formatFor)?"":"checked"%> name="override:LDAP_USER_QUERY"></td>
+<td class='left'><%$np->cfg->policy(-key => 'LDAP_USER_QUERY')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'LDAP_USER_QUERY', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>LDAP Popup Width</TD>
@@ -262,8 +380,11 @@
                         -size   => 5,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'LDAP_POPUP_WIDTH', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:LDAP_POPUP_WIDTH"></td>
-<td class='left'><%$np->cfg->policy(-key => 'LDAP_POPUP_WIDTH')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'LDAP_POPUP_WIDTH', -network => $network, -location => $formatFor)?"":"checked"%> name="override:LDAP_POPUP_WIDTH"></td>
+<td class='left'><%$np->cfg->policy(-key => 'LDAP_POPUP_WIDTH')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'LDAP_POPUP_WIDTH', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>LDAP Popup Height</TD>
@@ -274,8 +395,11 @@
                         -size   => 5,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'LDAP_POPUP_HEIGHT', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:LDAP_POPUP_HEIGHT"></td>
-<td class='left'><%$np->cfg->policy(-key => 'LDAP_POPUP_HEIGHT')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'LDAP_POPUP_HEIGHT', -network => $network, -location => $formatFor)?"":"checked"%> name="override:LDAP_POPUP_HEIGHT"></td>
+<td class='left'><%$np->cfg->policy(-key => 'LDAP_POPUP_HEIGHT')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'LDAP_POPUP_HEIGHT', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Username Prompt</TD>
@@ -286,8 +410,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'USERNAME_PROMPT', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:USERNAME_PROMPT"></td>
-<td class='left'><%$np->cfg->policy(-key => 'USERNAME_PROMPT')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'USERNAME_PROMPT', -network => $network, -location => $formatFor)?"":"checked"%> name="override:USERNAME_PROMPT"></td>
+<td class='left'><%$np->cfg->policy(-key => 'USERNAME_PROMPT')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'USERNAME_PROMPT', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Password Prompt</TD>
@@ -298,8 +425,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'PASSWORD_PROMPT', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:PASSWORD_PROMPT"></td>
-<td class='left'><%$np->cfg->policy(-key => 'PASSWORD_PROMPT')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'PASSWORD_PROMPT', -network => $network, -location => $formatFor)?"":"checked"%> name="override:PASSWORD_PROMPT"></td>
+<td class='left'><%$np->cfg->policy(-key => 'PASSWORD_PROMPT')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'PASSWORD_PROMPT', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Company Name</TD>
@@ -310,8 +440,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'COMPANY_NAME', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:COMPANY_NAME"></td>
-<td class='left'><%$np->cfg->policy(-key => 'COMPANY_NAME')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'COMPANY_NAME', -network => $network, -location => $formatFor)?"":"checked"%> name="override:COMPANY_NAME"></td>
+<td class='left'><%$np->cfg->policy(-key => 'COMPANY_NAME')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'COMPANY_NAME', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Company Abbreviation</TD>
@@ -322,8 +455,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'COMPANY_SHORT_NAME', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:COMPANY_SHORT_NAME"></td>
-<td class='left'><%$np->cfg->policy(-key => 'COMPANY_SHORT_NAME')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'COMPANY_SHORT_NAME', -network => $network, -location => $formatFor)?"":"checked"%> name="override:COMPANY_SHORT_NAME"></td>
+<td class='left'><%$np->cfg->policy(-key => 'COMPANY_SHORT_NAME')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'COMPANY_SHORT_NAME', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Organization Name</TD>
@@ -334,8 +470,11 @@
                         -size   => 25,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'COMPANY_UNIT_NAME', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:COMPANY_UNIT_NAME"></td>
-<td class='left'><%$np->cfg->policy(-key => 'COMPANY_UNIT_NAME')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'COMPANY_UNIT_NAME', -network => $network, -location => $formatFor)?"":"checked"%> name="override:COMPANY_UNIT_NAME"></td>
+<td class='left'><%$np->cfg->policy(-key => 'COMPANY_UNIT_NAME')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'COMPANY_UNIT_NAME', -network => $network)})%>)</td>
+% }
 </TR>
 <TR>
 <TD CLASS='left'>Example IP Address</TD>
@@ -346,8 +485,11 @@
                         -size   => 16,
                     )%>
 </TD>
-<td class='left'><input type='checkbox' <%$np->cfg->policyLocation(-key => 'EXAMPLE_IPADDR', -network => $network, -location => 'group')?"":"checked"%> name="usedefault:EXAMPLE_IPADDR"></td>
-<td class='left'><%$np->cfg->policy(-key => 'EXAMPLE_IPADDR')%></td>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'EXAMPLE_IPADDR', -network => $network, -location => $formatFor)?"":"checked"%> name="override:EXAMPLE_IPADDR"></td>
+<td class='left'><%$np->cfg->policy(-key => 'EXAMPLE_IPADDR')%></td><td class='right'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'EXAMPLE_IPADDR', -network => $network)})%>)</td>
+% }
 </TR>
 
 </TBODY></TABLE>

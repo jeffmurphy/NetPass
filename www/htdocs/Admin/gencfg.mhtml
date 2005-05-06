@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.13 2005/05/04 20:22:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.14 2005/05/06 03:09:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -107,6 +107,43 @@ print $q->start_form(-method => "POST");
                         -size   => 3,
                     )%>
 </TD></TR>
+
+<TR>
+<TD CLASS='left'>Disable Strikes For Manual Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_MANUAL',
+			-values => [ 'Yes', 'No' ],
+                        -default  => $np->cfg->policy(-key => 'NO_STRIKES_FOR_MANUAL' ) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+</TR>
+
+<TR>
+<TD CLASS='left'>Disable Strikes For Snort Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_SNORT',
+			-values => [ 'Yes', 'No' ],
+                        -default  => $np->cfg->policy(-key => 'NO_STRIKES_FOR_SNORT' ) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+</TR>
+
+<TR>
+<TD CLASS='left'>Disable Strikes For Nessus Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_NESSUS',
+			-values => [ 'Yes', 'No' ],
+                        -default  => $np->cfg->policy(-key => 'NO_STRIKES_FOR_NESSUS' ) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+</TR>
+
 <TR>
 <TD CLASS='left'>RESULTS_DISPLAY</TD>
 <TD CLASS='right'>

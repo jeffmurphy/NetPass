@@ -2,6 +2,7 @@
 </%doc>
 <%args>
 	$enableWhenLocked => '';
+	$init => 1;
 </%args>
 
 <script language="JavaScript">
@@ -39,6 +40,8 @@ DIV.lockButton {
 	class='lockButton'>Thinking ...</div> 
 
 <%perl>
+return unless $init;
+
 my $lstat = $np->db->isConfigLocked();
 
 if (ref($lstat) eq "HASH") { 
