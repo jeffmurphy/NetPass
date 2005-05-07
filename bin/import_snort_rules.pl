@@ -118,7 +118,9 @@ foreach my $sid (sort keys %$data) {
 				            );
 
 	if ($rv ne 1) {
-		warn "failed to add $sid $rv";
+		printf("failed to add %s\n", $rv);
+	} else {
+		printf("successfully added %d\n", $sid);
 	}
 }
 

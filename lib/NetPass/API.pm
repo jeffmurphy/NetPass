@@ -5,7 +5,7 @@ use Carp;
 
 my $VERSION = '0.01';
 
-use lib qw("/opt/netpass/lib);
+use lib qw(/opt/netpass/lib);
 use NetPass::LOG qw(_log _cont);
 use NetPass::Config;
 use Digest::MD5 qw(md5_hex);
