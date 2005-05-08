@@ -182,6 +182,7 @@ www/htdocs/Admin/user.mhtml
 www/htdocs/Admin/urlfilter.mhtml
 www/htdocs/Admin/network.mhtml
 www/htdocs/Admin/clienthistory.mhtml
+www/htdocs/Admin/switch.mhtml
 www/htdocs/Admin/help.mhtml
 www/htdocs/Admin/chpwd.mhtml
 www/htdocs/Admin/auth.mhtml

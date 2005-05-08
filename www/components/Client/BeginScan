@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.7 2005/05/01 05:44:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.8 2005/05/08 02:35:46 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -62,10 +62,10 @@
 	};
 
 
-    	my $nessus = new NetPass::Nessus(host     => $np->cfg->nessusHost,
-                                      	 port     => $np->cfg->nessusPort,
-                                         user     => $np->cfg->nessusUsername,
-                                         password => $np->cfg->nessusPassword,
+    	my $nessus = new NetPass::Nessus(host     => $np->cfg->nessus(-key => 'host'),
+                                      	 port     => $np->cfg->nessus(-key => 'port'),
+                                         user     => $np->cfg->nessus(-key => 'username'),
+                                         password => $np->cfg->nessus(-key => 'password'),
                                          ssl  => 1, timeout => 20, debug => 0,
 					 callback => $progressBar,
 					 callbackparms => { pitot => $plugin_total }

@@ -1,0 +1,6 @@
+<%doc>
+</%doc>
+<%args>
+	$switch => '';
+</%args>
+switch: <%$switch%>

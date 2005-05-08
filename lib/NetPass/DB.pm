@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.39 2005/05/04 20:22:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.40 2005/05/08 02:35:46 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,11 +18,6 @@ my $VERSION = '1.0001';
 sub DESTROY {
     my $self = shift;
     $self->{'dbh'}->disconnect if defined $self->{'dbh'};
-}
-
-sub disconnect {
-	my $self = shift;
-	$self->{'dbh'}->disconnect  if defined $self->{'dbh'};
 }
 
 sub D {
@@ -2772,7 +2767,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.39 2005/05/04 20:22:17 jeffmurphy Exp $
+$Id: DB.pm,v 1.40 2005/05/08 02:35:46 jeffmurphy Exp $
 
 =cut
 

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.37 2005/05/06 03:09:32 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.38 2005/05/08 02:35:46 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -64,22 +64,6 @@ not in the same address space as the network(s) that a given switch services.
 =cut
 
 my $errstr;
-
-sub xxAUTOLOAD {
-        no strict;
-        return if($AUTOLOAD =~ /::DESTROY$/);
-        if ($AUTOLOAD=~/(\w+)$/) {
-                my $field = $1;
-                *{$field} = sub {
-                                my $self = shift;
-                                @_ ? $self->{"_$field"} = shift
-                                   : $self->{"_$field"};
-                                };
-                &$field(@_);
-        } else {
-                Carp::confess("Cannot figure out field name from '$AUTOLOAD'");
-        }
-}
 
 sub debug {
     my $self = shift;
@@ -1829,61 +1813,6 @@ sub expandTagList {
 	return $etl;
 }
 
-=head2 B<$np->cfg->nessusBaseDir()>
-
-
-=cut
-
-sub nessusBaseDir {
-	my $self = shift;
-	$self->reloadIfChanged();
-	return $self->{'cfg'}->obj('nessus')->value('BASE_DIR');
-}
-
-=head2 B<$np->cfg->nessusUsername()>
-
-
-=cut
-
-sub nessusUsername {
-	my $self = shift;
-	$self->reloadIfChanged();
-	return $self->{'cfg'}->obj('nessus')->value('username');
-}
-
-=head2 B<$np->cfg->nessusPassword()>
-
-
-=cut
-
-sub nessusPassword {
-	my $self = shift;
-	$self->reloadIfChanged();
-	return $self->{'cfg'}->obj('nessus')->value('password');
-}
-
-=head2 B<$np->cfg->nessusHost()>
-
-
-=cut
-
-sub nessusHost {
-	my $self = shift;
-	$self->reloadIfChanged();
-	return $self->{'cfg'}->obj('nessus')->value('host');
-}
-
-=head2 B<$np->cfg->nessusPort()>
-
-
-=cut
-
-sub nessusPort {
-	my $self = shift;
-	$self->reloadIfChanged();
-	return $self->{'cfg'}->obj('nessus')->value('port');
-}
-
 =head2 B<$np->cfg->nessus(-key => key, -val => val)>
 
 Given a <nessus> config variable, return the value. If -val is given,
@@ -1968,7 +1897,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.37 2005/05/06 03:09:32 jeffmurphy Exp $
+$Id: Config.pm,v 1.38 2005/05/08 02:35:46 jeffmurphy Exp $
 
 =cut
 

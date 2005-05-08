@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.17 2005/04/24 03:42:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.18 2005/05/08 02:35:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -39,22 +39,6 @@ NetPass - Routines for interacting with the NetPass system
 sub DESTROY {
 	my $self = shift;
 	$self->{'db'}->DESTROY() if defined($self->{'db'});
-}
-
-sub xx_AUTOLOAD {
-        no strict;
-        return if($AUTOLOAD =~ /::DESTROY$/);
-        if ($AUTOLOAD=~/(\w+)$/) {
-                my $field = $1;
-                *{$field} = sub {
-                                my $self = shift;
-                                @_ ? $self->{"_$field"} = shift
-                                   : $self->{"_$field"};
-                                };
-                &$field(@_);
-        } else {
-                Carp::confess("Cannot figure out field name from '$AUTOLOAD'");
-        }
 }
 
 =head2 new NetPass(-config =E<gt> file, -notReally =E<gt> [0|1], -quiet =E<gt> [0|1], -debug =E<gt> [0|1])
@@ -953,7 +937,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.17 2005/04/24 03:42:02 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.18 2005/05/08 02:35:45 jeffmurphy Exp $
 
 =cut
 

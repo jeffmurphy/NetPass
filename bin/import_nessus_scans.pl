@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.4 2005/04/12 14:18:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.5 2005/05/08 02:35:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -36,7 +36,7 @@ Rob Colantuoni <rgc@buffalo.edu>
 
 =head1 REVISION
 
-$Id: import_nessus_scans.pl,v 1.4 2005/04/12 14:18:11 jeffmurphy Exp $
+$Id: import_nessus_scans.pl,v 1.5 2005/05/08 02:35:45 jeffmurphy Exp $
 
 =cut
 
@@ -61,7 +61,7 @@ my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, und
 
 print "Loading Netpass object ..\n" if $D; 
 
-my $np = new NetPass(-config => exists $opts{'c'} ? $opts{'c'} : undef,
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} : undef,
 		     -dbuser => $dbuser, -dbpass => $dbpass);
 
 
@@ -70,7 +70,7 @@ die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
 my $dbh = $np->db->{dbh};
 
 print "Retrieving nessus configuration ..\n" if $D;
-my $bd = $np->cfg->nessusBaseDir();
+my $bd = $np->cfg->nessus(-key => 'base_dir');
 
 die "nessus base_dir undefined in netpass configuration"
   if (!defined($bd) || ($bd eq ""));
@@ -79,10 +79,10 @@ if (! -x "$bd/bin/nessus") {
 	die "cant find $bd/bin/nessus";
 }
 
-my $host = $np->cfg->nessusHost();
-my $user = $np->cfg->nessusUsername();
-my $pass = $np->cfg->nessusPassword();
-my $port = $np->cfg->nessusPort();
+my $host = $np->cfg->nessus(-key => 'host');
+my $user = $np->cfg->nessus(-key => 'username');
+my $pass = $np->cfg->nessus(-key => 'password');
+my $port = $np->cfg->nessus(-key => 'port');
 
 my $ncmd = "$bd/bin/nessus -q -p $host $port $user $pass "; 
 
