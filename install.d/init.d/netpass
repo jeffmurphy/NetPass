@@ -43,7 +43,7 @@ prog="netpass"
 start() {
 	# /cookies  is where Apache::Session will stash
 	# the cookie files. 'reiserfs' is recommended.
-	[ -d /cookies ] && {
+	[ ! -d /cookies ] && {
 	    echo "/cookies filesystem is not mounted"
 	    exit 255
         }

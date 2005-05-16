@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/garp.pl,v 1.4 2005/04/24 03:42:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/garp.pl,v 1.5 2005/05/16 16:10:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -96,7 +96,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: garp.pl,v 1.4 2005/04/24 03:42:02 jeffmurphy Exp $
+$Id: garp.pl,v 1.5 2005/05/16 16:10:42 jeffmurphy Exp $
 
 =cut
 
@@ -311,6 +311,7 @@ sub get_hwaddr {
 #define SIOCGIFHWADDR     0x8927
 #define SIOCGIFADDR       0x8915
     my $rv  = ioctl SH, 0x8927, $ifr;
+    print "get_hwaddr: ioctl ret=".(defined($rv)?$rv:"undef")."\n" if $D;
     return (undef, undef) if ( !defined($rv) || ($rv ne "0 but true") );
     my ($junk, $family);
     my @ma;

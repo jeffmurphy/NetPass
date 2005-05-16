@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.10 2005/04/12 15:24:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.11 2005/05/16 16:10:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -45,7 +45,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.10 2005/04/12 15:24:08 jeffmurphy Exp $
+$Id: interfacecfg.pl,v 1.11 2005/05/16 16:10:42 jeffmurphy Exp $
 
 =cut
 
@@ -55,8 +55,8 @@ use Carp;
 use Getopt::Std;
 use lib qw(/opt/netpass/lib);
 use NetPass;
+use Pod::Usage;
 
-sub Usage();
 sub getIps($);
 sub director($);
 sub realserver($);
@@ -77,14 +77,14 @@ my $HARESOURCES	= "/etc/ha.d/haresources";
 
 getopts('U:d:r:c:h', \%opts);
 
-Usage() if ($opts{'h'});
+pod2usage(2) if ($opts{'h'});
 
 if (exists $opts{'r'} && ($opts{'r'} > 2 || $opts{'r'} < 1)) {
-	Usage();
+	pod2usage(1);
 } 
 
 if (exists $opts{'d'} && ($opts{'d'} > 2 || $opts{'d'} < 1)) {
-	Usage();
+	pod2usage(1);
 }
 	
 $rord = ($opts{'r'}) ? 'r' : 'd';
@@ -226,11 +226,6 @@ cat       /proc/sys/net/ipv4/conf/eth0/send_redirects
 /etc/init.d/heartbeat start
 
 END
-}
-
-sub Usage () {
-	print "Usage: $0 <[-d director] | [-r realserver]> <-c conf file>\n";
-	exit 0;
 }
 
 sub ip2int ($) {

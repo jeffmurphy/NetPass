@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.19 2005/04/29 00:31:55 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.20 2005/05/16 16:10:41 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.19 2005/04/29 00:31:55 jeffmurphy Exp $
+$Id: install,v 1.20 2005/05/16 16:10:41 jeffmurphy Exp $
 
 =cut
 
@@ -1323,6 +1323,12 @@ sub loadTables {
 	$rv = lsystem(qq{insert into db values "('127.0.0.1', '%', '$u', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y')" | mysql -fu $u $p mysql});
 
 	ldie "failed to add 127.0.0.1 to table mysql:user" if $rv;
+
+	# redirectors
+
+	#$rv = lsystem(qq{insert into db values "('npr1-d.cit.buffalo.edu', '%', '$u', 'Y','N','N','N','N','N','N','N','N','N','N','N')" | mysql -fu $u $p mysql});
+
+	#$rv = lsystem(qq{insert into user values "('npr1-d.cit.buffalo.edu', '$u', '$p','y','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','','','','',0,0,0)" | mysql -fu $u $p mysql});
 
 }
 
