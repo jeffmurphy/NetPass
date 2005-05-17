@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.40 2005/05/08 02:35:46 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.41 2005/05/17 15:02:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1258,7 +1258,7 @@ sub registerHost {
     
     $mac = NetPass::padMac($mac); # ensure specific format
 
-    my $sql = qq{insert into register (macAddress, ipAddress, lastSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup) values ('$mac', '$ip', NOW(), NOW(), 'unquar', NULL, '$username', '$os', NULL, NULL, 'no')};
+    my $sql = qq{insert into register (macAddress, ipAddress, lastSeen, registeredOn, status, username, OS, switchIP, switchPort, uqlinkup) values ('$mac', '$ip', NOW(), NOW(), 'unquar', '$username', '$os', NULL, NULL, 'no')};
 
     _log("DEBUG", "$mac $ip sql=$sql\n") if $self->D;
 
@@ -2767,7 +2767,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.40 2005/05/08 02:35:46 jeffmurphy Exp $
+$Id: DB.pm,v 1.41 2005/05/17 15:02:38 jeffmurphy Exp $
 
 =cut
 
