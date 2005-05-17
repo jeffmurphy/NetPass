@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.21 2005/05/17 02:57:36 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.22 2005/05/17 15:13:14 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.21 2005/05/17 02:57:36 jeffmurphy Exp $
+$Id: install,v 1.22 2005/05/17 15:13:14 jeffmurphy Exp $
 
 =cut
 
@@ -361,8 +361,8 @@ will not function. Enter the addresses on a single line, separated by spaces:
 ");
 
 	my $npvip = '';
-	my $rdir1 = ''; 
-	my $rdir2 = '';
+	my $redir1 = ''; 
+	my $redir2 = '';
 
 	my $useha = ask("Will you be using HA? [y/N] ");
 	if ($useha =~ /^y/i) {
