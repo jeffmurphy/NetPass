@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.21 2005/05/04 20:22:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.22 2005/05/17 20:34:28 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -528,7 +528,7 @@ sub saveQuarChanges {
 	my $rv = "";
 	my @rv;
 
-	my $sql = "UPDATE register SET status=?, message=?, uqlinkup=? WHERE macAddress = ?";
+	my $sql = "UPDATE register SET status=?, uqlinkup=? WHERE macAddress = ?";
         my $sth   = $dbh->prepare($sql);
 	if (!defined($sth)) {
 		return "Failed to prepare sql: ".$dbh->errstr;
@@ -636,8 +636,6 @@ sub saveQuarChanges {
 			if ($args->{"message:$mac"} eq "--None--") {
 				return "Error: $mac PQUAR requires that you specify a message.";
 			} else {
-				#push @params, $args->{"message:$mac"};
-				push @params, undef;
 				$resultsRV = $np->db->addResult(-mac => $mac, -type => 'manual', 
 								   -id => $args->{"message:$mac"});
 			}
@@ -645,10 +643,7 @@ sub saveQuarChanges {
 
 		elsif ($args->{"status:$mac"} eq "QUAR") {
 			if ($args->{"message:$mac"} eq "--None--") {
-				push @params, undef;
 			} else {
-				push @params, undef;
-				#push @params, $args->{"message:$mac"};
 				$resultsRV = $np->db->addResult(-mac => $mac, -type => 'manual', 
 								-force => 1,
 								-id => $args->{"message:$mac"});
@@ -808,29 +803,22 @@ unquarantined.</dd>
 <li> When setting a machine to UNQUAR or PUNQUAR:
 <ul>
 The port is set back to quarantined (yes, that's not a typo) 
-within 10 seconds of clicking 'save changes'. 
-The message field is implicitly set to 'None'. 
+within 10 seconds of clicking 'save changes'. You should clear any 'pending' results by setting them to 'fixed'.
 When they go to the website, it detects that they are unquarantined, changes their port 
-and sends them to the success page. <P>
-
-Presently, UNQUAR and PUNQUAR look/act the same. In the future, the IDS feature 
-will use these. For example, you will be 
-able to permanently unquarantine a host so that the IDS can not re-quarantine it.<P>
+and sends them to the success page. If you forget to clear pending results, they will
+be sent to the remediation page. <P>
 </Ul> 
 
 <li> When setting a machine to QUAR or PQUAR:
 <ul>
 The port is changed to quarantined within 10 seconds of clicking 'save changes'. 
-If you set a message, they are given that message when they access the web. 
-Otherwise, if the message is "None", they are scanned.<P>
-
-PQUAR requires that a message be set. QUAR does not require a message.
+If you add a result, they are given that message when they access the web. 
+Otherwise, if no results are pending, they are scanned.<P>
+When using PQUAR be sure to add at least one result, otherwise the client won't know why they are
+permenantly quarantined. QUAR does not require any results to be pending.
 <P>
-
-Presently, PQUAR and QUAR look/act the same. In the future, these will be used to 
-implement the IDS "two strikes" feature by setting a message, but 
-on the first strike you are only QUAR and the second strike you are PQUAR.
 </ul>
+
 </ul>
 
 

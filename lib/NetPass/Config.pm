@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.38 2005/05/08 02:35:46 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.39 2005/05/17 20:34:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -898,7 +898,7 @@ sub policy {
 
 		}
 		else {
-			_log("DEBUG", "set global policy for $pvar\n");
+			_log("DEBUG", "set global policy for $pvar\n") if $self->debug;
 			if (! recur_exists($self->{'cfg'}, "policy") ) {
 				_log("DEBUG", "create global policy\n") if $self->debug;
 				# create one
@@ -1897,7 +1897,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.38 2005/05/08 02:35:46 jeffmurphy Exp $
+$Id: Config.pm,v 1.39 2005/05/17 20:34:27 jeffmurphy Exp $
 
 =cut
 

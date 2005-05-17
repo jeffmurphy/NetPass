@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.41 2005/05/17 15:02:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.42 2005/05/17 20:34:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1280,7 +1280,7 @@ sub registerHost {
 	    $osC = qq{OS='$os', } if defined($os) && ($os ne "") &&  ($os ne "Unknown");
 	    $unC = qq{username='$username', } if defined($username) && ($username ne "");
 
-	    $sql = qq{UPDATE register SET ipAddress='$ip', registeredOn=NOW(), status='unquar', message=NULL, $unC $osC switchIP=NULL, switchPort=NULL WHERE macAddress = '$mac'};
+	    $sql = qq{UPDATE register SET ipAddress='$ip', registeredOn=NOW(), status='unquar', $unC $osC switchIP=NULL, switchPort=NULL WHERE macAddress = '$mac'};
 	    _log("DEBUG", "$mac $ip sql=$sql\n");
 	    $rv = $self->{'dbh'}->do($sql);
 	    if (!defined($rv)) {
@@ -2767,7 +2767,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.41 2005/05/17 15:02:38 jeffmurphy Exp $
+$Id: DB.pm,v 1.42 2005/05/17 20:34:27 jeffmurphy Exp $
 
 =cut
 

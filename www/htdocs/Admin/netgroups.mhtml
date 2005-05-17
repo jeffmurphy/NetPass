@@ -142,11 +142,9 @@ if ($submitButton eq 'Commit Changes') {
         # if a netgroup has no members, delete it
 
 	my $newANGs = [];
-	_log("DEBUG", "purge\n");
 	my $rv = '';
 
         foreach my $ngn (@{$np->cfg->getNetgroups()}) {
-	_log("DEBUG", "purge $ngn\n");
 		my $members = $np->cfg->getNetgroupMembers(-group => $ngn);
 		if (ref($members) eq "ARRAY" && ($#{$members} == -1)) {
 			_log("DEBUG", "$ip $whoami $ngn has no members. deleting.\n");
@@ -156,7 +154,6 @@ if ($submitButton eq 'Commit Changes') {
 				_log("DEBUG", "$ip $whoami failed to delete empty netgroup $ngn: $rv\n");
 			}
 		} else {
-	_log("DEBUG", "still OK $ngn\n");
 			push @$newANGs, $ngn;
 		}
 	}
