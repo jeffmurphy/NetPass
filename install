@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.20 2005/05/16 16:10:41 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.21 2005/05/17 02:57:36 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.20 2005/05/16 16:10:41 jeffmurphy Exp $
+$Id: install,v 1.21 2005/05/17 02:57:36 jeffmurphy Exp $
 
 =cut
 
@@ -88,6 +88,7 @@ my $D         = 0;
 my $uninstall = 0;
 my $help      = 0;
 my @exclude   = ();
+my $R         = {}; # global registry
 
 GetOptions ("s=i" => \$STAGE,
 	    "c"   => \$copyOnly,
@@ -359,8 +360,19 @@ will not function. Enter the addresses on a single line, separated by spaces:
 
 ");
 
-	my $npvip = ask("If you are using HA, enter the virtual IP address for this
-NetPass cluster here (otherwise just hit enter): ");
+	my $npvip = '';
+	my $rdir1 = ''; 
+	my $rdir2 = '';
+
+	my $useha = ask("Will you be using HA? [y/N] ");
+	if ($useha =~ /^y/i) {
+		$npvip  = ask("Enter the virtual IP address for this NetPass cluster: ");
+		$redir1 = ask("Enter the DNS name (or IP address) for the primary redirector: ");
+		$redir2 = ask("Enter the DNS name (or IP address) for the primary redirector (hit enter if you only have one redirector): ");
+		$R->{'npvip'}  = $npvip;
+		$R->{'redir1'} = $redir1;
+		$R->{'redir2'} = $redir2;
+	}
 
 	my $myip = getMyIP("eth0");
 
@@ -1326,9 +1338,12 @@ sub loadTables {
 
 	# redirectors
 
-	#$rv = lsystem(qq{insert into db values "('npr1-d.cit.buffalo.edu', '%', '$u', 'Y','N','N','N','N','N','N','N','N','N','N','N')" | mysql -fu $u $p mysql});
-
-	#$rv = lsystem(qq{insert into user values "('npr1-d.cit.buffalo.edu', '$u', '$p','y','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','','','','',0,0,0)" | mysql -fu $u $p mysql});
+	foreach my $rd ($R->{'redir1'}, $R->{'redir2'}) {
+		$rv = lsystem(qq{insert into db values "('$rd', '%', '$u', 'Y','N','N','N','N','N','N','N','N','N','N','N')" | mysql -fu $u $p mysql});
+		ldie "failed to add $rd to mysql:db table ($rv)" if $rv;
+		$rv = lsystem(qq{insert into user values "('$rd', '$u', '$p','y','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','','','','',0,0,0)" | mysql -fu $u $p mysql});
+		ldie "failed to add $rd to mysql:user table ($rv)" if $rv;
+	}
 
 }
 

@@ -11,7 +11,7 @@ for i in Config.pm \
 	heartbeat-ldirectord-1.2.3-1.i386.rpm \
 	heartbeat-pils-1.2.3-1.i386.rpm \
 	heartbeat-stonith-1.2.3-1.i386.rpm \
-	ipvsadm-1.21-10.i386.rpm \
+	ipvsadm-1.24-5.i386.rpm \
 	libnet-1.1.2.1-2.i386.rpm ; do 
 
 	rm -f $i
