@@ -48,11 +48,11 @@ if (ref($results) eq "HASH") {
 
 my $struckOut = {};
 my $maxStrikes = $np->cfg->policy(-key => 'STRIKES', -network => $ip);
-my $noStrikesForSnort = $np->cfg->policy(-key => 'NO_STRIKES_FOR_SNORT', -network => $ip);
-my $noStrikesForNessus = $np->cfg->policy(-key => 'NO_STRIKES_FOR_NESSUS', -network => $ip);
-my $noStrikesForManual = $np->cfg->policy(-key => 'NO_STRIKES_FOR_MANUAL', -network => $ip);
 
 if ($np->db->macIsRegistered($mac) && $maxStrikes) {
+	my $noStrikesForSnort  = $np->cfg->policy(-key => 'NO_STRIKES_FOR_SNORT',  -network => $ip);
+	my $noStrikesForNessus = $np->cfg->policy(-key => 'NO_STRIKES_FOR_NESSUS', -network => $ip);
+	my $noStrikesForManual = $np->cfg->policy(-key => 'NO_STRIKES_FOR_MANUAL', -network => $ip);
 
 	for(my $rn = 0 ; $rn <= $nres ; $rn++) {
 		my $uf = $np->db->getResults(-mac    => $mac,
@@ -60,7 +60,7 @@ if ($np->db->macIsRegistered($mac) && $maxStrikes) {
 					     -type   => $results->{'type'}->[$rn],
 					     -id     => $results->{'id'}->[$rn]);
 		_log("DEBUG", "$mac $ip history on ".$results->{'type'}->[$rn].":".
-			$results->{'id'}->[$rn]. " is ". $#{$uf->{'type'}});
+			$results->{'id'}->[$rn]. " is ". $#{$uf->{'type'}}. "\n");
 		# +1 bc $# is zero relative, +1 again because it's prev result + cur result
 		if ( (ref($uf) eq "HASH") && ($#{$uf->{'type'}}+2 > $maxStrikes) ) {
 			next if ( ($uf->{'type'}->[0] =~ /^snort$/i) && $noStrikesForSnort );
@@ -72,7 +72,6 @@ if ($np->db->macIsRegistered($mac) && $maxStrikes) {
 } 
 
 if ($nres > -1) {
-
 	# if there's only one result pending, we forgo the javascript -/+ thing and suppress
 	# the title. if they are pquar, we also suppress the 'fixed' button.
 
@@ -100,7 +99,7 @@ if ($nres > -1) {
 		}
 
 		print qq{<tr><td colspan=3 align="right"> };
-		print $q->submit(-name=>"fixed:$type:$sid:$rid", -value=>'Fixed') 
+		print $q->submit(-name=>"fixed;$type;$sid;$rid", -value=>'Fixed') 
 			unless ($pquar || ($struckOut->{$type}->{$sid} == 1));
 		print qq{</td>};
 		print qq{</tr><tr><td colspan=3>};
@@ -156,7 +155,7 @@ if ($nres > -1) {
 			}
 			print qq{</td><td>$shortName</td>};
 			print qq{<td width="1%" align="right"> };
-			print $q->submit(-name=>"fixed:$type:$sid:$rid", -value=>'Fixed') 
+			print $q->submit(-name=>"fixed;$type;$sid;$rid", -value=>'Fixed') 
 				unless ($pquar || ($struckOut->{$type}->{$sid} == 1));
 			print qq{</td>};
 			print qq{</tr><tr><td colspan=3 class="gray">};
