@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device.pm,v 1.3 2005/03/05 04:14:18 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device.pm,v 1.4 2005/05/19 20:15:04 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -276,6 +276,10 @@ sub map_desc_to_plugin {
                         'BayStack 5510' => {    'Desc'   => "BayStack 5510",
                                                 'Module' => "SNMP::Device::BayStack"
                                            },
+		        'Cisco'         => {
+                                                'Desc'  => "Cisco",
+                                                'Module' => "SNMP::Device::Cisco"
+                                           },
                         'HP28688'       => {    'Desc'   => "HP28688 EtherTwist Hub PLUS",
                                                 'Module' => "SNMP::Device::HP"
                                            },
@@ -423,7 +427,7 @@ sub port_status {
 
 =head1 REVISION
 
-$Id: Device.pm,v 1.3 2005/03/05 04:14:18 jeffmurphy Exp $
+$Id: Device.pm,v 1.4 2005/05/19 20:15:04 jeffmurphy Exp $
 
 =cut
 

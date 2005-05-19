@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.14 2005/05/06 03:09:33 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.15 2005/05/19 20:15:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -274,6 +274,15 @@ print $q->start_form(-method => "POST");
                     )%>
 </TD></TR>
 <TR>
+<TD CLASS='left'>ResetPort Link Flap Tolerance</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name     => 'policy:linkflap_tolerance',
+                        -values   => $np->cfg->policy(-key => 'linkflap_tolerance'),
+			-size     => 5
+                    )%> seconds
+</TD></TR>
+<TR>
 <TD CLASS='left'>Enable MacScan?</TD>
 <TD CLASS='right'>
 <%$q->popup_menu (
@@ -288,7 +297,7 @@ print $q->start_form(-method => "POST");
 <%$q->popup_menu (
                         -name     => 'policy:nessus',
                         -values   => ['on', 'off'],
-                        -default  => ($np->cfg->policy(-key => 'resetport')) ? 'on': 'off',
+                        -default  => ($np->cfg->policy(-key => 'nessus')) ? 'on': 'off',
                     )%>
 </TD></TR>
 <TR>

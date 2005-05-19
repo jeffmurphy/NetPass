@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.39 2005/05/17 20:34:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.40 2005/05/19 20:15:04 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -81,7 +81,7 @@ sub reloadIfChanged {
 
     my $newCfg = $self->{'db'}->getConfig();
     if (ref($newCfg) ne "HASH") {
-	    _log("WARNING", "couldnt check for new config: $newCfg");
+	    _log("ERROR", "couldnt check for new config: $newCfg");
 	    return;
     }
 
@@ -766,7 +766,7 @@ sub policy {
 
 	_log("DEBUG", "policy(-key $pvar, -network $nw)\n") if $self->debug;
 
-	$self->reloadIfChanged();
+	$self->reloadIfChanged() || return undef;
 		
 	$pvar =~ tr [A-Z] [a-z]; # because of AutoLowerCase
 
@@ -1897,7 +1897,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.39 2005/05/17 20:34:27 jeffmurphy Exp $
+$Id: Config.pm,v 1.40 2005/05/19 20:15:04 jeffmurphy Exp $
 
 =cut
 

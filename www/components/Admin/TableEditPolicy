@@ -327,6 +327,21 @@ my $C = qq{style='text-align:center;'};
 % }
 </TR>
 <TR>
+<TD CLASS='left'>ResetPort Link Flap Tolerance</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name     => 'policy:linkflap_tolerance',
+                        -values   => $np->cfg->policy(-key => 'linkflap_tolerance', -network => $network),
+			-size     => 5
+                    )%> seconds
+</TD>
+% if ($showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->policyLocation(-key => 'linkflap_tolerance', -network => $network, -location => $formatFor)?"":"checked"%> name="override:linkflap_tolerance"></td>
+<td class='right'><%$np->cfg->policy(-key => 'linkflap_tolerance')%></td><td class='left'>
+(<%join(',', @{$np->cfg->policyLocation(-key => 'linkflap_tolerance', -network => $network)})%>)</td>
+% }
+</TR>
+<TR>
 <TD CLASS='left'>Enable MacScan?</TD>
 <TD CLASS='right'>
 <%$q->popup_menu (

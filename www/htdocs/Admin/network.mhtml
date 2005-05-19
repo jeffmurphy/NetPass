@@ -172,7 +172,7 @@ DBG_init();
         size=12 maxlength=255>
 </td>
 <td colspan=2>
-BSW: <input name='BSW' id='BSW' value='<%$BSW%>' size=16 maxlength=32><BR>
+BSW: <input name='BSW' id='BSW' value='<%$BSW%>' size=16 maxlength=80><BR>
 <%$q->scrolling_list(-id => 'switches', -name => 'switches', -size => 4, 
 	-values => $switches , -multiple => 'true')%></td></tr>
 </td>

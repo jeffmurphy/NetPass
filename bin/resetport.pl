@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.12 2005/04/24 03:42:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.13 2005/05/19 20:15:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -77,7 +77,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.12 2005/04/24 03:42:02 jeffmurphy Exp $
+$Id: resetport.pl,v 1.13 2005/05/19 20:15:03 jeffmurphy Exp $
 
 =cut
 
@@ -146,8 +146,6 @@ daemonize("resetport", "/var/run/netpass") unless exists $opts{'D'};
 
 print "entering while..\n" if exists $opts{'D'};
 
-my $unq_on_linkup = $np->cfg->policy(-key => 'UNQUAR_ON_LINKUP') || "0";
-
 # occasionally, you'll find a machine that will bring up link very early,
 # but wont source any traffic until quite a bit later. in those cases,
 # if we want to unquar-on-linkup, we cant. 
@@ -166,15 +164,13 @@ while (1) {
 	}
 
         RUNONCE::handleConnection();
-        processLines($np, $unq,
-                     $unq_on_linkup, \@lines);
+        processLines($np, $unq, \@lines);
 
 	foreach my $switch (keys %$unq) {
 		if (!defined($threads->{$switch}) ||
 		    !$myself->object($threads->{$switch}->tid)) {
 			# a thread doesnt exist for this switch 
-			$threads->{$switch} = threads->create(\&procUQ, $switch,
-							      $unq_on_linkup);	
+			$threads->{$switch} = threads->create(\&procUQ, $switch);
 			_log("INFO", "spawning thread to handle $switch\n");
 		}
 	}
@@ -200,8 +196,10 @@ Periodically, that list will be processed by another routine.
 
 sub processLines {
 	my ($np, $unq) = (shift, shift);
-	my $unq_on_linkup = shift;
 	my $lines = shift;
+
+	# reload this value to be sure we have the current one
+	my $unq_on_linkup = $np->cfg->policy(-key => 'UNQUAR_ON_LINKUP') || "0";
 
 	while (defined(my $l = shift @{$lines})) {
 		chomp $l;
@@ -315,7 +313,7 @@ again the next time we are called.
 
 sub procUQ {
 	my $switch = shift;
-	my $unq_on_linkup = shift;
+
 
 	print "thread connecting to DB\n" if $opts{'D'};
 
@@ -326,6 +324,8 @@ sub procUQ {
 			     -debug  => exists $opts{'D'} ? 1 : 0,
 			     -quiet  => exists $opts{'q'} ? 1 : 0);
 	
+	# reload this value to be sure we have the current one
+	my $unq_on_linkup = $np->cfg->policy(-key => 'UNQUAR_ON_LINKUP') || "0";
 
 	if (ref($np) ne "NetPass") {
     		_log("ERROR", "failed to connect to NetPass: $np\n");
