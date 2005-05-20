@@ -113,6 +113,13 @@ function network_onchange_network() {
 
 }
 
+function network_onclick_submitButton() {
+	highLightList("haNPServers");
+	highLightList("switches");
+	document.forms[0].submit();
+}
+
+
 function network_onblur_addHaNPServer(o) {
 	var RN = "network_onblur_addServer";
 	dbg(1, RN);
@@ -148,12 +155,15 @@ function network_onclick_delHaNPServer() {
 
 	var servs = document.getElementById('haNPServers');
 	if (servs) {
-		for(var i = servs.options.length-1 ; i >= 0 ; i--) {
-			if (servs.options[i].selected) 
+		// element 0 is the WH
+		for(var i = servs.options.length-1 ; i > 0 ; i--) {
+			if (servs.options[i].selected) {
+				// you cant delete yourself.
 				if (servs.options[i].value != network_ourHostname) {
 					dbg(1, RN + ": del " + servs.options[i].value);
 					servs.options[i] = undefined;
 				}
+			}
 		}
 	}
 	return false;
@@ -175,7 +185,8 @@ function network_onclick_cfgSwitch() {
 function network_onclick_delSwitch() {
 	var switches = document.getElementById('switches');
 	if (switches) {
-		for(var i = switches.options.length-1 ; i >= 0 ; i--) {
+		// element 0 is WH
+		for(var i = switches.options.length-1 ; i > 0 ; i--) {
 			if (switches.options[i].selected) 
 				switches.options[i] = undefined;
 		}

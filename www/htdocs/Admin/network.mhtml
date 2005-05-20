@@ -39,6 +39,9 @@ PERMISSIONS
 	$BSW                 => '';
 </%args>
 <%perl>
+use Data::Dumper;
+
+#print "<PRE>",  Dumper(\%ARGS), "</PRE>";
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
 if (!$isRoot) {
 	print qq{<p class='error'>Sorry, you don't have access to this form.};
@@ -52,7 +55,45 @@ use Sys::Hostname;
 
 my $ng;
 
-$haNPServers = [ hostname, "xyz", "abc" ] if (ref ($haNPServers) ne "ARRAY" || $#{$haNPServers} == -1);
+
+
+my @setResults = ();
+
+if ( ($submitButton eq "Commit Changes") && $network ) {
+	_log("DEBUG", $m->session->{'username'}. " is updating $network $secondaryRedirector\n");
+
+	my $rv;
+	$rv = $np->cfg->setNetwork(-network => $network,
+					-comment => $comment,
+					-interface => $interface,
+					-qvid => $qvid,
+					-uqvid => $uqvid);
+	push @setResults, "Failed to set 'network' fields: $rv" if $rv;
+
+	$rv = $np->cfg->setHA(  -network   => $network, 
+				-enabled   => $haToggle eq "Enabled" ? 1 : 0, 
+				-primary   => $primaryRedirector,
+				-secondary => $secondaryRedirector,
+				-virtualip => $virtualIP,
+				-servers   => $haNPServers
+		);
+	push @setResults, "Failed to set HA fields: $rv" if $rv;
+
+	$rv = $np->cfg->setGarp(-network => $network, 
+				-enabled => $garpToggle eq "Enabled" ? 1 : 0,
+				-delay   => $garpDelay,
+				-number  => $garpNumber
+			);
+	push @setResults, "Failed to set 'garp' fields: $rv" if $rv;
+
+	$np->cfg->setSwitches(	-network  => $network, 
+				-switches => $switches,
+				-bsw      => $BSW);
+	push @setResults, "Failed to set 'switches': $rv" if $rv;
+
+	$np->cfg->save(-user => $whoami) if ($#setResults == -1);
+}
+
 $garpDelay  ||= 5;
 $garpNumber ||= 3;
 
@@ -81,6 +122,8 @@ if ($network && $np->cfg->ha($network)) {
 	$virtualIP = $np->cfg->virtualIP($network);
 }
 
+
+
 # fetch all known networks and netgroups
 
 my $allNetworks = $np->cfg->getNetworks();
@@ -91,43 +134,13 @@ foreach my $nw (@$allNetworks) {
 }
 $m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addNetwork', 'submitButton' ], 'init' => 0);
 my $WH = "--Select a Network--";
-
-my @setResults = ();
-
-if ($submitButton eq "Commit Changes") {
-	my $rv;
-	$rv = $np->cfg->setNetwork(-network => $network,
-					-comment => $comment,
-					-interface => $interface,
-					-qvid => $qvid,
-					-uqvid => $uqvid);
-	push @setResults, "Failed to set 'network' fields: $rv" if $rv;
-
-	$rv = $np->cfg->setHA(  -network   => $network, 
-				-enabled   => $haToggle, 
-				-primary   => $primaryRedirector,
-				-secondary => $secondaryRedirector,
-				-virtualip => $virtualIP,
-				-servers   => $servers
-		);
-	push @setResults, "Failed to set HA fields: $rv" if $rv;
-
-	$rv = $np->cfg->setGarp(-network => $network, 
-				-delay   => $garpDelay,
-				-number  => $garpNumber
-			);
-	push @setResults, "Failed to set 'garp' fields: $rv" if $rv;
-
-	$np->cfg->setSwitches(	-network  => $network, 
-				-switches => $switches,
-				-bsw      => $BSW);
-	push @setResults, "Failed to set 'switches': $rv" if $rv;
-}
+my $WH2 = "----------------------";
 
 </%perl>
 
 <h2> Network Configuration </h2>
 
+% print $q->p({-class => 'error'}, join('<BR>', @setResults)) if ($#setResults > -1);
 
 Notes:
 <ul>
@@ -164,7 +177,8 @@ DBG_init();
 	onblur='network_onblur_addNetwork(this);' onfocus='network_onfocus_addNetwork(this);'>
     </td>
     <td class='selector'>
-	<input type='submit' name='submitButton' id='submitButton' value='Commit Changes' disabled>
+	<input type='submit' onclick='network_onclick_submitButton();' 
+		name='submitButton' id='submitButton' value='Commit Changes' disabled>
     </td>
 </tr>
 % if ($network) {
@@ -180,12 +194,12 @@ DBG_init();
 <tr class='haOptions' id='haOptions1'><td class='left'>Primary Redirector:</td>
 	<td colspan=2><input size=32 maxlength=255 name='primaryRedirector' value="<%$primaryRedirector%>"></td></tr>
 <tr class='haOptions' id='haOptions2'><td class='left'>Secondary Redirector:</td>
-	<td colspan=2><input size=32 maxlength=255 name='primaryRedirector' value="<%$secondaryRedirector%>"></td></tr>
+	<td colspan=2><input size=32 maxlength=255 name='secondaryRedirector' value="<%$secondaryRedirector%>"></td></tr>
 <tr class='haOptions' id='haOptions3'><td class='left'>Servers:<BR>
 <button id='delHaNPServer' onclick='network_onclick_delHaNPServer(); return false;' type='button'>Delete</button><BR>
 <input  id='addHaNPServer' onfocus='network_onfocus_addHaNPServer(this);' onblur='return network_onblur_addHaNPServer(this);' value="Add Server..."
         size=12 maxlength=255></td>
-<td colspan=2><%$q->scrolling_list(-id => 'haNPServers', -name => 'haNPServers', -size => 4, -values => $haNPServers , -multiple => 'true')%></td></tr>
+<td colspan=2><%$q->scrolling_list(-id => 'haNPServers', -name => 'haNPServers', -size => 4, -values => [$WH2, @$haNPServers] , -multiple => 'true')%></td></tr>
 <tr class='haOptions' id='haOptions4'><td class='left'>Virtual IP:</td><td colspan=2><input  id='virtualIP' name='virtualIP' size=16 maxlength=32
 	value="<%$virtualIP%>"></td></tr>
 
@@ -206,12 +220,11 @@ DBG_init();
 <td colspan=2>
 BSW: <input name='BSW' id='BSW' value='<%$BSW%>' size=16 maxlength=80><BR>
 <%$q->scrolling_list(-id => 'switches', -name => 'switches', -size => 4, 
-	-values => $switches , -multiple => 'true')%></td></tr>
+	-values => [ $WH2, @$switches ] , -multiple => 'true')%></td></tr>
 </td>
 </tr>
 <tr><td colspan=3>
 <PRE><B>TODO:
-	- switches (list + add new + link to switch config)
         - when click netgroup .. highlight networks list</B>
 </PRE>
 </td></tr>

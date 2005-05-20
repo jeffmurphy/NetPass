@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.41 2005/05/20 15:16:12 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.42 2005/05/20 20:32:59 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -744,10 +744,213 @@ sub setNetwork {
 		$self->{'cfg'}->obj('network')->$network({});
 	}
 
+	_log("DEBUG", "set network comment $comment\n");
+	_log("DEBUG", "set network int $interface\n");
+	_log("DEBUG", "set network qid $qvid\n");
+	_log("DEBUG", "set network nqid $uqvid\n");
+
 	$self->{'cfg'}->obj('network')->obj($network)->comment($comment);
 	$self->{'cfg'}->obj('network')->obj($network)->interface($interface);
 	$self->{'cfg'}->obj('network')->obj($network)->quarantine($qvid);
 	$self->{'cfg'}->obj('network')->obj($network)->nonquarantine($uqvid);
+
+	return 0;
+}
+
+=head2 $cfg-E<gt>setHA(-network => '', -enabled => 0|1, -primary => '', -secondary => '', -virtualip => '', -servers => [])
+
+Enable, disable and set High Availability related info. All parameters are required except for 'secondary'.
+
+RETURNS
+
+0                    on success
+"invalid parameters" on failure
+"no such network"    on failure
+
+=cut
+
+
+sub setHA {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-network -enabled -primary -secondary -virtualip -servers)],
+				 -required => [qw(-network -enabled -primary -virtualip -servers)],
+				 -defaults => { -secondary => '' }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters: ".Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+
+	my ($network, $enabled, $primary, $secondary, $virtualip, $servers) = 
+	  $parms->get('-network', '-enabled', '-primary', '-secondary', '-virtualip', '-servers');
+
+	if ($enabled !~ /^[01]$/) {
+		return "invalid parameters: enabled is not 0 or 1";
+	}
+
+	$secondary ||= '';
+
+	$self->reloadIfChanged();
+
+	if( ! $self->{'cfg'}->obj('network')->exists($network) ) {
+		return "no such network";
+	}
+
+	if( ! $self->{'cfg'}->obj('network')->obj($network)->exists('ha') ) {
+		$self->{'cfg'}->obj('network')->obj($network)->ha({});
+	}
+
+
+	$self->{'cfg'}->obj('network')->obj($network)->obj('ha')->status('enabled') if $enabled;
+	$self->{'cfg'}->obj('network')->obj($network)->obj('ha')->status('disabled') if !$enabled;
+
+	my $v = 'primary-redirector';
+	$self->{'cfg'}->obj('network')->obj($network)->obj('ha')->$v($primary);
+	   $v = 'secondary-redirector';
+	$self->{'cfg'}->obj('network')->obj($network)->obj('ha')->$v($secondary);
+	$self->{'cfg'}->obj('network')->obj($network)->obj('ha')->virtualip($virtualip);
+
+	my %s;
+	my $sa = [];
+	if (ref($servers) eq "ARRAY") {
+		$sa = $servers;
+	} else {
+		$sa = [ $servers ];
+	}
+	foreach my $s (@$sa) {
+		$s{$s} = "";
+	}
+	$self->{'cfg'}->obj('network')->obj($network)->obj('ha')->servers(\%s);
+
+	return 0;
+}
+
+=head2 $cfg-E<gt>setGarp(-network => '', -enabled => 0|1, -delay => 10, -number => 3)
+
+Enable, disable and set Gratuitous Arp related info. Status and enabled are required. Delay and Number
+are optional.
+
+RETURNS
+
+0                    on success
+"invalid parameters" on failure
+"no such network"    on failure
+
+=cut
+
+
+sub setGarp {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-network -enabled -delay -number)],
+				 -required => [qw(-network -enabled)],
+				 -defaults => { -delay => 10, -number => 3 }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters: ".Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+
+	my ($network, $enabled, $delay, $number) = 
+	  $parms->get('-network', '-enabled', '-delay', '-number');
+
+	if ($enabled !~ /^[01]$/) {
+		return "invalid parameters: enabled is not 0 or 1";
+	}
+
+	if ($delay !~ /^\d+$/) {
+		return "invalid parameters: delay is non-numeric";
+	}
+
+	if ($number !~ /^\d+$/) {
+		return "invalid parameters: number is non-numeric";
+	}
+
+	$self->reloadIfChanged();
+
+	if( ! $self->{'cfg'}->obj('network')->exists($network) ) {
+		return "no such network";
+	}
+
+	if( ! $self->{'cfg'}->obj('network')->obj($network)->exists('garp') ) {
+		$self->{'cfg'}->obj('network')->obj($network)->garp({});
+	}
+
+	$self->{'cfg'}->obj('network')->obj($network)->obj('garp')->status('enabled') if $enabled;
+	$self->{'cfg'}->obj('network')->obj($network)->obj('garp')->status('disabled') if !$enabled;
+	$self->{'cfg'}->obj('network')->obj($network)->obj('garp')->delay($delay);
+	$self->{'cfg'}->obj('network')->obj($network)->obj('garp')->number($number);
+
+	return 0;
+}
+
+=head2 $cfg-E<gt>setSwitches(-network => '', -switches => [], -bsw => '')
+
+Set the list of switches that service this network. BSW is optional. If BSW has
+user ports on it, it should be specified both in the switches list and as the
+BSW parameter.
+
+RETURNS
+
+0                    on success
+"invalid parameters" on failure
+"no such network"    on failure
+
+=cut
+
+
+sub setSwitches {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-network -switches -bsw)],
+				 -required => [qw(-network -switches)],
+				 -defaults => { -bsw => '' }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters: ".Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+
+	my ($network, $switches, $bsw) = 
+	  $parms->get('-network', '-switches', '-bsw');
+
+	$self->reloadIfChanged();
+
+	if( ! $self->{'cfg'}->obj('network')->exists($network) ) {
+		return "no such network";
+	}
+
+	if( ! $self->{'cfg'}->obj('network')->obj($network)->exists('switches') ) {
+		$self->{'cfg'}->obj('network')->obj($network)->switches({});
+	}
+
+	if ($bsw) {
+		$self->{'cfg'}->obj('network')->obj($network)->obj('switches')->bsw($bsw);
+	} else {
+		$self->{'cfg'}->obj('network')->obj($network)->obj('switches')->bsw($bsw);
+	}
+
+	my $sa = [];
+	if (ref($switches) eq "ARRAY") {
+		$sa = $switches;
+	} else {
+		$sa = [ $switches ];
+	}
+	my %s;
+	foreach my $s (@$sa) {
+		$s{$s} = '';
+	}
+	$self->{'cfg'}->obj('network')->obj($network)->switches(\%s);
 
 	return 0;
 }
@@ -1944,7 +2147,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.41 2005/05/20 15:16:12 jeffmurphy Exp $
+$Id: Config.pm,v 1.42 2005/05/20 20:32:59 jeffmurphy Exp $
 
 =cut
 
