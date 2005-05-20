@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.40 2005/05/19 20:15:04 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.41 2005/05/20 15:16:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -705,6 +705,53 @@ sub getNetComment {
     return "";
 }
 
+=head2 $cfg-E<gt>setNetwork(-network => '', -comment => '', -interface => '', -qvid => #, -uqvid => #)
+
+Given a network, set the various "core" network fields. A comment of "" or undef is OK. All other
+fields are required.
+
+RETURNS
+
+0         on success
+"..."     on failure
+
+=cut
+
+
+sub setNetwork {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-network -comment -interface -qvid -uqvid)],
+				 -required => [qw(-network -interface -qvid -uqvid)],
+				 -defaults => { -comment => '' }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters: ".Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+
+	my ($network, $comment, $interface, $qvid, $uqvid) = 
+	  $parms->get('-network', '-comment', '-interface', '-qvid', '-uqvid');
+
+	$comment ||= '';
+
+	$self->reloadIfChanged();
+
+	if( ! $self->{'cfg'}->obj('network')->exists($network) ) {
+		$self->{'cfg'}->obj('network')->$network({});
+	}
+
+	$self->{'cfg'}->obj('network')->obj($network)->comment($comment);
+	$self->{'cfg'}->obj('network')->obj($network)->interface($interface);
+	$self->{'cfg'}->obj('network')->obj($network)->quarantine($qvid);
+	$self->{'cfg'}->obj('network')->obj($network)->nonquarantine($uqvid);
+
+	return 0;
+}
+
 
 =head2 $val = $np->policy(-key => $key, -network => $nw, -val => $value)
 
@@ -766,8 +813,8 @@ sub policy {
 
 	_log("DEBUG", "policy(-key $pvar, -network $nw)\n") if $self->debug;
 
-	$self->reloadIfChanged() || return undef;
-		
+	$self->reloadIfChanged();
+
 	$pvar =~ tr [A-Z] [a-z]; # because of AutoLowerCase
 
 	# if network looks like an IP, figure out which <network> clause
@@ -1897,7 +1944,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.40 2005/05/19 20:15:04 jeffmurphy Exp $
+$Id: Config.pm,v 1.41 2005/05/20 15:16:12 jeffmurphy Exp $
 
 =cut
 

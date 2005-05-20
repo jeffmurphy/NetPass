@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Header: /tmp/netpass/NetPass/lib/NetPass/WWW/Session.pm.file,v 1.4 2005/04/12 19:52:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/WWW/Session.pm.file,v 1.5 2005/05/20 15:16:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -54,7 +54,7 @@ my $ah =
 
         session_use_cookie	=> 1,
         session_cookie_name     => $cookieName,
-        session_cookie_expires  => '+1d',
+        session_cookie_expires  => '+1y',
         session_cookie_domain   => '%COOKIEDOM%',
         comp_root		=>   [
 					[ private => '/opt/netpass/www/components' ],

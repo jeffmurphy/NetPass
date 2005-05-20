@@ -92,6 +92,38 @@ foreach my $nw (@$allNetworks) {
 $m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addNetwork', 'submitButton' ], 'init' => 0);
 my $WH = "--Select a Network--";
 
+my @setResults = ();
+
+if ($submitButton eq "Commit Changes") {
+	my $rv;
+	$rv = $np->cfg->setNetwork(-network => $network,
+					-comment => $comment,
+					-interface => $interface,
+					-qvid => $qvid,
+					-uqvid => $uqvid);
+	push @setResults, "Failed to set 'network' fields: $rv" if $rv;
+
+	$rv = $np->cfg->setHA(  -network   => $network, 
+				-enabled   => $haToggle, 
+				-primary   => $primaryRedirector,
+				-secondary => $secondaryRedirector,
+				-virtualip => $virtualIP,
+				-servers   => $servers
+		);
+	push @setResults, "Failed to set HA fields: $rv" if $rv;
+
+	$rv = $np->cfg->setGarp(-network => $network, 
+				-delay   => $garpDelay,
+				-number  => $garpNumber
+			);
+	push @setResults, "Failed to set 'garp' fields: $rv" if $rv;
+
+	$np->cfg->setSwitches(	-network  => $network, 
+				-switches => $switches,
+				-bsw      => $BSW);
+	push @setResults, "Failed to set 'switches': $rv" if $rv;
+}
+
 </%perl>
 
 <h2> Network Configuration </h2>

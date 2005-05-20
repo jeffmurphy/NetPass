@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/logout.mhtml,v 1.5 2005/05/06 20:13:34 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/logout.mhtml,v 1.6 2005/05/20 15:16:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -16,7 +16,7 @@ setWhereAmI('Logout');
 		_log("INFO", $m->session->{'username'}." is logging out of Admin tool\n");
 		$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
 			-user => $m->session->{'username'}, 
-			-msg => [ "$username logged out of Admin tool" ]);
+			-msg => [ $m->session->{'username'}." logged out of Admin tool" ]);
                 $m->session->{'logged_in'} = 0;
 		tied(%{$m->session})->delete;
                 print "Logging out. Please wait..<P>";
