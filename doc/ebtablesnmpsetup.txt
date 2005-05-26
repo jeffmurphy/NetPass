@@ -1,0 +1,5 @@
+1. remove all instances of net-snmp that may be on the system
+2. build net-snmp from source enabling embedded perl
+3. if installing net-snmp in a non std dir such as opt make
+   sure to include the lib path in /etc/ld.so.conf and refresh
+4. add "master agent" to /etc/snmp/snmpd.conf
