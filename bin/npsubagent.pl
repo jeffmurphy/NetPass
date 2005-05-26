@@ -16,6 +16,9 @@ my $fh   	= new FileHandle();
 my $mactable	= {};
 my $freeports	= ();
 
+# we are just starting clear all macs from ebtables
+delAllMacs();
+
 $fh->open($PROCEBTNMAC) || die "Unable to open $PROCEBTNMAC";
 my $maxports = $fh->getline;
 $fh->close();
@@ -51,6 +54,7 @@ while (1) {
 			delete $mactable->{$m};
 
 			# send linkdown trap here...
+			# might hafta introduce a timer here
 		}
 
 		foreach my $m (keys %$mactb) {
@@ -69,6 +73,39 @@ while (1) {
 
 $agent->shutdown();
 exit 0;
+
+sub delMac {
+	my $mac = shift;
+
+	return -1 if ($mac !~ /\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}/);
+	my $cmd = sprintf("echo \"del %s\" > %s", $mac, $PROCEBTMAC);
+
+	return system($cmd);
+}
+
+sub addMac {
+	my $mac = shift;
+
+	return -1 if ($mac !~ /\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}/);
+	my $cmd = sprintf("echo \"add %s\" > %s", $mac, $PROCEBTMAC);
+
+	return system($cmd);
+}
+
+sub delAllMacs {
+	my $fh = new FileHandle;
+	my @macs;
+
+	$fh->open($PROCEBTMAC) || return -1;
+	@macs = $fh->getlines();
+	$fh->close;
+
+	foreach my $mac (@macs) {
+		delMac($mac);
+	}
+
+	return 1;
+}
 
 sub getMacTable {
 	my $fh = new FileHandle;
