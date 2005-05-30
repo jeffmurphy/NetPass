@@ -7,10 +7,11 @@ use NetSNMP::ASN (':all');
 use FileHandle;
 
 my $BASEOID	= ".1.3.6.1.4.1.8072.9999.9999.7375";
-my $PROCARPFILE = "/proc/net/arp";
+my $BRCTLCMD    = "/usr/local/sbin/brctl showmacs br0 |";
 my $PROCEBTMAC  = "/proc/ebtables/npvnat/macs";
 my $PROCEBTNMAC = "/proc/ebtables/npvnat/nummacs";
-my $REFRESHRATE = 5; # refresh rate
+my $REFRESHRATE = 5;    # refresh rate
+my $TIMEOUT     = 3600; # 1hr
 
 my $fh   	= new FileHandle();
 my $mactable	= {};
@@ -33,19 +34,19 @@ my $agent = new NetSNMP::agent(
 $agent->register("npsubagent", $BASEOID, \&snmphandler) ||
 	die "Unable to register SNMP subagent";
 
-
-
 my $ltime = time();
+
 while (1) {
 	$agent->agent_check_and_process(0);
+	my $time = time();
 
-
-	if (($ltime + $REFRESHRATE) < time()) {
+	if (($ltime + $REFRESHRATE) < $time) {
 		my $mactb = getMacTable();
 		next unless ref($mactb) eq 'HASH';
 
 		foreach my $m (keys %$mactable) {
-			next if exists $mactb->{$m};
+			next if exists $mactb->{$m} ||
+				($mactable->{$m}{lastseen} + $TIMEOUT > $time);
 
 			# make the port available
 			push @$freeports, $mactable->{$m}{port};
@@ -54,22 +55,30 @@ while (1) {
 			delete $mactable->{$m};
 
 			# send linkdown trap here...
-			# might hafta introduce a timer here
 		}
 
 		foreach my $m (keys %$mactb) {
-			next if exists $mactable->{$m};
-
+			if (exists $mactable->{$m}) {
+				$mactable->{$m}{lastseen} = $time;
+				next;
+			}
 			# assign a port
-			$mactable->{$m}{port}   = shift @$freeports;
-			$mactable->{$m}{decmac} = $mactb->{$m};
+			$mactable->{$m}{port}     = shift @$freeports;
+			$mactable->{$m}{decmac}   = $mactb->{$m};
+			$mactable->{$m}{status}   = "quar";
+			$mactable->{$m}{lastseen} = $time;
 
 			# send linkup trap here...
 		}
 
-		$ltime = $ltime + $REFRESHRATE;
+		$ltime += $REFRESHRATE;
 	}
 }
+
+#
+# trap type 2 subtype 0 linkdown
+# trap type 3 subtype 0 linkup  
+#
 
 $agent->shutdown();
 exit 0;
@@ -111,9 +120,9 @@ sub getMacTable {
 	my $fh = new FileHandle;
 	my %mtable;
 
-	$fh->open($PROCARPFILE) || return -1;
+	$fh->open($BRCTLCMD) || return -1;
 	while (my $l = $fh->getline) {
-		if ($l =~ /(\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2})/) {
+		if ($l =~ /(\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2}:\w{1,2})\s+no/) {
 			my $m =  lc($1);
 			$m    =~ s/0(\d{1,2})/$1/g;
 			my @o = split(':', $m);
@@ -129,35 +138,53 @@ sub snmphandler {
 	#
 	# oid mapping
 	# basoid.1.mac_in_dec = port
-	#
+	# basoid.2.mac_in_dec = status either quar/unquar
 	#
 
 	my ($handler, $registration_info, $request_info, $requests) = @_;
 
 	my $request;
-	my $macbaseoid	= $BASEOID.'.1';
+	my $macbaseoid		= $BASEOID.'.1';
+	my $statusbaseoid	= $BASEOID.'.2';
 	for($request = $requests; $request; $request = $request->next()) {
 		my $oid = $request->getOID();
-print "requested oid = $oid\n";
 
 		if ($request_info->getMode() == MODE_GET) {
 			if ($oid > new NetSNMP::OID($macbaseoid)) {
 				foreach my $m (keys %$mactable) {
 					if ($oid == new NetSNMP::OID($macbaseoid.'.'.$mactable->{$m}{decmac})) {
 						$request->setValue(ASN_INTEGER, $mactable->{$m}{port});
+					} elsif ($oid == new NetSNMP::OID($statusbaseoid.'.'.$mactable->{$m}{decmac})) {
+						$request->setValue(ASN_OCTET_STR, $mactable->{$m}{status});
 					}
 				}
 			}
 		} elsif ($request_info->getMode() == MODE_GETNEXT) {
-			if ($oid >= new NetSNMP::OID($BASEOID)) {
-				foreach my $m (sort {new NetSNMP::OID($mactable->{$b}{decmac}) <=>
-						     new NetSNMP::OID($mactable->{$a}{decmac})} keys %$mactable) {
-                                        if ($oid < new NetSNMP::OID($macbaseoid.'.'.$mactable->{$m}{decmac})) {
+			if ($oid >= new NetSNMP::OID($BASEOID) &&
+			    $oid < new NetSNMP::OID($statusbaseoid)) {
+
+				foreach my $m (sort {new NetSNMP::OID($mactable->{$a}{decmac}) <=>
+						     new NetSNMP::OID($mactable->{$b}{decmac})} keys %$mactable) {
+					if ($oid < new NetSNMP::OID($macbaseoid.'.'.$mactable->{$m}{decmac})) {
 						$request->setOID($macbaseoid.'.'.$mactable->{$m}{decmac});
 						$request->setValue(ASN_INTEGER, $mactable->{$m}{port});
-                                        }
+						goto done;
+					}
 				}
+				$oid = new NetSNMP::OID($statusbaseoid);
 			}
+ 
+			if ($oid >= new NetSNMP::OID($statusbaseoid) && $oid < new NetSNMP::OID($BASEOID.'.3')) {
+                        	foreach my $m (sort {new NetSNMP::OID($mactable->{$a}{decmac}) <=>
+                                                     new NetSNMP::OID($mactable->{$b}{decmac})} keys %$mactable) {
+                                	if ($oid < new NetSNMP::OID($statusbaseoid.'.'.$mactable->{$m}{decmac})) {
+                                        	$request->setOID($statusbaseoid.'.'.$mactable->{$m}{decmac});
+                                        	$request->setValue(ASN_OCTET_STR, $mactable->{$m}{status});
+                                                goto done;
+                                        }
+                                }
+			}	
+done:
 		}
 	}
 }
