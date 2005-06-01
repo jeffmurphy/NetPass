@@ -4,6 +4,7 @@ use strict;
 use NetSNMP::agent (':all');
 use NetSNMP::OID (':all');
 use NetSNMP::ASN (':all');
+use SNMP;
 use FileHandle;
 
 my $BASEOID	= ".1.3.6.1.4.1.8072.9999.9999.7375";
@@ -12,6 +13,8 @@ my $PROCEBTMAC  = "/proc/ebtables/npvnat/macs";
 my $PROCEBTNMAC = "/proc/ebtables/npvnat/nummacs";
 my $REFRESHRATE = 5;    # refresh rate
 my $TIMEOUT     = 3600; # 1hr
+my $TRAPHOST	= "npw2-d.cit.buffalo.edu";
+my $TRAPHOSTCOM	= "50ohm";
 
 my $fh   	= new FileHandle();
 my $mactable	= {};
@@ -69,19 +72,55 @@ while (1) {
 			$mactable->{$m}{lastseen} = $time;
 
 			# send linkup trap here...
+			sendTrap($mactable->{$m}{port}, 'up', $TRAPHOST, $TRAPHOSTCOM);
 		}
 
 		$ltime += $REFRESHRATE;
 	}
 }
 
-#
-# trap type 2 subtype 0 linkdown
-# trap type 3 subtype 0 linkup  
-#
-
 $agent->shutdown();
 exit 0;
+
+sub sendTrap {
+	my($port, $traptype, $traphost, $traphostcom) = @_;
+	my $enterpriseoid;
+	my $portoidbase = $BASEOID.'1';
+
+print "sending linkup trap\n";
+
+	#
+	# enterprise oids
+	# .1.3.6.1.4.1.45.3.30.2 linkdown trap
+	# .1.3.6.1.4.1.45.3.35.1 linkup trap
+	#
+
+	if ($traptype eq "up") {
+		$enterpriseoid  = ".1.3.6.1.4.1.45.3.35.1";
+	} else {
+		$enterpriseoid  = ".1.3.6.1.4.1.45.3.30.2";
+	}
+
+	my $snmp = new SNMP::Session(
+					DestHost   => $traphost,
+					RemotePort => 162,
+					Community  => $traphostcom,
+				    );
+
+	if (!defined($snmp)) {
+		warn "Unable to connect to $traphost with community = $traphostcom";
+		return -1;
+	}
+print "about to send trap\n";
+	$snmp->trap (
+			oid	=> $enterpriseoid,
+			uptime => 1234,
+			[[$portoidbase, $port, 1]]
+		    );
+print "trap sent\n";
+
+	return 1;
+}
 
 sub delMac {
 	my $mac = shift;
@@ -142,7 +181,6 @@ sub snmphandler {
 	#
 
 	my ($handler, $registration_info, $request_info, $requests) = @_;
-
 	my $request;
 	my $macbaseoid		= $BASEOID.'.1';
 	my $statusbaseoid	= $BASEOID.'.2';
@@ -183,8 +221,37 @@ sub snmphandler {
                                                 goto done;
                                         }
                                 }
-			}	
-done:
+			}
+		} elsif ($request_info->getMode() == MODE_SET_RESERVE1) {
+			foreach my $m (keys %$mactable) {
+				if ($oid == new NetSNMP::OID ($statusbaseoid.'.'.$mactable->{$m}{decmac})) {
+					goto done if ($request->getValue() =~ /^\"(quar|unquar)\"$/); 
+					$request->setError($request_info, SNMP_ERR_WRONGVALUE);	
+				}
+			}
+			$request->setError($request_info, SNMP_ERR_NOSUCHNAME);
+
+		} elsif ($request_info->getMode() == MODE_SET_ACTION) {
+			my $val =  $request->getValue();
+			$val    =~ s/\"//g;
+
+			my $o = new NetSNMP::OID($statusbaseoid);
+
+			if ($oid =~ /^$o\.(\d+\.\d+\.\d+\.\d+\.\d+\.\d+)$/) {
+				my $mac = sprintf("%x:%x:%x:%x:%x:%x", split(/\./, $1));
+
+				if ($val eq "unquar") {
+					addMac($mac);
+				} else {
+					delMac($mac);
+				}
+
+				$mactable->{$mac}{status} = $val;
+				goto done;
+			}
+			$request->setError($request_info, SNMP_ERR_INCONSISTENTVALUE);
+
 		}
+done:
 	}
 }
