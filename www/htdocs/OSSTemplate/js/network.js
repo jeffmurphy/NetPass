@@ -223,3 +223,4 @@ function network_onfocus_addSwitch(o) {
 	dbg(1, RN);
 	if (o && o.value == "Add Switch...") o.value = '';
 }
+

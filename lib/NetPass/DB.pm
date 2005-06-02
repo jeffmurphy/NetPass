@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.43 2005/06/02 19:04:54 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.44 2005/06/02 19:59:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -64,6 +64,7 @@ sub new {
 			    AutoCommit => 1  # commit on execute
 			   }
 			  );
+
     return undef if ( !defined($dbh) );
 
     $self->{'dbh'} = $dbh;
@@ -2290,7 +2291,9 @@ sub getConfig {
     $sql .= " WHERE rev = ".$self->dbh->quote($r) if $r;
     $sql .= " WHERE rev = (select MAX(rev) FROM config)" if ($r == 0);
 
-    $rv = $self->dbh->selectall_arrayref($sql);
+    $self->reconnect() || return "db failure";
+
+    $rv = $self->{'dbh'}->selectall_arrayref($sql);
 
     return "db failure ".$self->dbh->errstr if (ref($rv) ne "ARRAY");
 
@@ -2699,7 +2702,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.43 2005/06/02 19:04:54 jeffmurphy Exp $
+$Id: DB.pm,v 1.44 2005/06/02 19:59:08 jeffmurphy Exp $
 
 =cut
 

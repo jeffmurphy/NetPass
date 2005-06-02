@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.13 2005/05/19 20:15:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.14 2005/06/02 19:59:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -77,7 +77,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.13 2005/05/19 20:15:03 jeffmurphy Exp $
+$Id: resetport.pl,v 1.14 2005/06/02 19:59:08 jeffmurphy Exp $
 
 =cut
 
@@ -122,7 +122,7 @@ print "new NP..\n" if exists $opts{'D'};
 
 my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} :  undef,
+my $np = new NetPass(-cstr   => exists $opts{'c'} ? $opts{'c'} :  undef,
 		     -dbuser => $dbuser, -dbpass => $dbpass,
 		     -debug  => exists $opts{'D'} ? 1 : 0,
 		     -quiet  => exists $opts{'q'} ? 1 : 0);

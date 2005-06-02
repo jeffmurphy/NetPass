@@ -1,4 +1,15 @@
 function switch_onclick_submitButton() {
+	var RN = "switch_onclick_submitButton";
+	dbg(1, RN);
+	var vm = document.getElementById('vlanmap');
+	if (vm) {
+		for (var i = vm.options.length-1 ; i > 0 ; i--) {
+			vm.options[i].selected = true;
+		}
+	} else {
+		dbg (1, RN + ": cant find vlanmap field");
+	}
+	return false;
 }
 
 function switch_onfocus_addSwitch(o) {
@@ -84,11 +95,8 @@ function switch_onclick_deleteVlan() {
 	dbg(1, RN);
 	var vm = document.getElementById('vlanmap');
 	if (vm) {
-		dbg(1, RN + ": len=" + vm.options.length);
 		for (var i = vm.options.length-1 ; i > 0 ; i--) {
-			dbg(1, RN + ": check " + i);
 			if (vm.options[i].selected) {
-				dbg (1, RN + ": del " + i + " " + vm.options[i].value);
 				vm.options[i] = undefined;
 			}
 		}

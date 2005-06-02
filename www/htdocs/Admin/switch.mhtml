@@ -1,8 +1,9 @@
 <%doc>
 </%doc>
 <%args>
-	$switch  => '';
-	$vlanmap => '';
+	$submitButton  => '';
+	$switch        => '';
+	$vlanmap       => '';
 </%args>
 <%perl>
 $switch = pop @$switch if (ref($switch) eq "ARRAY");
@@ -20,16 +21,27 @@ my $WH2    = "----------------------";
 $m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addSwitch', 'submitButton' ], 'init' => 0);
 my $lstat = $np->db->isConfigLocked();
 
-my @err;
+my @err = ();
+my $vm = '';
 
-if ( $switch && ($switch ne $WH) && (ref($lstat) eq "HASH") ) {
+if ( 	$switch && ($switch ne $WH)         &&
+	($submitButton eq "Commit Changes") &&
+	(ref($lstat) eq "HASH") ) {
+
 	if ($lstat->{'user'} eq $whoami) {
-		
+		$vm = join(';', grep(!/^\-/, @$vlanmap));
+		my $rv = $np->cfg->setVlanMap($switch, $vm);
+		push @err, $rv if ($rv);
+		$np->cfg->save(-user => $whoami) if ($#err == -1);
 	} else {
 		push @err, "The config is not locked.";
 	}
 }
 
+if ($#err > -1) {
+	print "<P class='error'>The following errors occurred:</P> ";
+	print "<OL><LI class='error'>", join("<LI class='error'>", @err), "</OL>";
+}
 </%perl>
 
 <h2> Switch Configuration </h2>
@@ -52,7 +64,6 @@ DBG_init();
 <%perl>
 my $allSwitches = $np->cfg->getSwitches();
 my $tlh;
-my $vm;
 if ($switch) {
 	$vm = $np->cfg->getVlanMap($switch);
 	if (defined($vm)) {
