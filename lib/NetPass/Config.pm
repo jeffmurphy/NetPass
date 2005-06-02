@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.42 2005/05/20 20:32:59 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.43 2005/06/02 19:04:53 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -2004,19 +2004,137 @@ sub isVlanAvailable {
 	return ($good == $v || $bad == $v) ? 1 : 0;
 }
 
+=head2 $encodedTagList = encodeTagList($tlHref)
 
-# tagList format:
-#    port1,port3-port5:good/bad;port7-port10:good/bad
-#
-# e.g. if the switch services multiple networks (2 in this case)
-#
-#   1,10-20:12/812;2-9,21-24:13/813
-#
-# or more simply, you'll typically have:
-#
-#   1-24:12/812
-#
-# where '12' is the 'good/normal' vlan and '812' is the quarantine
+This routine is not a method. Given a tagList hash ref such as
+
+    $tl->{'12/812'} = [ 1,2,3,5,6 ];
+    $tl->{'13/813'} = [ 10,11,12,20,21 ];
+
+encode it into the format:
+
+    port1,port3-port5:good/bad;port7-port10:good/bad
+
+See also: expandTagList()
+
+Returns
+   "..."                encoded tag list
+   "invalid parameters" routine called improperly
+
+=cut
+
+sub encodeTagList {
+	my $th = shift;
+	if (ref($th) ne "HASH") {
+		return "invalid parameters";
+	}
+
+	my $v = {};
+	foreach my $port (keys %$th) {
+		my $val = $th->{$port};
+		$val =~ s/\|/\//g;
+		if ( exists $v->{$val} ) {
+			$v->{$val} = [ $port ];
+		} 
+		else {
+			push @{$v->{$val}}, $port;
+		}
+	}
+
+	# now we have th->{'12/812'} = [ 1,2,3,6,7,8 ]
+	# and we want to go to
+	# th->{'12/812'} = '1-3,6-8'
+
+	foreach my $vlan (keys %$th) {
+		$th->{$vlan} = formatPorts($th->{$vlan});
+	}
+	
+	
+}
+
+sub formatPorts {
+        my $d   = shift;
+        my $s = "";
+
+        foreach my $vid (keys %$d) {
+                my @t = sort {$a<=>$b} @{$d->{$vid}};
+
+                my $start = $t[0];
+                my $prev  = $start;
+                my $cur   = $start;
+
+                my @myline;
+
+                for (my $i = 1 ; $i <= $#t ; $i++) {
+                        $cur = $t[$i];
+                        if ($cur - $prev > 1) {
+                                # we've hit a break
+                                if ($start != $prev) {
+                                        push @myline, "$start-$prev";
+                                } else {
+                                        push @myline, "$start";
+                                }
+                                $prev = $start = $cur ;
+                        } else {
+                                $prev = $cur;
+                        }
+                }
+
+                if ($start != $prev) {
+                        push @myline, "$start-$prev";
+                } else {
+                        push @myline, "$start";
+                }
+
+                $s .= join(',', @myline).':'.$vid.';';
+        }
+        return $s;
+}
+
+sub getVlanMap {
+	my $self = shift;
+	my $sw   = shift;
+
+	$sw ||= '';
+	if (recur_exists($self->{'cfg'}, 'vlanmap', $sw)) {
+		return $self->{'cfg'}->obj('vlanmap')->value($sw);
+	}
+	return undef;
+}
+
+sub setVlanMap {
+	my $self = shift;
+	my $sw   = shift;
+	my $vm   = shift;
+
+	$sw ||= '';
+	$self->{'cfg'}->obj('vlanmap')->$sw($vm);
+	return undef;
+}
+
+=head2 $tlHref = expandTagList($encodedTagList)
+
+This routine is not a method. Given an encoded tag list (vlanmap) like
+
+
+ tagList format:
+    port1,port3-port5:good/bad;port7-port10:good/bad
+
+ e.g. if the switch services multiple networks (2 in this case)
+
+   1,10-20:12/812;2-9,21-24:13/813
+
+ or more simply, you'll typically have:
+
+   1-24:12/812
+
+ where '12' is the 'good/normal' vlan and '812' is the quarantine
+
+Return a hash ref with the port as the key and the vlan as the value. 
+So, for example, you'll have: $tl->{10} = '12|812'. For historical
+reasons the "/" is converted to "|". 
+
+=cut
 
 sub expandTagList {
 	my $tl   = shift;
@@ -2147,7 +2265,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.42 2005/05/20 20:32:59 jeffmurphy Exp $
+$Id: Config.pm,v 1.43 2005/06/02 19:04:53 jeffmurphy Exp $
 
 =cut
 

@@ -1,5 +1,5 @@
 /* 
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.8 2005/05/06 20:13:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.9 2005/06/02 19:04:54 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -203,4 +203,33 @@ TABLE#networkConfig TD.selector {
 TABLE#networkConfig TR.selector { 
   border-bottom: 2px solid black;
   border-top:    2px solid black;
+}
+
+
+TABLE#switchConfig { 
+  border-collapse: collapse;
+}
+
+TABLE#switchConfig TD.left { 
+  text-align: right;
+}
+
+TABLE#switchConfig TD.selector { 
+  text-align:     center;
+  border-bottom:  solid 1px black;
+  border-top:     solid 1px black;
+  width:          33%;
+}
+
+TABLE#switchConfig TR.selector { 
+  border-bottom: 2px solid black;
+  border-top:    2px solid black;
+}
+
+TABLE#switchConfig TD.vlanmapRow { 
+  text-align:     center;
+  width:          33%;
+}
+
+TABLE#switchConfig TR.vlanmapRow { 
 }

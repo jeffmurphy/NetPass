@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.12 2005/05/06 03:09:33 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.13 2005/06/02 19:04:54 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -39,6 +39,7 @@ if ($printable == 0) {
 <a class="sbLinks" href="/Admin/gencfg.mhtml" title="">General</a><br>
 <a class="sbLinks" href="/Admin/network.mhtml" title="">Network</a><br>
 <a class="sbLinks" href="/Admin/netgroups.mhtml" title="">Netgroup</a><br>
+<a class="sbLinks" href="/Admin/switch.mhtml" title="">VLAN Map</a><br>
 <!--<a class="sbLinks" href="/Admin/urlfilter.mhtml" title="">URL Filter</a><br>-->
 <a class="sbLinks" href="/Admin/greset.mhtml" title="">Global Reset</a><br>
 <a class="sbLinks" href="/Admin/Scan/ids.mhtml" title="">IDS Config</a><br>

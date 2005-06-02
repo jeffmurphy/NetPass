@@ -1,6 +1,131 @@
 <%doc>
 </%doc>
 <%args>
-	$switch => '';
+	$switch  => '';
+	$vlanmap => '';
 </%args>
-switch: <%$switch%>
+<%perl>
+$switch = pop @$switch if (ref($switch) eq "ARRAY");
+my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+if (!$isRoot) {
+	print qq{<p class='error'>Sorry, you don't have access to this form.</P>};
+	return;
+}
+
+my $ip     = $ENV{'REMOTE_ADDR'};
+my $whoami = $m->session->{'username'};
+my $WH     = "--Select a Switch--";
+my $WH2    = "----------------------";
+
+$m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addSwitch', 'submitButton' ], 'init' => 0);
+my $lstat = $np->db->isConfigLocked();
+
+my @err;
+
+if ( $switch && ($switch ne $WH) && (ref($lstat) eq "HASH") ) {
+	if ($lstat->{'user'} eq $whoami) {
+		
+	} else {
+		push @err, "The config is not locked.";
+	}
+}
+
+</%perl>
+
+<h2> Switch Configuration </h2>
+Select a switch, or add a new one. Once selected, edit the port-to-vlan mappings.
+<P> <B>Warnings:
+<ul>
+<li>No error checking is performed, at present, to detect overlaps or malformed VLAN mappings. Double
+check what you enter to make sure it's correct!
+<li>Be sure that you <I>exclude</I> any uplink/downlink ports. If you accidentally include them, it's likely
+that the switch (or downstream switches) will lose all connectivity and 
+you'll need to reconfigure it/them via the console port.
+</ul>
+</B>
+
+<script language='JavaScript'><!--
+setWhereAmI('Configuration &gt; Switch');
+DBG_init();
+--></script>
+
+<%perl>
+my $allSwitches = $np->cfg->getSwitches();
+my $tlh;
+my $vm;
+if ($switch) {
+	$vm = $np->cfg->getVlanMap($switch);
+	if (defined($vm)) {
+		my $tlh = NetPass::Config::expandTagList($vm);
+	}
+}
+
+</%perl>
+
+<form method='post'>
+<table border='0' width=1000 id='switchConfig'>
+<tr class='selector'>
+    <td class='selector'>
+       <%$q->popup_menu(-id => 'switch', -name => 'switch',  -values => [ $WH, sort @$allSwitches ], 
+		-default => $switch, -onchange => 'switch_onchange_switch();')%>
+    </td>
+    <td class='selector'>
+	<input id='addSwitch' name='addSwitch' size=20 value='Add Switch...' disabled
+	onblur='switch_onblur_addSwitch(this);' onfocus='switch_onfocus_addSwitch(this);'>
+    </td>
+    <td class='selector'>
+	<input type='submit' onclick='switch_onclick_submitButton();' 
+		name='submitButton' id='submitButton' value='Commit Changes' disabled>
+    </td>
+</tr>
+<tr class='vlanmapRow' id='vlanmapRow' style='display:none;'>
+	<td class='vlanmapRow'>
+		<%$q->scrolling_list(-id => 'vlanmap', -name => 'vlanmap', -size=>5,
+					-values => [ $WH2, split(/;/, $vm) ], -multiple => 'true')%>
+	</td>
+	<td class='vlanmapRow'><input id='addVlan' name='addVlan' size=20 value='Add Vlan Map...'
+		onblur='switch_onblur_addVlan(this);' onfocus='switch_onfocus_addVlan(this);'><BR>
+		<B><U>Format examples:</U></B><BR>
+		<I>portA,portB-portF:unquar/quar</I><BR>
+		<I>1,5-7:101/201</I><BR>
+		<I>1-24:101/201</I><BR>
+		<I>1,2,3,4,5:101/201</I><BR>
+	</td>
+	<td class='vlanmapRow'><input type='submit' onclick='switch_onclick_deleteVlan();return false;'
+		name='deleteVlan' id='deleteVlan' value='Delete Vlan'>
+	</td>
+</tr>
+</table>
+</form>
+
+
+<script src="/resources/js/common.js" type="text/javascript"></script>
+<script src="/resources/js/switch.js" type="text/javascript"></script>
+<script language='JavaScript'>
+% if ($switch && ($switch ne $WH)) {
+showHideObj2('vlanmapRow');
+% }
+</script>
+
+<%perl>
+
+
+if (ref($lstat) eq "HASH") { 
+	# the config is locked
+	if ($lstat->{'user'} eq $m->session->{'username'}) {
+		# by us, so show the unlock button
+		print qq{<script>lockConfig_results("OK lock");lockConfig_enableElements();</script>};
+	} else {
+		# but not by us, show the force unlock button
+		print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");lockConfig_disableElements();</script>};
+	}
+} 
+elsif ($lstat) {
+	# there was a problem
+} 
+else {
+	# the config is not locked, show the lock button
+	print qq{<script>lockConfig_results("OK unlock");lockConfig_disableElements();</script>};
+}
+
+</%perl>

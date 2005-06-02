@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.42 2005/05/17 20:34:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.43 2005/06/02 19:04:54 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -299,90 +299,6 @@ sub setSwitchPort {
     return 0;
 }
 
-
-=head2 setMessage(mac, message | url)
-
-This routine will set the message on an already registered MAC. It will over-write
-any existing message. If the message begins with "http:" then the web front end
-will assume it's a URL. Otherwise, the web frontend will assume it's text or HTML
-code and display it appropriately. It's OK to set the message to C<undef>. Returns:
-
-=over 4
-
-=item 1
-
-on success 
-
-=item 0
-
-on failure (e.g. mac isnt registered)
-
-=back
-
-=cut
-
-sub setMessage {
-    my $self = shift;
-    my ($ma, $msg) = (shift, shift);
-
-    #called by macIsReg .. $self->reconnect() || return 0;
-
-    my $rv = $self->macIsRegistered($ma);
-    return 0 if ($rv < 1);
-
-    if (defined($msg) && ($msg !~ /^null$/i)) {
-	$msg = $self->{'dbh'}->quote($msg);
-    } else {
-	$msg = 'NULL';
-    }
-
-    my $sql = "UPDATE register SET message = $msg WHERE macAddress = '$ma'";
-
-    _log ("DEBUG", "$ma setMessage to $msg (sql=$sql)\n");
-
-    return 1 if $self->{'dbh'}->do($sql);
-
-    _log("ERROR", "setMessage failed: ".$self->{'dbh'}->errstr."\n");
-
-    return 0;
-}
-
-=head2 $msg = getMessage(mac)
-
-This routine will get the message on an already registered MAC. Returns:
-
-=over 4
-
-=item C<scalar>
-
-on success
-
-=item undef
-
-on failure or no message set
-
-=back
-
-=cut
-
-sub getMessage {
-    my $self = shift;
-    my $ma = shift;
-
-    #called by macIsReg .. $self->reconnect() || return undef;
-
-    my $rv = $self->macIsRegistered($ma);
-    return undef if ($rv ==  0);
-    return undef if ($rv == -1);
-	  
-    my $sql = "SELECT message FROM register WHERE macAddress = '$ma'";
-
-    my $a    = $self->{'dbh'}->selectrow_arrayref($sql);
-    _log "ERROR", "select failed: ".$self->{'dbh'}->errstr."\n" 
-      unless (defined($a) && (ref($a) eq "ARRAY"));
-    return $a->[0];
-}
-
 =head2 $rv = getRegisterInfo(-mac => mac, -macs => [], -ip => ip, -ips => [])
 
 This routine will get the registered info on an already registered MAC. Returns:
@@ -433,7 +349,7 @@ sub getRegisterInfo {
     my ($mac, $macs, $ip, $ips) = $parms->get('-mac', '-macs', 
 					      '-ip', '-ips');
 
-    my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE ";
+    my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE ";
     if ($mac ne "") {
 	    $sql .= " macAddress = ".$self->dbh->quote($mac);
 	    $kfield = "macAddress";
@@ -2743,8 +2659,6 @@ sub getUrlFilters {
 
 
 
-
-    
 sub commit {
 	my $self = shift;
 	$self->reconnect() || return 0;
@@ -2753,6 +2667,24 @@ sub commit {
 
 
 
+
+=head2 updateRegister(-mac => '', -status => [QUAR|PQUAR|UNQUAR|PUNQUAR])
+
+Update the register table for the given MAC address.
+
+RETURNS
+
+ 0                    on success
+ "invalid parameters" routine called improperly
+ "mac not exist"      given mac doesnt exist (use registerHost first)
+ "..."                db error
+
+=cut
+
+sub updateRegister {
+	my $self = shift;
+	# params...
+}
 
 
 =head1 AUTHOR
@@ -2767,7 +2699,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.42 2005/05/17 20:34:27 jeffmurphy Exp $
+$Id: DB.pm,v 1.43 2005/06/02 19:04:54 jeffmurphy Exp $
 
 =cut
 

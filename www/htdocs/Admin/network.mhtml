@@ -44,7 +44,7 @@ use Data::Dumper;
 #print "<PRE>",  Dumper(\%ARGS), "</PRE>";
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
 if (!$isRoot) {
-	print qq{<p class='error'>Sorry, you don't have access to this form.};
+	print qq{<p class='error'>Sorry, you don't have access to this form.</P>};
 	return;
 }
 
