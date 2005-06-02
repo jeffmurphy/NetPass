@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.8 2005/04/25 05:32:49 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.9 2005/06/02 18:28:30 mtbell Exp $
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -132,16 +132,25 @@ if ($ruledel eq "Delete" && $readOnly ne "disabled") {
 	}
 } elsif ($rulesave eq "Save" && $readOnly ne "disabled") {
 	if ($raw) {
-		addRawRule($dbh, $rule, $desc, $sid);
+                my $rv = $np->db->addSnortRuleEntry(
+                                                     -rule => $rule,
+                                                     -user => $m->session->{'username'},
+                                                     -desc => $desc
+                                                   );
+
+                if ($rv != 1) {
+                        print $q->p({-class=>'error'}, "ERROR $rv");
+                }
+
 	} else {
  
 		my $o = $alloptions;
 		my $s = $sid;
 
 		if ($newsid) {
-			if ($newsid < 1000000) {
+			if ($newsid < 2000000) {
 				print $q->p({-class=>'error'},
-					"Snort ID not in private SID space (>1000000)");
+					"Snort ID not in private SID space (>2000000)");
 				return;
 			}
 	
