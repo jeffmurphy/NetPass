@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.44 2005/06/02 19:59:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.45 2005/06/02 20:34:49 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -2668,25 +2668,54 @@ sub commit {
 	return $self->{'dbh'}->commit;
 }
 
-
-
-
 =head2 updateRegister(-mac => '', -status => [QUAR|PQUAR|UNQUAR|PUNQUAR])
 
 Update the register table for the given MAC address.
 
 RETURNS
 
- 0                    on success
+ 1                    on success
  "invalid parameters" routine called improperly
- "mac not exist"      given mac doesnt exist (use registerHost first)
+ "mac doesnt exist"   given mac doesnt exist (use registerHost first)
  "..."                db error
 
 =cut
 
 sub updateRegister {
-	my $self = shift;
-	# params...
+    my $self = shift;
+
+    $self->reconnect() || return undef;
+    my $parms = parse_parms({
+                             -parms    => \@_,
+                             -legal    => [ qw(-mac -status) ],
+                             -defaults => { -mac      => '',
+                                            -status   => '',
+                                          }
+                            }
+                           );
+
+    return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
+    my ($mac, $status) = $parms->get('-mac', '-status');
+
+    if ($mac !~ /^[0-9a-fA-F]+$/ || $status !~ /^(QUAR|PQUAR|UNQUAR|PUNQUAR)$/) {
+        return "invalid parameters";
+    }
+
+    $mac = NetPass::padMac($mac);
+
+    my $sql = "UPDATE register SET status=? WHERE macAddress = ?";
+    my $sth = $self->{'dbh'}->prepare($sql);
+    my $rv  = $sth->execute($status, $mac);
+
+    if ($rv == 0) {
+        return "mac doesnt exist";
+    }
+
+    if ($rv < 0) {
+        _log("ERROR", "db failure ".$self->{'dbh'}->errstr);
+        return "db failure ".$self->{'dbh'}->errstr;
+    }
+    return 1;
 }
 
 
@@ -2702,7 +2731,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.44 2005/06/02 19:59:08 jeffmurphy Exp $
+$Id: DB.pm,v 1.45 2005/06/02 20:34:49 mtbell Exp $
 
 =cut
 

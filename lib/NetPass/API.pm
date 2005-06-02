@@ -219,8 +219,18 @@ sub quarantineByIP {
 			_log("ERROR", "database failure");
 			return undef;	
 		}
-		if ($rv ne "duplicate result" && $rv != 0) {
+		if ($rv ne "duplicate result" && $rv ne 0) {
 			_log("ERROR", "Unknown Error");
+			return undef;
+		}
+
+		my $rv2 = $np->db->updateResult (
+						   -mac	   => $mac,
+						   -status => "QUAR",
+						);
+
+		if ($rv2 ne 1) {
+			_log("ERROR", "Unable to quarantine $mac");
 			return undef;
 		}
 	}
