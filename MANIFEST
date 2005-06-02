@@ -5,6 +5,7 @@ bin/test/snmptt_shell.pl
 bin/test/getMatchingNetwork.pl
 bin/test/policy.pl
 bin/test/getUsersGroups.pl
+bin/test/formatPorts.pl
 bin/import_nessus_scans.pl
 bin/appstarter.pl
 bin/bulk_moveport.pl
@@ -31,6 +32,7 @@ bin/getresults.pl
 bin/quarantine_host.pl
 bin/lsconf.pl
 bin/rogue-dhcp-detect.pl
+bin/npsubagent.pl
 bin/npurlfilter.pl
 doc/cron.monthly/mysql_binlog_rotate
 doc/logrotate.d/apache
@@ -63,6 +65,7 @@ doc/nessus-install.txt
 doc/npsnort.txt
 doc/netpass-install.sxw
 doc/snort-2.3.3-vlan.patch
+doc/ebtablesnmpsetup.txt
 etc/netpass-example.conf
 etc/oui.txt
 install.d/logrotate.d/apache
@@ -212,6 +215,7 @@ www/htdocs/OSSTemplate/js/xmlhttp.js
 www/htdocs/OSSTemplate/js/lockcfg.js
 www/htdocs/OSSTemplate/js/common.js
 www/htdocs/OSSTemplate/js/network.js
+www/htdocs/OSSTemplate/js/switch.js
 www/htdocs/OSSTemplate/.htaccess
 www/htdocs/load-test.mhtml
 www/htdocs/autohandler

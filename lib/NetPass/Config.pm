@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.43 2005/06/02 19:04:53 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.44 2005/06/02 19:05:22 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -502,13 +502,13 @@ sub snortEnabled {
 
     if (recur_exists($self->{'cfg'}, 'network', $nw, 'snort', 'mode')) {
         my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort')->value('mode');
-        return $s if ($s =~ /^(enabled|disabled|not_really)$/);
+        return $s if ($s =~ /^(enabled|disabled|not_really)$/i);
         return 0;
     }
 
     if (recur_exists($self->{'cfg'}, 'snort', 'mode')) {
         my $s = $self->{'cfg'}->obj('snort')->value('mode');
-        return $s if ($s =~ /^(enabled|disabled|not_really)$/);
+        return $s if ($s =~ /^(enabled|disabled|not_really)$/i);
         return 0;
     }
 
@@ -2265,7 +2265,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.43 2005/06/02 19:04:53 jeffmurphy Exp $
+$Id: Config.pm,v 1.44 2005/06/02 19:05:22 jeffmurphy Exp $
 
 =cut
 
