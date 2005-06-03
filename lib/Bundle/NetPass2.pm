@@ -38,6 +38,8 @@ Net::Ping
 
 Net::Ping::External
 
+NetPacket
+
 GD
 
 GD::Graph
