@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-#   $Header: /tmp/netpass/NetPass/bin/rogue-dhcp-detect.pl,v 1.3 2005/04/26 20:35:36 rcolantuoni Exp $
+#   $Header: /tmp/netpass/NetPass/bin/rogue-dhcp-detect.pl,v 1.4 2005/06/03 20:53:33 rcolantuoni Exp $
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -58,11 +58,11 @@ use threads;
 use Getopt::Std;
 use Pod::Usage;
 use Net::Pcap;
+use NetPacket::Ethernet;
 
 use lib qw(/opt/netpass/lib);
 use NetPass::LOG qw(_log _cont);
 use NetPass;
-use NetPass::Config;
 
 use FileHandle;
 
@@ -70,6 +70,23 @@ BEGIN {
     use Config;
     $Config{useithreads} or die "Recompile Perl with threads to run this program.";
 }
+
+###################### CONFIG VARS ####################################
+
+my $allowed 	= {
+			'128.205.1.32'    => 'ccdhcp-resnet3',
+			'128.205.1.33'    => 'ccdhcp-resnet4',
+			'128.205.1.26'	  => 'npw1',
+			'128.205.1.27'	  => 'npw2',
+			'128.205.159.122' => 'dhcp relay exception',
+			'128.205.159.123' => 'dhcp relay exception',
+			'128.205.159.126' => 'dhcp relay exception',
+		  };
+
+# file containing a map of the first half of a mac address to manufacturer
+my $ouiFile = "/opt/netpass/etc/oui.txt";
+
+########################################################################
 
 my %opts;
 
@@ -83,7 +100,6 @@ my $quiet	= exists $opts{'q'} ? 1 : 0;
 
 NetPass::LOG::init *STDOUT if $debug;
 NetPass::LOG::init [ 'rogue-dhcp-sniff', 'local0' ] unless $debug;
-
 
 my $np = new NetPass(	-cstr 	=> exists $opts{'c'} ? $opts{'c'} : undef,
                      	-dbuser => $dbuser,
@@ -107,35 +123,14 @@ foreach my $network ( @{$np->cfg->getNetworks()} ) {
 }
 
 die "no interfaces to listen on" if($#interfaces<0);
-		
-###################### CONFIG VARS ####################################
 
-
-my $allowed 	= {
-			'128.205.1.32'    => 'ccdhcp-resnet3',
-			'128.205.1.33'    => 'ccdhcp-resnet4',
-			'128.205.1.26'	  => 'npw1',
-			'128.205.1.27'	  => 'npw2',
-			'128.205.159.122' => 'dhcp relay exception',
-			'128.205.159.123' => 'dhcp relay exception',
-			'128.205.159.126' => 'dhcp relay exception',
-		  };
-
-my $checkFrequency  = 3;  # how often (in seconds) to check the tcpdump filehandles for input
-my $reportFrequency = 20; # how often (in minutes) to send the report of rogues found
-
-# file containing a map of the first half of a mac address to manufacturer
-my $ouiFile = "/opt/netpass/etc/oui.txt";
-
-my $fhIfMap = {};
-
-########################################################################
-
-# convert to seconds
-$reportFrequency = $reportFrequency * 60;
+$np->DESTROY();
 
 # unbuffer output
 $|=1;
+
+# use oui file for determining what manufacturer made this device
+my $ouiCache    = loadOUI($ouiFile);
 
 # when true, we exit
 my $programExit	= 0;
@@ -144,51 +139,65 @@ my $programExit	= 0;
 # $roguesFound->{ethernet address} = ip address
 my $roguesFound = {};
 
-# the last time a report was sent out
-my $lastReport  = time;
-
-# use oui file for determining what manufacturer made this device
-my $ouiCache    = loadOUI($ouiFile);
-
 my @threads = ();
 
-# for each interface, spawn a thread and push it into the filehandle group
+# for each interface, spawn a thread and push it into the threads array
 foreach my $interface (@interfaces) {
 	my $sniffer = pcapDescriptor($interface);
 	push @threads, new threads (\&threadEntry, $sniffer, $interface);
+	#my $t = new threads (\&threadEntry, $sniffer, $interface);
 }
-
-#print "Parent thread waiting\n" if $debug;
-#$threads[0]->join;
-#print "Parent thread joined\n" if $debug;
 
 # wait for all threads to finish
 $_->join foreach @threads;
+
+$threads[0]->join;
 
 exit 0;
 
 ########################################################################
 
 sub threadEntry {
-	my $sniffer   = shift;
-	my $interface = shift;
+	my ($sniffer, $interface) = @_;
 
-	#my $tid = threads->tid();
+	my $tid = threads->tid();
 	#print "$tid";  # causes segfault?? wtf!
 
 	if(ref($sniffer)) {
-		_log("DEBUG", "Thread [tid] - Listening on interface $interface\n");
-#		Net::Pcap::loop($sniffer, -1, \&processPacket, 0);
+		_log("DEBUG", "Thread [$tid] - Listening on interface $interface\n");
+		Net::Pcap::loop($sniffer, -1, \&processPacket, 0);
 		Net::Pcap::close($sniffer);
-		_log("DEBUG", "Thread [tid] - Done Listening on interface $interface\n");
+		_log("DEBUG", "Thread [$tid] - Done Listening on interface $interface\n");
 	} else {
-		_log("DEBUG", "Not Listening on interface $interface\n");
+		_log("DEBUG", "Thread [$tid] - Not Listening on interface $interface\n");
+
+		# without this sleep, the $tid throws a segfault?
+		sleep(1);
 	}
 }
 
 sub processPacket {
 	my($user_data, $hdr, $pkt) = @_;
 	print "got one!\n";
+
+	my $eth_obj = NetPacket::Ethernet->decode($pkt);
+
+	return if(!defined($eth_obj->{type}));
+	return if( $eth_obj->{type} != 2048 );
+
+	# 2048 (0x0800) - IP
+	# 2054 (0x0806) - ARP 
+
+        print("$eth_obj->{src_mac}:$eth_obj->{dest_mac} $eth_obj->{type}\n");	
+
+	my $ip_obj = NetPacket::IP->decode($eth_obj->{data});
+    
+	if($ip_obj->{proto} == 11){
+		# TCP = 6
+		# UDP = 11
+      		#my $udp_obj = NetPacket::UDP->decode($ip_obj->{data});
+    	}
+
 	return;
 }
 
@@ -205,12 +214,13 @@ sub pcapDescriptor {
     	my $optimize	= 1;    # optimize flag
     
 	# dhcp
-    	my $filter = "udp src port 67";
+    	#my $filter = "udp src port 67";
+    	my $filter = "";
 
 	my ($err, $net, $mask, $filterCompiled);
  
     	if ( (Net::Pcap::lookupnet($device, \$net, \$mask, \$err) ) == -1 ) {
-		_log("DEBUG", "$err\n");
+		_log("ERROR", "$err\n");
 		return undef;
     	}
  
