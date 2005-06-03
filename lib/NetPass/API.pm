@@ -199,7 +199,7 @@ sub quarantineByIP {
 			 -mac		=> $mac,
 			 -ip		=> $ip,
 			 -user		=> 'npapi',
-			 @msgs
+			 -msg		=> \@msgs,
 		       );
 	return ("nothing") if $mode eq "not_really"; 
 
