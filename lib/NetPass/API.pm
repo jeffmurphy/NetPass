@@ -223,17 +223,37 @@ sub quarantineByIP {
 			_log("ERROR", "Unknown Error");
 			return undef;
 		}
-
-		my $rv2 = $np->db->updateResult (
-						   -mac	   => $mac,
-						   -status => "QUAR",
-						);
-
-		if ($rv2 ne 1) {
-			_log("ERROR", "Unable to quarantine $mac");
-			return undef;
-		}
 	}
+
+        my $rv2 = $np->db->updateRegister (
+                                           -mac    => $mac,
+                                           -status => "QUAR",
+                                          );
+
+        if ($rv2 ne 1) {
+        	_log("ERROR", "Unable to quarantine $mac");
+                return undef;
+        }
+
+	my($sw, $po, $m2p, $p2m) = $np->findOurSwitchPort($mac, $ip);
+
+	if (!defined($sw) || !defined($po)) {
+		_log("ERROR", "unable to determine switch for $mac $ip\n");
+		return undef;
+	}
+
+	my $rv3 = $np->db->requestMovePort(
+					    -switch 	=> $sw,
+					    -port	=> $po,
+					    -vlan	=> 'quarantine',
+					    -by		=> 'npapi',
+					  );
+
+	if (!$rv3) {
+		_log("ERROR", "$mac requestMovePort($sw, $po) failed\n");
+		return undef;
+	}
+
 	return ("quarantined");
 }
 

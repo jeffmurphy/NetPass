@@ -4,8 +4,8 @@ use strict;
 use NetSNMP::agent (':all');
 use NetSNMP::OID (':all');
 use NetSNMP::ASN (':all');
-use SNMP;
 use FileHandle;
+use SNMP;
 
 my $BASEOID	= ".1.3.6.1.4.1.8072.9999.9999.7375";
 my $BRCTLCMD    = "/usr/local/sbin/brctl showmacs br0 |";
@@ -83,8 +83,10 @@ $agent->shutdown();
 exit 0;
 
 sub sendTrap {
+
 	my($port, $traptype, $traphost, $traphostcom) = @_;
 	my $enterpriseoid;
+	my $generic;
 	my $portoidbase = $BASEOID.'1';
 
 print "sending linkup trap\n";
@@ -97,24 +99,27 @@ print "sending linkup trap\n";
 
 	if ($traptype eq "up") {
 		$enterpriseoid  = ".1.3.6.1.4.1.45.3.35.1";
+		$generic	= 3;
 	} else {
 		$enterpriseoid  = ".1.3.6.1.4.1.45.3.30.2";
+		$generic	= 2;
 	}
 
 	my $snmp = new SNMP::Session(
 					DestHost   => $traphost,
 					RemotePort => 162,
-					Community  => $traphostcom,
 				    );
 
 	if (!defined($snmp)) {
-		warn "Unable to connect to $traphost with community = $traphostcom";
+		warn "Unable to connect to $traphost";
 		return -1;
 	}
 print "about to send trap\n";
 	$snmp->trap (
-			oid	=> $enterpriseoid,
-			uptime => 1234,
+			enterprise	=> $enterpriseoid,
+			agent		=> $traphost,
+			generic		=> $generic,
+			specific	=> 0,
 			[[$portoidbase, $port, 1]]
 		    );
 print "trap sent\n";
