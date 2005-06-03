@@ -114,6 +114,37 @@ sub snortEnabled {
 	return $np->cfg->snortEnabled($nw);
 }
 
+=head2 my $networks = snortEnabledNetworks($secret)
+
+Get all the networks snort is enabled on. Returns an ARRAY ref of
+all the snort enabled networks on success, C<undef> on failure.
+
+=cut
+
+sub snortEnabledNetworks {
+        my $self   = shift;
+        my $secret = shift;
+        my $np     = $::np;
+
+	my $nws    = ();
+	my @snortnws;
+
+        return undef unless ($self->$check_soap_auth($secret));
+	$nws = $np->cfg->getNetworks();
+
+	if (!defined($nws) || ref($nws) ne 'ARRAY') {
+		_log("ERROR", "Unable to retrieve list of networks");
+		return undef;
+	}
+
+	foreach my $net (@$nws) {
+		push(@snortnws, $net) if ($np->cfg->snortEnabled($net) =~ /^(enabled|not_really)$/);
+	}
+
+        return \@snortnws;
+}
+
+
 =head2 my $results = quarantineByIP(-secret => $secret, -ip => $ip, -id => $id, -type => $type)
 
 Arguments to this function include a secret key, ip address to be
