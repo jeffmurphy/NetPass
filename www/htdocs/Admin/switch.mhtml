@@ -4,6 +4,8 @@
 	$submitButton  => '';
 	$switch        => '';
 	$vlanmap       => '';
+	$rocomm        => '';
+	$rwcomm        => '';
 </%args>
 <%perl>
 $switch = pop @$switch if (ref($switch) eq "ARRAY");
@@ -29,8 +31,13 @@ if ( 	$switch && ($switch ne $WH)         &&
 	(ref($lstat) eq "HASH") ) {
 
 	if ($lstat->{'user'} eq $whoami) {
-		$vm = join(';', grep(!/^\-/, @$vlanmap));
+		$vm = $vlanmap;
+		$vm = join(';', grep(!/^\-/, @$vlanmap)) if (ref($vlanmap) eq "ARRAY");
 		my $rv = $np->cfg->setVlanMap($switch, $vm);
+		push @err, $rv if ($rv);
+		$rv = $np->cfg->setCommunities(-switch    => $switch, 
+						-readonly  => $rocomm, 
+						-readwrite => $rwcomm);
 		push @err, $rv if ($rv);
 		$np->cfg->save(-user => $whoami) if ($#err == -1);
 	} else {
@@ -45,7 +52,12 @@ if ($#err > -1) {
 </%perl>
 
 <h2> Switch Configuration </h2>
-Select a switch, or add a new one. Once selected, edit the port-to-vlan mappings.
+
+Select a switch, or add a new one. Once selected, edit the port-to-vlan mappings. To delete 
+a switch, remove all of its mappings. This will not delete the switch from any 
+<a href="network.mhtml">networks</a> it may be assigned to. It will only delete it from this
+section of the config.
+
 <P> <B>Warnings:
 <ul>
 <li>No error checking is performed, at present, to detect overlaps or malformed VLAN mappings. Double
@@ -106,6 +118,11 @@ if ($switch) {
 		name='deleteVlan' id='deleteVlan' value='Delete Vlan'>
 	</td>
 </tr>
+<tr class='vlanmapRow' id='commnameRow' style='display:none;'>
+<td style='text-align:right;'>Read Community:<BR>(Read/)Write Community:</td>
+<td colspan=2><input size=16 name='rocomm' value='<%$rocomm%>'><BR>
+<input size=16 name='rwcomm' value='<%$rwcomm%>'></td>
+</tr>
 </table>
 </form>
 
@@ -115,6 +132,7 @@ if ($switch) {
 <script language='JavaScript'>
 % if ($switch && ($switch ne $WH)) {
 showHideObj2('vlanmapRow');
+showHideObj2('commnameRow');
 % }
 </script>
 

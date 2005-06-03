@@ -6,6 +6,7 @@ function switch_onclick_submitButton() {
 		for (var i = vm.options.length-1 ; i > 0 ; i--) {
 			vm.options[i].selected = true;
 		}
+		vm.options[0].selected = false;
 	} else {
 		dbg (1, RN + ": cant find vlanmap field");
 	}
@@ -34,6 +35,12 @@ function switch_onblur_addSwitch(o) {
                                 unHighLightList("switch");
                                 sw.options[sw.options.length-1].selected = true;
                                 sortList("switch");
+				unHighLightList("vlanmap");
+				var vm = document.getElementById("vlanmap");
+				if (vm) {
+					for(i = vm.options.length-1 ; i > 0 ; i--)
+						vm.options[i] = undefined;
+				}
                         } else {
                                 dbg (1, RN + ": switch already exists: " + o.value);
                         }

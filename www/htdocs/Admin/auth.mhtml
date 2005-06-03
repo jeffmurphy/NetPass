@@ -1,7 +1,19 @@
 <%doc>
 </%doc>
 <%args>
+	$auth_method       => '';
+	$admin_auth_method => '';
 </%args>
+<%perl>
+my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+if (!$isRoot) {
+	print qq{<p class='error'>Sorry, you don't have access to this form.</P>};
+	return;
+}
+my $WH = "----------------------";
+my $aa = $np->cfg->policy(-key => 'ADMIN_AUTH_METHOD');
+my $ca = $np->cfg->policy(-key => 'AUTH_METHOD');
+</%perl>
 
 <script language='JavaScript'><!--
 var pageDirty = false;
@@ -16,25 +28,35 @@ setWhereAmI('Authentication &gt; Methods');
 <TR>
 <TD CLASS='left'>Client Auth Method</TD>
 <TD CLASS='right'>
-
-<%perl>
-print $q->popup_menu (
-                        -name    => 'policy:AUTH_METHOD',
-                        -default => $np->cfg->policy(-key => 'AUTH_METHOD'),
+<%$q->popup_menu (
+                        -name    => 'auth_method',
+                        -default => $ca,
                         -values => [ 'NetPass::Auth::DB' , 'NetPass::Auth::Radius',
 					'NetPass::Auth::LDAP', 'NetPass::Auth::Unix' ]
-                    );
-print "</TD></TR>";
-
-print "<TR>";
-print "<TD CLASS='left'>Admin Auth Method</TD>";
-print "<TD CLASS='right'>";
-print $q->popup_menu (
-			-name   => 'policy:ADMIN_AUTH_METHOD',
-                        -default => $np->cfg->policy(-key => 'ADMIN_AUTH_METHOD'),
+                    )%>
+</TD></TR>
+<TR><TD>
+% if ($ca eq "Netpass::Auth::Radius") {
+%	$m->comp('/Admin/FormAuthRadius', %ARGS);
+% elsif ($ca eq "Netpass::Auth::LDAP") {
+%	$m->comp('/Admin/FormAuthLDAP', %ARGS);
+% }
+</tD></TR>
+<TR>
+<TD CLASS='left'>Admin Auth Method</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+			-name   => 'admin_auth_method',
+                        -default => $aa,
                         -values => [ 'NetPass::Auth::DB' , 'NetPass::Auth::Radius',
 					'NetPass::Auth::LDAP', 'NetPass::Auth::Unix' ]
-                    );
-print "</TD></TR>";
-</%perl>
+                    )%>
+</TD></TR>
+<TR><TD>
+% if ($aa eq "Netpass::Auth::Radius") {
+%	$m->comp('/Admin/FormAuthRadius', 'prefix' => 'admin_', %ARGS);
+% elsif ($aa eq "Netpass::Auth::LDAP") {
+%	$m->comp('/Admin/FormAuthLDAP', 'prefix' => 'admin_', %ARGS);
+% }
+</tD></TR>
 </table>

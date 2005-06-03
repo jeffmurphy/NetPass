@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.44 2005/06/02 19:05:22 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.45 2005/06/03 16:59:55 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -653,7 +653,7 @@ sub getBSW {
 
 Return the list of switches defined for this E<lt>networkE<gt>. Returns an ARRAY REF
 on success, C<undef> on failure. If "network" is "", then we return all configured 
-switches.
+switches (all switches in all networks, vlanmaps and community name sections).
 
 =cut
 
@@ -678,6 +678,10 @@ sub getSwitches {
 		    foreach my $sw (@switches) {
 			    $switches{$sw} = 1;
 		    }
+	    }
+	    @switches = ($self->{'cfg'}->keys('vlanmap'), $self->{'cfg'}->obj('snmpcommunities')->keys('host'));
+	    foreach my $sw (@switches) {
+		    $switches{$sw} = 1;
 	    }
     }
 
@@ -1681,6 +1685,80 @@ sub setNetgroup {
 	return 0;
 }
 
+=head2 $cfg-E<gt>setCommunities(-switch => '', -readonly => '', -readwrite => '')
+
+Set the readonly and readwrite community names to use when
+accessing the specified switch. Switch may be a network, in CIDR 
+notation. Setting readonly and readwrite to '' causes the switch to 
+be deleted from the communities section of the config (but not from
+the 'network' section or 'vlanmap' section)
+
+RETURNS
+
+ 0                    on success
+ "invalid parameters" on failure
+ "..."                on failure
+
+=cut
+
+sub setCommunities {
+    my $self = shift;
+
+    my $parms = parse_parms({
+			     -parms => \@_,
+			     -required => [ qw(-switch) ],
+			     -defaults => {
+					   -switch    => '',
+					   -readonly  => '',
+					   -readwrite => ''
+					  }
+			    }
+			   );
+
+    return "invalid parameters\n".Carp::longmess (Class::ParmList->error) 
+      if (!defined($parms));
+    
+    my ($sw, $ro, $rw) = $parms->get('-switch', '-readonly', '-readwrite');
+
+    if ($sw =~ /\/\d{1,2}$/) {
+	    # looks like CIDR
+	    if (!recur_exists($self->{'cfg'}, "snmpcommunities", "network")) {
+		    $self->{'cfg'}->obj("snmpcommunities")->network({});
+	    }
+	    if (!recur_exists($self->{'cfg'}, "snmpcommunities", 'network', $sw)) {
+		    $self->{'cfg'}->obj('snmpcommunities')->obj('network')->$sw({});
+	    }
+
+	    if ($ro eq "" && $rw eq "") {
+		    $self->{'cfg'}->obj('snmpcommunities')->obj('network')->delete($sw);
+	    } else {
+		    $self->{'cfg'}->obj('snmpcommunities')->obj('network')->$sw({'read' => $ro,
+										 'write' => $rw});
+	    }
+	    return 0;
+    }
+
+    if (!recur_exists($self->{'cfg'}, "snmpcommunities", 'host')) {
+	    $self->{'cfg'}->obj('snmpcommunities')->host({});
+    }
+
+    if (!recur_exists($self->{'cfg'}, "snmpcommunities", 'host', $sw)) {
+	    $self->{'cfg'}->obj('snmpcommunities')->obj('host')->$sw({});
+    }
+
+    if ($ro eq "" && $rw eq "") {
+	    _log("DEBUG", "ro/rw empty. del $sw\n");
+	    $self->{'cfg'}->obj('snmpcommunities')->obj('host')->delete($sw);
+    } else {
+	    $self->{'cfg'}->obj('snmpcommunities')->obj('host')->$sw({'read' => $ro,
+								      'write' => $rw});
+    }
+
+    return 0;
+}
+
+
+
 =head2 my ($r, $w) = $cfg-E<gt>getCommunities(hostname)
 
 Given a hostname (or IP address) lookup return the
@@ -2091,6 +2169,17 @@ sub formatPorts {
         return $s;
 }
 
+
+=head2 $vlanmap = getVlanMap($switch)
+
+Retrieve an encoded vlanmap.
+
+RETURNS 
+  scalar on success
+  undef  on failure (or switch doesnt exist)
+
+=cut
+
 sub getVlanMap {
 	my $self = shift;
 	my $sw   = shift;
@@ -2102,13 +2191,28 @@ sub getVlanMap {
 	return undef;
 }
 
+=head2 (void) setVlanMap($switch, $vlanmap)
+
+Pass in an encoded vlanmap. If vlanmap is "" then it deletes
+the switch from the vlanmap portion of the config.
+
+RETURNS
+   nothing useful
+
+=cut
+
 sub setVlanMap {
 	my $self = shift;
 	my $sw   = shift;
 	my $vm   = shift;
 
 	$sw ||= '';
-	$self->{'cfg'}->obj('vlanmap')->$sw($vm);
+	$vm ||= '';
+	if ($vm ne "") {
+		$self->{'cfg'}->obj('vlanmap')->$sw($vm);
+	} else {
+		$self->{'cfg'}->obj('vlanmap')->delete($sw);
+	}
 	return undef;
 }
 
@@ -2265,7 +2369,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.44 2005/06/02 19:05:22 jeffmurphy Exp $
+$Id: Config.pm,v 1.45 2005/06/03 16:59:55 jeffmurphy Exp $
 
 =cut
 
