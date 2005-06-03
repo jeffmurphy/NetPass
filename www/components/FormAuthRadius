@@ -1,9 +1,0 @@
-<%doc>
-Fetch all radius servers. Display them.
-Allow for add/del and edit.
-</%doc>
-<%args>
-	$prefix => '';
-</%args>
-<%perl>
-</%perl>

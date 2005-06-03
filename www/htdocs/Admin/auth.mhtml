@@ -3,6 +3,19 @@
 <%args>
 	$auth_method       => '';
 	$admin_auth_method => '';
+	$radiusServer      => '';
+	$radiusSecret      => '';
+	$admin_radiusServer       => '';
+	$admin_radiusSecret       => '';
+	$submitButton             => '';
+	$ldapServer               => '';
+	$admin_ldapServer         => '';
+	$ldapBase                 => '';
+	$admin_ldapBase           => '';
+	$ldapFilter               => '';
+	$admin_ldapFilter         => '';
+	$ldapPasswordField        => '';
+	$admin_ldapPasswordField  => '';
 </%args>
 <%perl>
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
@@ -10,15 +23,29 @@ if (!$isRoot) {
 	print qq{<p class='error'>Sorry, you don't have access to this form.</P>};
 	return;
 }
+
+my @err;
 my $WH = "----------------------";
 my $aa = $np->cfg->policy(-key => 'ADMIN_AUTH_METHOD');
 my $ca = $np->cfg->policy(-key => 'AUTH_METHOD');
+
+$m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'submitButton' ], 'init' => 0);
+my $lstat = $np->db->isConfigLocked();
+
+if ($submitButton eq "Commit Changes") {
+	# set global policy AUTH_METHOD
+	# set global policy ADMIN_AUTH_METHOD
+	# if radiusServer && secret == "" then remove $radiusServer
+	# if radiusServer && secret then set secret
+}
 </%perl>
 
 <script language='JavaScript'><!--
 var pageDirty = false;
 setWhereAmI('Authentication &gt; Methods');
 --></script>
+
+<input type='submit' name='submitButton' id='submitButton' value='Commit Changes'><P>
 
 <TABLE WIDTH=800 ID="authMethods" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
@@ -35,10 +62,10 @@ setWhereAmI('Authentication &gt; Methods');
 					'NetPass::Auth::LDAP', 'NetPass::Auth::Unix' ]
                     )%>
 </TD></TR>
-<TR><TD>
-% if ($ca eq "Netpass::Auth::Radius") {
+<TR><TD colspan=2 align='right'>
+% if ($ca eq "NetPass::Auth::Radius") {
 %	$m->comp('/Admin/FormAuthRadius', %ARGS);
-% elsif ($ca eq "Netpass::Auth::LDAP") {
+% } elsif ($ca eq "NetPass::Auth::LDAP") {
 %	$m->comp('/Admin/FormAuthLDAP', %ARGS);
 % }
 </tD></TR>
@@ -52,11 +79,35 @@ setWhereAmI('Authentication &gt; Methods');
 					'NetPass::Auth::LDAP', 'NetPass::Auth::Unix' ]
                     )%>
 </TD></TR>
-<TR><TD>
-% if ($aa eq "Netpass::Auth::Radius") {
+<TR><TD colspan=2 align='right'>
+% if ($aa eq "NetPass::Auth::Radius") {
 %	$m->comp('/Admin/FormAuthRadius', 'prefix' => 'admin_', %ARGS);
-% elsif ($aa eq "Netpass::Auth::LDAP") {
+% } elsif ($aa eq "NetPass::Auth::LDAP") {
 %	$m->comp('/Admin/FormAuthLDAP', 'prefix' => 'admin_', %ARGS);
 % }
 </tD></TR>
 </table>
+
+
+<%perl>
+
+
+if (ref($lstat) eq "HASH") {
+        # the config is locked
+        if ($lstat->{'user'} eq $m->session->{'username'}) {
+                # by us, so show the unlock button
+                print qq{<script>lockConfig_results("OK lock");lockConfig_enableElements();</script>};
+        } else {
+                # but not by us, show the force unlock button
+                print qq{<script>lockConfig_results("NOK lock $lstat->{'user'}");lockConfig_disableElements();</script>};
+        }
+}
+elsif ($lstat) {
+        # there was a problem
+}
+else {
+        # the config is not locked, show the lock button
+        print qq{<script>lockConfig_results("OK unlock");lockConfig_disableElements();</script>};
+}
+
+</%perl>

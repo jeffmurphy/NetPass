@@ -1,0 +1,29 @@
+<%doc>
+Fetch all LDAP servers. Display them.
+Allow for add/del and edit.
+</%doc>
+<%args>
+	$prefix => '';
+</%args>
+<%perl>
+my $rs_ = $np->cfg->getLDAP();
+my $rs  = (ref($rs_) eq "ARRAY") ? $rs_ : [];
+my $WH  = "----------------";
+my $ml  = length($WH);
+foreach my $server (@$rs) {
+	$ml = ($ml > length($server)) ? $ml : length($server);
+}
+$ml = int($ml * 1.5);
+$WH = "-" x $ml;
+</%perl>
+<table border=0>
+<tr><th>LDAP Servers</th><th>Options</th></tr>
+<tr><td><%$q->scrolling_list(-id => $prefix.'ldapServer', -name => $prefix.'ldapServer',
+			 -size => 4, -values => [ $WH, @$rs ])%></td>
+    <td><input size=16 id='<%$prefix%>ldapBase'>
+	<input size=16 id='<%$prefix%>ldapFilter'>
+	<input size=16 id='<%$prefix%>ldapPasswordField'>
+    </td>
+</tr>
+</table>
+

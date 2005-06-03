@@ -142,7 +142,9 @@ lib/NetPass.pm
 lib/RUNONCE.pm
 www/components/Admin/Login
 www/components/Admin/MemberOf
+www/components/Admin/FormAuthLDAP
 www/components/Admin/LockConfig
+www/components/Admin/FormAuthRadius
 www/components/Admin/TableEditPolicy
 www/components/Client/BeginScan
 www/components/Client/GetInfo
@@ -162,7 +164,6 @@ www/components/style/front/header
 www/components/CookieDetect
 www/components/Audit
 www/components/OSDetect
-www/components/FormAuthRadius
 www/htdocs/Admin/Editor/edit.mhtml
 www/htdocs/Admin/Editor/index.mhtml
 www/htdocs/Admin/Editor/view.mhtml

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.45 2005/06/03 16:59:55 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.46 2005/06/03 19:41:22 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -2336,6 +2336,160 @@ sub nessus {
 	return undef;
 }
 
+=head2 getLDAP($server)
+
+If server is "" it returns an array ref of all configured
+LDAP servers (in hostname[:port] notation). If server is
+formatted as "hostname[:port]" it will return a hashref containing
+the keys:
+
+ base           the search base
+ filter         the filter to use
+ passwordField  the name of the password field
+
+RETURNS
+ arrayref     on success
+ hashref      on success
+ undef        on failure or no-such-server
+
+=cut
+
+sub getLDAP {
+	my $self = shift;
+	my $s = shift;
+	$s ||= "";
+	if (recur_exists($self->{'cfg'}, "ldap", $s)) {
+		return { 'base'          => $self->{'cfg'}->obj('radius')->obj($s)->value('base'),
+			 'filter'        => $self->{'cfg'}->obj('radius')->obj($s)->value('filter'),
+			 'passwordField' => $self->{'cfg'}->obj('radius')->obj($s)->value('passwordField'),
+		       };
+	}
+	elsif (recur_exists($self->{'cfg'}, "ldap")) {
+		return [ $self->{'cfg'}->keys('ldap') ];
+	}
+	return undef;
+}
+
+
+=head2 setLDAP(-server => '', -base => '', -filter => '', -passwordField => '');
+
+If all params (except server) are '' then the server is deleted. 
+Server can be either a hostname, ip address or either of those 
+followed by ":port".
+
+RETURNS
+ 0                    on success
+ "invalid parameters" routine called improperly
+
+=cut
+
+sub setLDAP {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-server -base -filter -passwordField)],
+				 -required => [qw(-server)],
+				 -defaults => { -server        => '',
+						-filter        => '',
+						-base          => '',
+						-passwordField => '' }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters ".Carp::longmess(Class::ParmList->error);
+	}
+
+	my ($server, $base, $filter, $pfield) = 
+	  $parms->get('-server', '-base', '-filter', '-passwordField');
+
+	if (!recur_exists($self->{'cfg'}, 'ldap', $server)) {
+		$self->{'cfg'}->obj('ldap')->$server({});
+	}
+	if ($base.$filter.$pfield ne "") {
+		$self->{'cfg'}->obj('ldap')->obj($server)->base($base);
+		$self->{'cfg'}->obj('ldap')->obj($server)->filter($filter);
+		$self->{'cfg'}->obj('ldap')->obj($server)->passwordField($pfield);
+	} 
+	else {
+		$self->{'cfg'}->obj('ldap')->delete($server);
+	}
+	return 0;
+}
+
+=head2 getRadius($server)
+
+If server is "" it returns an array ref of all configured
+radius servers (in hostname:port notation). If server is
+formatted as "hostname:port" it will return a hashref containing
+the keys:
+
+ secret       the secret to use
+
+RETURNS
+ arrayref     on success
+ hashref      on success
+ undef        on failure or no-such-server
+
+=cut
+
+sub getRadius {
+	my $self = shift;
+	my $s = shift;
+	$s ||= "";
+	if (recur_exists($self->{'cfg'}, "radius", $s)) {
+		return { 'secret',
+			 $self->{'cfg'}->obj('radius')->obj($s)->value('secret')
+		       };
+	}
+	elsif (recur_exists($self->{'cfg'}, "radius")) {
+		return [ $self->{'cfg'}->keys('radius') ];
+	}
+	return undef;
+}
+
+=head2 setRadius(-server => '', -secret => '');
+
+If secret is '' then the server is deleted. Server can be either a
+hostname, ip address or either of those followed by ":port".
+
+RETURNS
+ 0                    on success
+ "invalid parameters" routine called improperly
+
+=cut
+
+sub setRadius {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-server -secret)],
+				 -required => [qw(-server)],
+				 -defaults => { -server => '', -secret => '' }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters ".Carp::longmess(Class::ParmList->error);
+	}
+
+	my ($server, $secret) = $parms->get('-server', '-secret');
+
+	if (!recur_exists($self->{'cfg'}, 'radius', $server)) {
+		$self->{'cfg'}->obj('radius')->$server({});
+	}
+	if ($secret ne "") {
+		$self->{'cfg'}->obj('radius')->obj($server)->secret($secret);
+	} 
+	else {
+		$self->{'cfg'}->obj('radius')->delete($server);
+	}
+	return 0;
+}
+
+
 =head2 B<recur_exists>
 
 This is a routine, not a method. Useful for checking if a deep configuration
@@ -2369,7 +2523,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.45 2005/06/03 16:59:55 jeffmurphy Exp $
+$Id: Config.pm,v 1.46 2005/06/03 19:41:22 jeffmurphy Exp $
 
 =cut
 
