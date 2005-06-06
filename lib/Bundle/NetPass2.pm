@@ -32,6 +32,10 @@ Archive::Tar
 
 Proc::ProcessTable::Process
 
+Net::DHCP::Packet
+
+Net::DHCP::Constants
+
 Net::Pcap
 
 Net::Ping
