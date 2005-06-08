@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.16 2005/06/07 19:30:14 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.17 2005/06/08 02:38:49 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -401,24 +401,8 @@ print $q->start_form(-method => "POST");
 </TABLE>
 <BR>
 
-<TABLE WIDTH=800 class="expandable" ID="snortConfig" CELLSPACING=2 CELLPADDING=2>
-<THEAD>
-<TR><TH onclick="showHideObj2(getElementById('snortConfig').tBodies[0]);" COLSPAN=2>Snort</TH></TR>
-</THEAD>
-<TBODY>
-<TR><TD CLASS='left'>mode</TD>
-<TD CLASS='right'>
-<%$q->popup_menu (
-                        -name     => 'snort:mode',
-                        -values   => ['enabled', 'disabled', 'not_really'],
-                        -default  => ($np->cfg->{'cfg'}->obj('snort')->value('mode'))
-                    )%>
-</TD></TR>
-</TBODY>
-</TABLE>
-<BR>
-
-% $m->comp('/Admin/FormNPApi', 'submit' => $submit, %ARGS);
+% $m->comp('/Admin/FormNPSnort', 'submit' => $submit, 'network' => "", %ARGS);
+% $m->comp('/Admin/FormNPApi',   'submit' => $submit, %ARGS);
 
 <TABLE WIDTH=800 CLASS="expandable" ID="databaseConfig" CELLSPACING=2 CELLPADDING=2>
 <THEAD>

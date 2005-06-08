@@ -1,0 +1,162 @@
+<%doc>
+</%doc>
+<%args>
+	$submit		=> '';
+	$network	=> '';
+</%args>
+
+<%perl>
+	my $anychanges = 0;
+	if ($submit eq "Commit Changes") {
+
+		my $c = getconfigobj($network);
+		if (!defined $c) {
+			# error
+			return;
+		}
+
+		foreach my $nparg (keys %ARGS) {
+			my $var;
+			if ($nparg =~ /^snort:(.+)$/) {
+				$var        = $1;
+				$anychanges = 1;
+			} else {
+				next;
+			}
+
+			if ($var =~ /^rorw_(.+)$/) {
+				my $v = $1;
+				if ($c->exists('servers') && $c->obj('servers')->exists($v) &&
+				    $ARGS{$nparg} =~ /^(ro|rw)$/) {
+					$c->obj('servers')->$v($ARGS{$nparg});
+				}
+
+			} elsif ($var eq 'addnewsensor' && defined $ARGS{'snort:addnewsensor'}) {
+
+				if (!$c->exists('servers')) {
+					$c->servers({});
+				}
+				if ($ARGS{'snort:newport'} =~ /^\d+$/ &&
+				    $ARGS{'snort:newrorw'} =~ /^(ro|rw)$/ &&
+				    $ARGS{'snort:newsensor'} =~ /^\w*\.*\w*\.*\w+\.\w+$/) {
+					my $v = $ARGS{'snort:newsensor'}.':'.$ARGS{'snort:newport'};
+					$c->obj('servers')->$v($ARGS{'snort:newrorw'});
+				}
+
+			} elsif ($var =~ /^delete_(.+)$/ && defined $ARGS{$nparg} ) {
+				my $v = $1;
+				if ($c->obj('servers')->exists($v)) {
+					$c->obj('servers')->delete($v);	
+				}
+			}
+		}
+		$np->cfg->save(-user => $m->session->{'username'}) if $anychanges;
+	}
+
+sub getsnortvalue {
+	my $val     = shift;
+	my $network = shift;
+
+	my $c = getconfigobj($network);
+	return "" unless defined $c;
+
+	if ($c->exists($val)) {
+		return $c->value($val);	
+	}
+
+	return "";
+}
+
+sub getconfigobj {
+        my $network = shift;
+
+        if (defined $network && $np->cfg->{'cfg'}->exists($network) &&
+            $np->cfg->{'cfg'}->obj($network)->exists('snort')) {
+                return $np->cfg->{'cfg'}->obj($network)->obj('snort');
+        } elsif ($np->cfg->{'cfg'}->exists('snort')) {
+                return $np->cfg->{'cfg'}->obj('snort');
+        }
+
+        return undef;
+}
+
+</%perl>
+
+<TABLE WIDTH=800 class="expandable" ID="snortConfig" CELLSPACING=2 CELLPADDING=2>
+<THEAD>
+<TR><TH onclick="showHideObj2(getElementById('snortConfig').tBodies[0]);" COLSPAN=2>Snort</TH></TR>
+</THEAD>
+<TBODY>
+<TR><TD CLASS='left'>mode</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+                        -name     => 'snort:mode',
+                        -values   => ['enabled', 'disabled', 'not_really'],
+                        -default  => getsnortvalue('mode', $network)
+                    )%>
+</TD></TR>
+<TR><TD CLASS='left'>Snort Sensors</TD>
+<TD CLASS='right' ALIGN=center>
+<TABLE WIDTH=80% BGCOLOR="#ffffff" CELLSPACING=2 CELLPADDING=2>
+<TR>
+<TD CLASS="gray" ALIGN=center>Sensor</TD>
+<TD CLASS="gray" ALIGN=center>Port</TD>
+<TD CLASS="gray" ALIGN=center>ro/rw</TD>
+<TD CLASS="gray" ALIGN=center>Action</TD>
+</TR>
+
+<%perl>
+	my $c = getconfigobj($network);
+	
+	if (defined $c && $c->exists('servers')) {
+		foreach my $s ($c->keys('servers')) {
+			my($server, $port) = split(/:/, $s);
+			print "<TR>";
+			print "<TD CLASS=\"gray\" ALIGN=center>$server</TD>";
+			print "<TD CLASS=\"gray\" ALIGN=center>$port</TD>";
+			print "<TD CLASS=\"gray\" ALIGN=center>";
+			print $q->popup_menu (
+						-name	  => "snort:rorw_$s",
+						-values	  => ['ro', 'rw'],
+						-default  => $c->obj('servers')->value($s)
+					     );
+			print "</TD>";
+			print "<TD CLASS=\"gray\" ALIGN=left>";
+			print $q->checkbox (
+						-name	=> "snort:delete_$s",
+						-label	=> " Delete",
+					   );
+			print "</TD></TR>";
+		}
+	}
+	print "<TR>";
+	print "<TD CLASS=\"gray\" ALIGN=center>";
+	print $q->textfield (
+				-name	=> "snort:newsensor",
+				-size	=> 40,
+			    );
+	print "</TD><TD CLASS=\"gray\" ALIGN=center>";
+        print $q->textfield (
+                                -name   => "snort:newport",
+                                -size   => 5,
+                            );
+	print "</TD><TD CLASS=\"gray\" ALIGN=center>";
+	print $q->popup_menu (
+				-name     => "snort:newrorw",
+				-values   => ['ro', 'rw'],
+				-default  => 'ro',
+			     );
+	print "</TD><TD CLASS=\"gray\" ALIGN=left>";
+	print $q->checkbox (
+				-name   => "snort:addnewsensor",
+				-label  => " Add",
+			   );
+	print "</TD>";
+	print "</TR>";
+</%perl>
+
+</TABLE>
+</TD></TR>
+</TBODY>
+</TABLE>
+<BR>
