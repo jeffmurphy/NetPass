@@ -5,12 +5,14 @@
 </%args>
 
 <%perl>
+	my $anychanges = 0;
 	if ($submit eq "Commit Changes") {
 
 		foreach my $nparg (keys %ARGS) {
 			my $var;
 			if ($nparg =~ /^npapi:(\w+)$/) {
-				$var = $1;
+				$var        = $1;
+				$anychanges = 1;
 			} else {
 				next;
 			}
@@ -20,7 +22,7 @@
 			}
 			$np->cfg->{'cfg'}->obj('npapi')->$var($ARGS{"npapi:$var"});
 		}
-		$np->cfg->save(-user => $m->session->{'username'});
+		$np->cfg->save(-user => $m->session->{'username'}) if $anychanges;
 	}
 
 sub getnpapivalue {
