@@ -203,24 +203,19 @@ function network_onblur_addSwitch(o) {
 	var servs = document.getElementById('switches');
 	if (servs && o && o.value != "") {
 		var exists = false;
-		dbg(1, RN + ": everythings OK");
 		for(var i = 0 ; i < servs.options.length ; i++) {
 			if (servs.options[i].value == o.value) exists = true;
 		}
 		if (!exists) {
-			dbg(1, RN + ": doesnt exist");
 			var no = new Option(o.value, o.value, false, false);
 			servs.options[servs.options.length] = no;
 			unHighLightList("switches");
 			servs.options[servs.options.length-1].selected = true;
 			servs.selectedIndex = servs.options.length-1;
-			dbg(1, RN + ": calling sort");
 			sortList("switches");
 		} else {
 			dbg (1, RN + ": switch already exists: " + o.value);
 		}
-		dbg(1, RN + ": resetting input field");
-		dbg(1, RN + ": " + o.value + " reset");
 		o.value = 'Add Switch...';
 	} else {
 		dbg(1, RN + ": somethings wrong");
