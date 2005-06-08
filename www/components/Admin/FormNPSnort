@@ -6,7 +6,6 @@
 </%args>
 
 <%perl>
-	my $anychanges = 0;
 	if ($submit eq "Commit Changes") {
 
 		my $c = getconfigobj($network);
@@ -19,12 +18,15 @@
 			my $var;
 			if ($nparg =~ /^snort:(.+)$/) {
 				$var        = $1;
-				$anychanges = 1;
 			} else {
 				next;
 			}
 
-			if ($var =~ /^rorw_(.+)$/) {
+			if ($var eq 'mode') {
+				if ($ARGS{$nparg} =~ /^(enabled|disabled|not_really)$/) {
+					$c->mode($ARGS{$nparg});
+				}
+			} elsif ($var =~ /^rorw_(.+)$/) {
 				my $v = $1;
 				if ($c->exists('servers') && $c->obj('servers')->exists($v) &&
 				    $ARGS{$nparg} =~ /^(ro|rw)$/) {
@@ -50,7 +52,7 @@
 				}
 			}
 		}
-		$np->cfg->save(-user => $m->session->{'username'}) if $anychanges;
+		$np->cfg->save(-user => $m->session->{'username'});
 	}
 
 sub getsnortvalue {
