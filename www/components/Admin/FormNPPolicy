@@ -1,0 +1,336 @@
+<%doc>
+</%doc>
+<%args>
+        $submit         => '';
+</%args>
+
+<%perl>
+
+my $restartnetpass = 0;
+my $restarthttpd   = 0;
+
+if ($submit eq 'Commit Changes') {
+	foreach my $ak ( keys %ARGS ) {
+		if ($ak =~ /^(\S+):(\S+)$/) {
+			my $section = $1;
+			my $var     = $2;
+
+			if ($section eq "policy") {
+				if ($var =~ /^PID_DIR|BASE_DIR$/) {
+					$restartnetpass = 1;
+					$restarthttpd = 1;
+				}
+				$np->cfg->policy(-key => $var, -val => $ARGS{$ak});
+			}
+
+		}
+	}
+
+	$np->db->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
+	$np->db->reqAppAction('httpd',   'restart', '') if ($restarthttpd);
+}
+
+</%perl>
+
+<TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
+<THEAD>
+<TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=2>General (Global)</TH></TR>
+</THEAD>
+<TBODY>
+<TR>
+<TD CLASS='left'>MULTI_MAC</TD>
+<TD CLASS='right' >
+
+<%$q->popup_menu (
+                        -name     => 'policy:MULTI_MAC',
+                        -values   => ['ALL_OK', 'ONE_OK', 'DISALLOWED'],
+                        -default  => $np->cfg->policy(-key => 'MULTI_MAC'),
+                    )%>
+<!--<a href="help.mhtml?printable=1&topic=MULTI_MAC" target='new' style='align:right;'>?</a>-->
+</TD></TR>
+<TR>
+<TD CLASS='left'>Strikes</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:STRIKES',
+                        -value  => $np->cfg->policy(-key => 'STRIKES'),
+                        -size   => 3,
+                    )%>
+</TD></TR>
+
+<TR>
+<TD CLASS='left'>Disable Strikes For Manual Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_MANUAL',
+			-values => [ 'Yes', 'No' ],
+                        -default  => $np->cfg->policy(-key => 'NO_STRIKES_FOR_MANUAL' ) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+</TR>
+
+<TR>
+<TD CLASS='left'>Disable Strikes For Snort Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_SNORT',
+			-values => [ 'Yes', 'No' ],
+                        -default  => $np->cfg->policy(-key => 'NO_STRIKES_FOR_SNORT' ) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+</TR>
+
+<TR>
+<TD CLASS='left'>Disable Strikes For Nessus Quarantine</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name   => 'policy:NO_STRIKES_FOR_NESSUS',
+			-values => [ 'Yes', 'No' ],
+                        -default  => $np->cfg->policy(-key => 'NO_STRIKES_FOR_NESSUS' ) ? "Yes" : "No",
+                        -size   => 3,
+                    )%>
+</TD>
+</TR>
+
+<TR>
+<TD CLASS='left'>RESULTS_DISPLAY</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+                        -name     => 'policy:RESULTS_DISPLAY',
+			-values	  => ['INLINE', 'POPUP'],
+                        -default  => $np->cfg->policy(-key => 'RESULTS_DISPLAY'),
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>RESULTS_EXPAND</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:RESULTS_EXPAND',
+                        -value  => $np->cfg->policy(-key => 'RESULTS_EXPAND'),
+                        -size   => 3,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>AUTO_REDIRECT</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name    => 'policy:AUTO_REDIRECT',
+			-values  => ['Yes', 'No'],
+                        -default => ($np->cfg->policy(-key => 'AUTO_REDIRECT')) ? 'Yes' : 'No',
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>COOKIE_DETECT</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name    => 'policy:COOKIE_DETECT',
+                        -values  => ['Yes', 'No'],
+                        -default => ($np->cfg->policy(-key => 'COOKIE_DETECT')) ? 'Yes' : 'No',
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>COOKIE_NAME</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:COOKIE_NAME',
+                        -value  => $np->cfg->policy(-key => 'COOKIE_NAME'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>REDIR_URL_DEFAULT</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:REDIR_URL_DEFAULT',
+                        -value  => $np->cfg->policy(-key => 'REDIR_URL_DEFAULT'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>SURVEY_ENABLED</TD>
+<TD CLASS='right'>
+<%$q->radio_group (
+                        -name    => 'policy:SURVEY_ENABLED',
+                        -values  => ['Yes', 'No'],
+                        -default => ($np->cfg->policy(-key => 'SURVEY_ENABLED')) ? 'Yes' : 'No',
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>SURVEY_EMAIL</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:SURVEY_EMAIL',
+                        -value  => $np->cfg->policy(-key => 'SURVEY_EMAIL'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>PID_DIR</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:PID_DIR',
+                        -value  => $np->cfg->policy(-key => 'PID_DIR'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>BASE_DIR</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:BASE_DIR',
+                        -value  => $np->cfg->policy(-key => 'BASE_DIR'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>PORT_SEARCH_ALGO</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+                        -name     => 'policy:PORT_SEARCH_ALGO',
+                        -values   => ['LINEAR', 'TREE'],
+                        -default  => $np->cfg->policy(-key => 'PORT_SEARCH_ALGO'),
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>PORT_CACHE</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+                        -name     => 'policy:PORT_CACHE',
+                        -values   => ['ON', 'OFF'],
+                        -default  => ($np->cfg->policy(-key => 'PORT_CACHE')) ? 'ON' : 'OFF',
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>UNQUAR_ON_LINKUP</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+                        -name     => 'policy:UNQUAR_ON_LINKUP',
+                        -values   => ['ON', 'OFF', 'ITDEPENDS'],
+                        -default  => ($np->cfg->policy(-key => 'UNQUAR_ON_LINKUP') eq
+				     'ITDEPENDS') ? 'ITDEPENDS' : 
+				     ($np->cfg->policy(-key => 'UNQUAR_ON_LINKUP')) ? 
+				     'ON' : 'OFF',
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>Enable ResetPort?</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+                        -name     => 'policy:resetport',
+                        -values   => ['on', 'off'],
+                        -default  => ($np->cfg->policy(-key => 'resetport')) ? 'on': 'off',
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>ResetPort Link Flap Tolerance</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name     => 'policy:linkflap_tolerance',
+                        -values   => $np->cfg->policy(-key => 'linkflap_tolerance'),
+			-size     => 5
+                    )%> seconds
+</TD></TR>
+<TR>
+<TD CLASS='left'>Enable MacScan?</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+                        -name     => 'policy:macscan',
+                        -values   => ['on', 'off'],
+                        -default  => ($np->cfg->policy(-key => 'macscan')) ? 'on': 'off',
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>Require Nessus to register?</TD>
+<TD CLASS='right'>
+<%$q->popup_menu (
+                        -name     => 'policy:nessus',
+                        -values   => ['on', 'off'],
+                        -default  => ($np->cfg->policy(-key => 'nessus')) ? 'on': 'off',
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>LDAP Query URL</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:LDAP_USER_QUERY',
+                        -value  => $np->cfg->policy(-key => 'LDAP_USER_QUERY'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>LDAP Popup Width</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:LDAP_POPUP_WIDTH',
+                        -value  => $np->cfg->policy(-key => 'LDAP_POPUP_WIDTH'),
+                        -size   => 5,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>LDAP Popup Height</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:LDAP_POPUP_HEIGHT',
+                        -value  => $np->cfg->policy(-key => 'LDAP_POPUP_HEIGHT'),
+                        -size   => 5,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>Username Prompt</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:USERNAME_PROMPT',
+                        -value  => $np->cfg->policy(-key => 'USERNAME_PROMPT'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>Password Prompt</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:PASSWORD_PROMPT',
+                        -value  => $np->cfg->policy(-key => 'PASSWORD_PROMPT'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>Company Name</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:COMPANY_NAME',
+                        -value  => $np->cfg->policy(-key => 'COMPANY_NAME'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>Company Abbreviation</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:COMPANY_SHORT_NAME',
+                        -value  => $np->cfg->policy(-key => 'COMPANY_SHORT_NAME'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>Organization Name</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:COMPANY_UNIT_NAME',
+                        -value  => $np->cfg->policy(-key => 'COMPANY_UNIT_NAME'),
+                        -size   => 25,
+                    )%>
+</TD></TR>
+<TR>
+<TD CLASS='left'>Example IP Address</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name   => 'policy:EXAMPLE_IPADDR',
+                        -value  => $np->cfg->policy(-key => 'EXAMPLE_IPADDR'),
+                        -size   => 16,
+                    )%>
+</TD></TR>
+
+</TBODY></TABLE>
+<BR>

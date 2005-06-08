@@ -1,0 +1,40 @@
+<%doc>
+</%doc>
+<%args>
+        $submit         => '';
+</%args>
+
+<%perl>
+my $restartnessus  = 0;
+
+if ($submit eq 'Commit Changes') {
+	foreach my $ak ( keys %ARGS ) {
+		if ($ak =~ /^(\S+):(\S+)$/) {
+			my $section = $1;
+			my $var     = $2;
+
+			if ($section eq "nessus") {
+				$np->cfg->nessus(-key => $var, -val => $ARGS{$ak});
+				$restartnessus = 1;
+			}
+		}
+	}
+
+	$np->db->reqAppAction('nessusd', 'restart', '') if ($restartnessus);
+}
+</%perl>
+
+<TABLE WIDTH=800 class="expandable" ID="nessusConfig" CELLSPACING=2 CELLPADDING=2>
+<THEAD>
+<TR><TH onclick="showHideObj2(getElementById('nessusConfig').tBodies[0]);" COLSPAN=2>Nessus</TH></TR>
+</THEAD>
+<TBODY>
+<TR><TD CLASS='left'>Base_Dir</TD><TD CLASS='right'><input type="text" name="nessus:base_dir" value="<%$np->cfg->nessus(-key => 'BASE_DIR')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Host</TD><TD CLASS='right'><input type="text" name="nessus:host" value="<%$np->cfg->nessus(-key => 'host')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Username</TD><TD CLASS='right'><input type="text" name="nessus:username" value="<%$np->cfg->nessus(-key => 'username')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Password</TD><TD CLASS='right'><input type="text" name="nessus:password" value="<%$np->cfg->nessus(-key => 'password')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Port</TD><TD CLASS='right'><input type="text" name="nessus:port" value="<%$np->cfg->nessus(-key => 'port')%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>When_down</TD><TD CLASS='right'><%$q->radio_group(-name => 'nessus:WHEN_DOWN', -default=>$np->cfg->nessus(-key => 'WHEN_DOWN'), -values => ['OK','FAIL'])%></TD></TR>
+</TBODY>
+</TABLE>
+<BR>
