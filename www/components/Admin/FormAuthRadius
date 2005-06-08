@@ -4,7 +4,10 @@ Allow for add/del and edit.
 </%doc>
 <%args>
 	$prefix => '';
+	$server => '';
 </%args>
+<script language='JavaScript'>
+var <%$prefix%>radiusSecrets = new Object();
 <%perl>
 my $rs_ = $np->cfg->getRadius();
 my $rs  = (ref($rs_) eq "ARRAY") ? $rs_ : [];
@@ -12,15 +15,34 @@ my $WH  = "----------------";
 my $ml  = length($WH);
 foreach my $server (@$rs) {
 	$ml = ($ml > length($server)) ? $ml : length($server);
+	my $sh = $np->cfg->getRadius($server);
+        if (ref($sh) eq "HASH") {
+		print qq{//$server\n};
+		print qq{${prefix}radiusSecrets['$server'] = '$sh->{secret}';\n};
+	}
 }
 $ml = int($ml * 1.5);
 $WH = "-" x $ml;
 </%perl>
-<table border=0>
-<tr><th>Radius Servers</th><th>Secret</th></tr>
+</script>
+<table border=0 id='<%$prefix%>FormAuthRadius'>
+<tr><th>Radius Servers</th><th colspan=2>Options</th></tr>
 <tr><td><%$q->scrolling_list(-id => $prefix.'radiusServer', -name => $prefix.'radiusServer',
-			 -size => 4, -values => [ $WH, @$rs ])%></td>
-    <td><input size=16 id='<%$prefix%>radiusSecret'></td>
+			-onchange => 'radius_onchange_radiusServer();'
+			 -size => 4, -values => [ $WH, @$rs ])%><BR>
+	<input size=16 id='radiusAddServer' name='radiusAddServer'
+               onfocus='radius_onfocus_addServer('<%$prefix%>');'
+               onblur='radius_onblur_addServer('<%$prefix%>');'
+               value="Add Server..."
+        >
+        <input type='submit' onclick='radius_onclick_delServer(); return false;'
+               value='Delete Server'>
+    </td>
+    <td align='right' valign='top'>Secret:</td>
+    <td align='left' valign='top'>
+        <input size=16 id='<%$prefix%>radiusSecret'><BR>
+
+    </td>
 </tr>
 </table>
 

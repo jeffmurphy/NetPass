@@ -63,11 +63,8 @@ setWhereAmI('Authentication &gt; Methods');
                     )%>
 </TD></TR>
 <TR><TD colspan=2 align='right'>
-% if ($ca eq "NetPass::Auth::Radius") {
 %	$m->comp('/Admin/FormAuthRadius', %ARGS);
-% } elsif ($ca eq "NetPass::Auth::LDAP") {
 %	$m->comp('/Admin/FormAuthLDAP', %ARGS);
-% }
 </tD></TR>
 <TR>
 <TD CLASS='left'>Admin Auth Method</TD>

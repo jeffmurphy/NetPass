@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.46 2005/06/03 19:41:22 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.47 2005/06/08 16:35:41 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -759,6 +759,46 @@ sub setNetwork {
 	$self->{'cfg'}->obj('network')->obj($network)->nonquarantine($uqvid);
 
 	return 0;
+}
+
+=head2 $cfg-E<gt>delNetwork(-network => '')
+
+Given a network, delete it from the config.
+
+RETURNS
+
+0                  on success
+"no such network"  no such network
+"..."              on failure
+
+=cut
+
+
+sub delNetwork {
+	my $self = shift;
+
+        my $parms = parse_parms({
+				 -parms => \@_,
+				 -legal => [qw(-network)],
+				 -required => [qw(-network)],
+				 -defaults => { -network => '' }
+			    }
+			   );
+
+	if (!defined($parms)) {
+		return "invalid parameters: ".Carp::longmess("invalid parameters ".Class::ParmList->error);
+	}
+
+	my ($network) = $parms->get('-network');
+
+	$self->reloadIfChanged();
+
+	if( $self->{'cfg'}->obj('network')->exists($network) ) {
+		$self->{'cfg'}->obj('network')->delete($network);
+		return 0;
+	}
+
+	return "no such network";
 }
 
 =head2 $cfg-E<gt>setHA(-network => '', -enabled => 0|1, -primary => '', -secondary => '', -virtualip => '', -servers => [])
@@ -2523,7 +2563,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.46 2005/06/03 19:41:22 jeffmurphy Exp $
+$Id: Config.pm,v 1.47 2005/06/08 16:35:41 jeffmurphy Exp $
 
 =cut
 

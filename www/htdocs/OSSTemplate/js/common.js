@@ -36,11 +36,17 @@ function disable_element(o) {
 }
 
 function sortList(ln) {
+	var RN = "sortList";
+
 	if (ln) {
 		var l = document.getElementById(ln);
 		if (l && l.options.length) {
 			var oa = new Array();
 			for (var i = 1 ; i < l.options.length ; i++) {
+				var si = oa.selectedIndex;
+				var sv = undefined;
+				if (si > -1) 
+					sv = oa.options[si].value;
 				oa[oa.length] = new Option( l.options[i].text, 
 							    l.options[i].value, 
 							    l.options[i].defaultSelected, 
@@ -56,6 +62,9 @@ function sortList(ln) {
 								    oa[i].defaultSelected,
 								    oa[i].selected)
 						;
+					if (oa[i].value == sv) {
+						l.selectedIndex = i;
+					}
 				}
 			}
 		}
@@ -65,15 +74,18 @@ function sortList(ln) {
 function unHighLightList(oname, item) {
         var RN  = "unHighLightList";
 
+	dbg(1, RN);
+
         var acl = document.getElementById(oname);
         if (acl) {
                 for(var i = 0 ; i < acl.options.length ; i++) {
-                        if (i && item) {
+                        if (item) {
                                 if (item == acl.options[i].value)
                                         acl.options[i].selected = false;
                         } else {
                                 acl.options[i].selected = false;
                         }
+			acl.selectedIndex = -1;
                 }
         } else {
                 dbg (1, RN + ": error cant find " + oname + " object");
@@ -83,7 +95,7 @@ function unHighLightList(oname, item) {
 
 function highLightList(oname, item) {
         var RN  = "highLightList";
-
+	
         var acl = document.getElementById(oname);
         if (acl) {
                 for(var i = 1 ; i < acl.options.length ; i++) {
@@ -94,6 +106,7 @@ function highLightList(oname, item) {
                         else {
                                 acl.options[i].selected = true;
                         }
+			acl.selectedIndex = -1;
                 }
         } else {
                 dbg (1, RN + ": error cant find " + oname + " object");

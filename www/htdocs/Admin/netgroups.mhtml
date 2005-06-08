@@ -91,6 +91,11 @@ Notes:
 my $WH = "-" x 20;
 
 if ($submitButton eq 'Commit Changes') {
+	if ($netgroups =~ /;/) {
+		print "<P class='error'>Netgroup name can not contain semi-colons</P>";
+		goto show_form;
+	}
+
 	if (! grep(/^$netgroups$/, @$allNetgroups) ) {
 		# add the netgroup because we don't already know about it
 
@@ -190,6 +195,7 @@ if ($submitButton eq 'Commit Changes') {
 		print "<P class='error'>Netgroup Configuration Saved.</P>";
 	}
 }
+show_form:;
 </%perl>
 
 <form method="post">

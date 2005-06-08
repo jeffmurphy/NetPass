@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.45 2005/06/02 20:34:49 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.46 2005/06/08 16:35:41 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1720,12 +1720,12 @@ Submit an entry into the audit table.
  Example
 
  $dbh->audit(-mac => 112233445566, -ip => '1.2.3.4', -user => 'foo',
-             "this user", "did something");
+             -msg => ["this user", "did something"]);
 
  results in "this user did something" being inserted.
 
  $dbh->audit(-mac => 112233445566, -ip => '1.2.3.4', -user => 'foo',
-             "this user %s something", "did");
+             -msg => ["this user %s something", "did"]);
 
  results in "this user did something" being inserted.
  
@@ -1786,7 +1786,7 @@ sub audit {
 
 
     if (! $self->{'dbh'}->do($sql) ) {
-	_log "ERROR", "failed to submit audit entry ".$self->{'dbh'}->errstr." ($sql)\n";
+	_log("ERROR", "failed to submit audit entry ".$self->{'dbh'}->errstr." ($sql)\n");
 	return 0;
     }
 
@@ -2731,7 +2731,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.45 2005/06/02 20:34:49 mtbell Exp $
+$Id: DB.pm,v 1.46 2005/06/08 16:35:41 jeffmurphy Exp $
 
 =cut
 

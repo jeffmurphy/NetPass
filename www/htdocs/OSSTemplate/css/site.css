@@ -1,5 +1,5 @@
 /* 
-# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.9 2005/06/02 19:04:54 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/OSSTemplate/css/site.css,v 1.10 2005/06/08 16:35:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -232,4 +232,12 @@ TABLE#switchConfig TD.vlanmapRow {
 }
 
 TABLE#switchConfig TR.vlanmapRow { 
+}
+
+BUTTON.href {
+        cursor: hand;
+        cursor: pointer;
+        color:  #1178BC;
+        border: none;
+        background: none;
 }

@@ -37,10 +37,10 @@ PERMISSIONS
 	$garpNumber          => 3;
 	$switches            => [];
 	$BSW                 => '';
+	$delNetwork          => '';
 </%args>
 <%perl>
 use Data::Dumper;
-
 #print "<PRE>",  Dumper(\%ARGS), "</PRE>";
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
 if (!$isRoot) {
@@ -54,15 +54,31 @@ my $whoami = $m->session->{'username'};
 use Sys::Hostname;
 
 my $ng;
+my $WH = "--Select a Network--";
+my $WH2 = "----------------------";
 
 
 
 my @setResults = ();
 
-if ( ($submitButton eq "Commit Changes") && $network ) {
+# XX is cfg locked? 
+# XX audit
+
+my $rv;
+
+if ( ($delNetwork eq "Delete Network") && $network && ($network ne $WH) ) {
+	_log("DEBUG", $whoami. " is deleting $network");
+	$rv = $np->cfg->delNetwork(-network => $network);
+	if ($rv) {
+		push @setResults, "Failed to delete network $network - $rv";
+	} else {
+		$np->cfg->save(-user => $whoami);
+	}
+}
+
+if ( ($submitButton eq "Commit Changes") && $network && ($network ne $WH) ) {
 	_log("DEBUG", $m->session->{'username'}. " is updating $network $secondaryRedirector\n");
 
-	my $rv;
 	$rv = $np->cfg->setNetwork(-network => $network,
 					-comment => $comment,
 					-interface => $interface,
@@ -97,12 +113,12 @@ if ( ($submitButton eq "Commit Changes") && $network ) {
 $garpDelay  ||= 5;
 $garpNumber ||= 3;
 
-if ($network && $np->cfg->garp($network)) {
+if ($network && ($network ne $WH) && $np->cfg->garp($network)) {
 	$garpDelay  = $np->cfg->garp($network, 'delay');
 	$garpNumber = $np->cfg->garp($network, 'number');
 }
 
-if ($network) {
+if ($network && ($network ne $WH)) {
 	$qvid       = $np->cfg->quarantineVlan($network);
 	$uqvid      = $np->cfg->nonquarantineVlan($network);
 	$interface  = $np->cfg->getInterface($network);
@@ -112,7 +128,7 @@ if ($network) {
 	$switches   = $np->cfg->getSwitches($network);
 	$BSW        = $np->cfg->getBSW($network);
 }
-if ($network && $np->cfg->ha($network)) {
+if ($network && ($network ne $WH) && $np->cfg->ha($network)) {
 	$primaryRedirector   = $np->cfg->primary_redirector($network);
 	$secondaryRedirector = $np->cfg->secondary_redirector($network);
 	$haNPServers         = $np->cfg->ha_servers($network);
@@ -132,9 +148,7 @@ foreach my $nw (@$allNetworks) {
         my $_ng = $np->cfg->getNetgroup(-network => $nw);
         push @$allNetgroups, $_ng if ($_ng ne "") && (!grep(/^$_ng$/, @$allNetgroups));
 }
-$m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addNetwork', 'submitButton' ], 'init' => 0);
-my $WH = "--Select a Network--";
-my $WH2 = "----------------------";
+$m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'addNetwork', 'submitButton', 'delNetwork' ], 'init' => 0);
 
 </%perl>
 
@@ -175,6 +189,7 @@ DBG_init();
     <td class='selector'>
 	<input id='addNetwork' name='addNetwork' size=20 value='Add Network...' disabled
 	onblur='network_onblur_addNetwork(this);' onfocus='network_onfocus_addNetwork(this);'>
+	<input id='delNetwork' name='delNetwork' value='Delete Network' type='submit' disabled>
     </td>
     <td class='selector'>
 	<input type='submit' onclick='network_onclick_submitButton();' 

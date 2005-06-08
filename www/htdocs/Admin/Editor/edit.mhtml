@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.4 2005/04/27 03:54:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.5 2005/06/08 16:35:42 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -28,6 +28,9 @@ my $readOnly = "disabled";
 my ($isRO, $roGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ]);
 my ($isRW, $rwGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
 my ($isRoot, $junk)   = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+my ($allMyRO, $allMyRW);
+($junk, $allMyRO) = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ]);
+($junk, $allMyRW) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
 
 if ($isRW) {
         $readOnly = "";
@@ -49,15 +52,19 @@ if($name && $group) {
 }
 
 my $pageList = $np->db->getPageList();
-my %allGroups = map { $_ => $_ } @{$pageList->{'group'}};
+my %allGroups = map { $_ => $_ } 'default', @{$pageList->{'group'}}, @{$np->cfg->getNetgroups()};
 
 
-if (! $isRoot) {
-	%allGroups = map {$_ => $_} (@$rwGroups);
-}
+print "You have permission to <B>edit</B> the messages in the following groups: ", join(', ', @$allMyRW), "<BR>"
+	if ($#{$allMyRW} > -1);
 
 </%perl>
+<P>
+"Default" means "all groups". Note that even though all groups appear in the dropdown menu,
+you will only be allowed to save changes to pages in the groups you have
+permissions for. This is enforced when you click "Save Changes/Copy".
 
+<P>
 <script type="text/javascript">
   _editor_url = "/Admin/Editor/htmlarea";
   _editor_lang = "en";
