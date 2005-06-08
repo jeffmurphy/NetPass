@@ -52,7 +52,6 @@
 				}
 			}
 		}
-		$np->cfg->save(-user => $m->session->{'username'});
 	}
 
 sub getsnortvalue {
@@ -103,7 +102,7 @@ sub getconfigobj {
 <TR>
 <TD CLASS="gray" ALIGN=center>Sensor</TD>
 <TD CLASS="gray" ALIGN=center>Port</TD>
-<TD CLASS="gray" ALIGN=center>ro/rw</TD>
+<TD CLASS="gray" ALIGN=center>Mode</TD>
 <TD CLASS="gray" ALIGN=center>Action</TD>
 </TR>
 

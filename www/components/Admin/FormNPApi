@@ -20,7 +20,6 @@
 			}
 			$np->cfg->{'cfg'}->obj('npapi')->$var($ARGS{"npapi:$var"});
 		}
-		$np->cfg->save(-user => $m->session->{'username'});
 	}
 
 sub getnpapivalue {
