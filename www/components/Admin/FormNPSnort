@@ -7,13 +7,6 @@
 
 <%perl>
 	if ($submit eq "Commit Changes") {
-
-		my $c = getconfigobj($network);
-		if (!defined $c) {
-			# error
-			return;
-		}
-
 		foreach my $nparg (keys %ARGS) {
 			my $var;
 			if ($nparg =~ /^snort:(.+)$/) {
@@ -23,63 +16,26 @@
 			}
 
 			if ($var eq 'mode') {
-				if ($ARGS{$nparg} =~ /^(enabled|disabled|not_really)$/) {
-					$c->mode($ARGS{$nparg});
-				}
+				$np->cfg->snort(-key => 'mode', -network => $network, -val => $ARGS{$nparg})
+					if ($ARGS{$nparg} =~ /^(enabled|disabled|not_really)$/);
 			} elsif ($var =~ /^rorw_(.+)$/) {
 				my $v = $1;
-				if ($c->exists('servers') && $c->obj('servers')->exists($v) &&
-				    $ARGS{$nparg} =~ /^(ro|rw)$/) {
-					$c->obj('servers')->$v($ARGS{$nparg});
-				}
-
+				$np->cfg->snort(-key => $v, -sval => 'servers', -network => $network, -val => $ARGS{$nparg})
+					 if ($ARGS{$nparg} =~ /^(ro|rw)$/ && !exists $ARGS{"snort:delete_$v"});
 			} elsif ($var eq 'addnewsensor' && defined $ARGS{'snort:addnewsensor'}) {
-
-				if (!$c->exists('servers')) {
-					$c->servers({});
-				}
 				if ($ARGS{'snort:newport'} =~ /^\d+$/ &&
 				    $ARGS{'snort:newrorw'} =~ /^(ro|rw)$/ &&
 				    $ARGS{'snort:newsensor'} =~ /^\w*\.*\w*\.*\w+\.\w+$/) {
 					my $v = $ARGS{'snort:newsensor'}.':'.$ARGS{'snort:newport'};
-					$c->obj('servers')->$v($ARGS{'snort:newrorw'});
+					$np->cfg->snort(-key => $v, -sval => 'servers', -network => $network,
+						        -val => $ARGS{'snort:newrorw'});
 				}
-
 			} elsif ($var =~ /^delete_(.+)$/ && defined $ARGS{$nparg} ) {
 				my $v = $1;
-				if ($c->obj('servers')->exists($v)) {
-					$c->obj('servers')->delete($v);	
-				}
+				$np->cfg->snort(-key => $v, -sval => 'servers', -network => $network, -del => 1);
 			}
 		}
 	}
-
-sub getsnortvalue {
-	my $val     = shift;
-	my $network = shift;
-
-	my $c = getconfigobj($network);
-	return "" unless defined $c;
-
-	if ($c->exists($val)) {
-		return $c->value($val);	
-	}
-
-	return "";
-}
-
-sub getconfigobj {
-        my $network = shift;
-
-        if (defined $network && $np->cfg->{'cfg'}->exists($network) &&
-            $np->cfg->{'cfg'}->obj($network)->exists('snort')) {
-                return $np->cfg->{'cfg'}->obj($network)->obj('snort');
-        } elsif ($np->cfg->{'cfg'}->exists('snort')) {
-                return $np->cfg->{'cfg'}->obj('snort');
-        }
-
-        return undef;
-}
 
 </%perl>
 
@@ -93,7 +49,7 @@ sub getconfigobj {
 <%$q->popup_menu (
                         -name     => 'snort:mode',
                         -values   => ['enabled', 'disabled', 'not_really'],
-                        -default  => getsnortvalue('mode', $network)
+                        -default  => $np->cfg->snort(-key => 'mode', -network => $network)
                     )%>
 </TD></TR>
 <TR><TD CLASS='left'>Snort Sensors</TD>
@@ -107,28 +63,25 @@ sub getconfigobj {
 </TR>
 
 <%perl>
-	my $c = getconfigobj($network);
-	
-	if (defined $c && $c->exists('servers')) {
-		foreach my $s ($c->keys('servers')) {
-			my($server, $port) = split(/:/, $s);
-			print "<TR>";
-			print "<TD CLASS=\"gray\" ALIGN=center>$server</TD>";
-			print "<TD CLASS=\"gray\" ALIGN=center>$port</TD>";
-			print "<TD CLASS=\"gray\" ALIGN=center>";
-			print $q->popup_menu (
-						-name	  => "snort:rorw_$s",
-						-values	  => ['ro', 'rw'],
-						-default  => $c->obj('servers')->value($s)
-					     );
-			print "</TD>";
-			print "<TD CLASS=\"gray\" ALIGN=left>";
-			print $q->checkbox (
-						-name	=> "snort:delete_$s",
-						-label	=> " Delete",
-					   );
-			print "</TD></TR>";
-		}
+	my $h = $np->cfg->snort(-key => 'servers', -network => $network);
+	foreach my $s (keys %$h) {
+		my($server, $port) = split(/:/, $s);
+		print "<TR>";
+		print "<TD CLASS=\"gray\" ALIGN=center>$server</TD>";
+		print "<TD CLASS=\"gray\" ALIGN=center>$port</TD>";
+		print "<TD CLASS=\"gray\" ALIGN=center>";
+		print $q->popup_menu (
+					-name	  => "snort:rorw_$s",
+					-values	  => ['ro', 'rw'],
+					-default  => $np->cfg->snort(-key => $s, -sval => 'servers', -network => $network)
+				     );
+		print "</TD>";
+		print "<TD CLASS=\"gray\" ALIGN=left>";
+		print $q->checkbox (
+					-name	=> "snort:delete_$s",
+					-label	=> " Delete",
+				   );
+		print "</TD></TR>";
 	}
 	print "<TR>";
 	print "<TD CLASS=\"gray\" ALIGN=center>";

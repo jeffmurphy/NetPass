@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.47 2005/06/08 16:35:41 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.48 2005/06/12 14:05:00 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -9,7 +9,7 @@ use strict;
 
 require Carp;
 require Config::General;
-
+use lib qw(/opt/netpass/lib);
 use Data::Dumper;
 use FileHandle;
 use NetPass::LOG qw(_log _cont);
@@ -487,6 +487,195 @@ sub npapiSecret {
     return undef;
 }
 
+=head2 $val = snort(-key => $key, -network => $nw, -val => $value, -sval => $subvalue, -del => 0|1 )
+
+FETCHING SNORT SETTINGS
+
+=over 4
+
+Given a key (a snort variable name) and optionally a -sval subvalue return the associated value
+or undef if the variable doesnt exist in the C<netpass.conf> E<lt>snortE<gt> section.
+
+Networks can have E<lt>snortE<gt> sections too. If we're given a network,
+we'll search there first. If we don't find anything useful, we'll try the network's
+group and finally the global snort section.
+
+=back
+
+SETTING SNORT SETTINGS
+
+=over 4
+
+If a -val and optionally a -sval is given, the snort variable will be set instead of
+fetched. If no network is specified, the global snort section is set. If a network
+is specified, the specific snort section for the network is set. If a groupname is
+given, the specific snort section for that group is set.
+
+=back
+
+DELETE SNORT SETTINGS
+
+=over 4
+
+If a -key and optionally a -sval is given when -del is true the associated value of 
+-key will be deleted.
+
+=back
+
+
+RETURN VALUES
+
+=over 4
+
+ value (even undef)  on successful fetch or set
+
+=back
+
+=cut
+
+sub snort {
+        my $self = shift;
+
+        my $parms = parse_parms({
+                                 -parms => \@_,
+                                 -legal => [qw(-key -network -val -sval -del)],
+                                 -required => [qw(-key)],
+                                 -defaults => { -network => '', -val => undef, -sval => undef, -del => 0}
+                            }
+                           );
+
+        if (!defined($parms)) {
+                _log("ERROR", Carp::longmess("invalid parameters ".Class::ParmList->error)."\n");
+                return undef;
+        }
+
+	my ($pvar, $nw, $val, $sval, $del) = $parms->get('-key', '-network', '-val', '-sval', '-del');
+
+	$del = 0 if $del != 1;
+        $nw = "" if ($nw eq "default");
+        $nw ||= "";
+
+	$self->reloadIfChanged();
+
+	$pvar =~ tr [A-Z] [a-z]; # because of AutoLowerCase
+
+        # if network looks like an IP, figure out which <network> clause
+        # applies. else we assume network is a group name (if it's defined
+        # at all)
+
+        if ($nw =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) {
+                $nw = $self->getMatchingNetwork(-ip => $nw);
+        }
+
+	# get config object for snort
+	my $cobj;
+
+        if (recur_exists ($self->{'cfg'}, "network", $nw, "snort")) {
+        	$cobj =  $self->{'cfg'}->obj('network')->obj($nw)->obj('snort');
+        } 
+
+	# if the network has a group name, check the group
+
+	if (!$cobj) {
+                my $netgroup = "";
+                if (recur_exists ($self->{'cfg'}, "network", $nw, "group")) {
+                        $netgroup =  $self->{'cfg'}->obj('network')->obj($nw)->value('group');
+                        $netgroup =~ s/\s/\%20/g; # Config::General bug workaround
+                                                  # reported 3-may-2005 (see once more below!)
+                        $netgroup =~ tr [A-Z] [a-z]; # another Config::General bug
+                                                     # reported 3-may-2005
+
+                        if (recur_exists ($self->{'cfg'}, "group", $netgroup, "snort")) {
+                                $cobj = $self->{'cfg'}->obj('group')->obj($netgroup)->obj('snort');
+                        }
+                }
+	}
+
+	# if the above didnt work, perhaps we were given a group name
+
+	if (!$cobj) {
+                my $netgroup = $nw;
+                $netgroup =~ s/\s/\%20/g; # Config::General bug workaround
+                $netgroup =~ tr [A-Z] [a-z]; # another Config::General bug
+                if (recur_exists($self->{'cfg'}, "group", $netgroup)) {
+                        if (recur_exists($self->{'cfg'}, 'group', $netgroup, 'snort')) {
+                                $cobj = $self->{'cfg'}->obj('group')->obj($netgroup)->obj('snort');
+                        }
+                }
+	}
+
+        # finally, look in the global snort
+
+	if (!$cobj) {
+                $cobj =  $self->{'cfg'}->obj('snort')
+                  if (recur_exists ($self->{'cfg'}, "snort"));
+        }
+
+	return undef if !defined $cobj && !defined $val;
+
+	if ($del && defined $cobj) {
+                if (defined $sval) {
+                        $cobj->obj($sval)->delete($pvar) if (recur_exists($cobj, $sval, $pvar));
+                } else {
+                        $cobj->delete($pvar) if $cobj->exists($pvar);
+                }
+		return 1;
+	} elsif ( !defined $val && defined $cobj) {
+		if ($sval) {
+			return $cobj->obj($sval)->value($pvar) if recur_exists($cobj, $sval, $pvar);
+		} else {
+			return $cobj->value($pvar) if $cobj->exists($pvar);
+		}
+	} elsif ( defined $val) {
+		if (!defined $cobj) {
+			# this means we need to put in a <snort> entry
+
+			if ($nw =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/) {
+				# add snort to network
+
+                        	if (! recur_exists ($self->{'cfg'}, "network", $nw)) {
+                                	return undef; #"nosuch network";
+                        	}
+
+				$self->{'cfg'}->obj('network')->obj($nw)->snort({});
+				$cobj = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort');
+			} elsif ($nw ne "") {
+				# add <snort> to netgroup				
+
+                        	$nw =~ s/\s/\%20/g; # Config::General bug workaround
+                                            	    # reported 3-may-2005
+                        	$nw =~ tr [A-Z] [a-z]; # another Config::General bug
+
+	                        if (! recur_exists ($self->{'cfg'}, "group", $nw)) {
+                                	return undef; #"nosuch group";
+                        	}
+
+				$self->{'cfg'}->obj('group')->obj($nw)->snort({});
+				$cobj = $self->{'cfg'}->obj('group')->obj($nw)->obj('snort');	
+			} else {
+				# add <snort> to global		
+
+				$self->{'cfg'}->snort({});
+				$cobj = $self->{'cfg'}->obj('snort');
+			}
+		}
+		if ($sval) {
+			if (recur_exists($cobj, $sval)) {
+				$cobj->obj($sval)->$pvar($val);
+			} else {
+				$cobj->$sval({});
+				$cobj->obj($sval)->$pvar($val);
+			}		
+			return 1;
+		} else {
+			$cobj->$pvar($val);
+			return 1;
+		}
+	}
+
+	return undef;
+}
+
 =head2 $bool = $cfg-E<gt>snortEnabled(network)
 
 Determines snort status on the specified network, returns either
@@ -500,18 +689,10 @@ sub snortEnabled {
 
     $self->reloadIfChanged();
 
-    if (recur_exists($self->{'cfg'}, 'network', $nw, 'snort', 'mode')) {
-        my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort')->value('mode');
-        return $s if ($s =~ /^(enabled|disabled|not_really)$/i);
-        return 0;
-    }
+    my $s = $self->snort(-key => 'mode', -network => $nw);
+    return 0 unless defined $s;
 
-    if (recur_exists($self->{'cfg'}, 'snort', 'mode')) {
-        my $s = $self->{'cfg'}->obj('snort')->value('mode');
-        return $s if ($s =~ /^(enabled|disabled|not_really)$/i);
-        return 0;
-    }
-
+    return $s if ($s =~ /^(enabled|disabled|not_really)$/i);
     return 0;
 }
 
@@ -531,25 +712,15 @@ sub getSnortSensors {
     $self->reloadIfChanged();
     return undef unless ($self->snortEnabled($nw) =~ /^(enabled|not_really)$/);
 
-    if (recur_exists($self->{'cfg'}, 'network', $nw, 'snort', 'servers')) {
-        my $s = $self->{'cfg'}->obj('network')->obj($nw)->obj('snort');
-        foreach ($s->keys('servers')) {
-		my $v = $s->obj('servers')->value($_);
-                $sensors->{$_} = ($v =~ /rw|ro/) ? $v : 'ro';
-        }
-        return $sensors;
-    }
+    my $s = $self->snort(-key => 'servers', -network => $nw);
+    return undef if (!defined $s && ref($s) ne 'HASH');
+   
+    foreach (keys %$s) {
+	my $v = $self->snort(-key => $_, -sval => 'servers', -network => $nw);
+	$sensors->{$_} = ($v =~ /rw|ro/) ? $v : 'ro';
+    } 
 
-    if (recur_exists($self->{'cfg'}, 'snort', 'servers')) {
-        my $s = $self->{'cfg'}->obj('snort');
-        foreach ($s->keys('servers')) {
-		my $v = $s->obj('servers')->value($_);
-                $sensors->{$_} = ($v =~ /rw|ro/) ? $v : 'ro';
-        }
-        return $sensors;
-    }
-
-    return undef;
+    return $sensors;
 }
 
 =head2 my $qvlan = $cfg-E<gt>quarantineVlan(network)
@@ -2563,7 +2734,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.47 2005/06/08 16:35:41 jeffmurphy Exp $
+$Id: Config.pm,v 1.48 2005/06/12 14:05:00 mtbell Exp $
 
 =cut
 
