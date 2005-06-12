@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.48 2005/06/12 14:05:00 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.49 2005/06/12 14:29:50 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -9,7 +9,7 @@ use strict;
 
 require Carp;
 require Config::General;
-use lib qw(/opt/netpass/lib);
+
 use Data::Dumper;
 use FileHandle;
 use NetPass::LOG qw(_log _cont);
@@ -2734,7 +2734,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.48 2005/06/12 14:05:00 mtbell Exp $
+$Id: Config.pm,v 1.49 2005/06/12 14:29:50 mtbell Exp $
 
 =cut
 
