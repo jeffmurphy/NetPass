@@ -167,7 +167,7 @@ if ($submitButton eq 'Commit Changes') {
 	$rv = '';
 
 	foreach my $ak ( keys %ARGS ) {
-		if ($ak =~ /^(\S+):(\S+)$/) {
+		if ($ak =~ /^(\w+):(\S+)$/) {
 			my $section = $1;
 			my $var     = $2;
 
@@ -181,7 +181,40 @@ if ($submitButton eq 'Commit Changes') {
 									-network => $netgroups);
 					$rv .= " $rv2" if ($rv2);
 				}
-			}
+			} elsif ($section eq "snort") {
+                                if ($var eq 'mode' && $ARGS{"override:mode"}) {
+                                        $np->cfg->snort(-key     => 'mode',
+                                                        -network => $netgroups,
+                                                        -val     => $ARGS{$ak})
+                                                if ($ARGS{$ak} =~ /^(enabled|disabled|not_really)$/);
+                                } elsif ($var =~ /^rorw_(.+)$/ && $ARGS{"override:servers"}) {
+                                        my $v = $1;
+                                        $np->cfg->snort(-key     => $v,
+                                                        -sval    => 'servers',
+                                                        -network => $netgroups,
+                                                        -val     => $ARGS{$ak})
+                                                if ($ARGS{$ak} =~ /^(ro|rw)$/ && !exists $ARGS{"snort:delete_$v"});
+                                } elsif ($var eq 'addnewsensor' && defined $ARGS{'snort:addnewsensor'} &&
+                                         $ARGS{"override:servers"}) {
+                                        if ($ARGS{'snort:newport'} =~ /^\d+$/ &&
+                                            $ARGS{'snort:newrorw'} =~ /^(ro|rw)$/ &&
+                                            $ARGS{'snort:newsensor'} =~ /^\w*\.*\w*\.*\w+\.\w+$/) {
+                                                my $v = $ARGS{'snort:newsensor'}.':'.$ARGS{'snort:newport'};
+                                                $np->cfg->snort(-key     => $v,
+                                                                -sval    => 'servers',
+                                                                -network => $netgroups,
+                                                                -val     => $ARGS{'snort:newrorw'});
+                                        }
+                                } elsif ($var =~ /^delete_(.+)$/ && defined $ARGS{$ak} && $ARGS{"override:servers"}) {
+                                        my $v = $1;
+                                        $np->cfg->snort(-key => $v, -sval => 'servers', -network => $netgroups, -del => 1);
+                                }
+
+                                if ($ARGS{"override:mode"} eq "" || $ARGS{"override:servers"} eq "") {
+                                        $np->cfg->snort(-key => 'mode', -network => $netgroups, -del => 1);
+                                        $np->cfg->snort(-key => 'servers' , -network => $netgroups, -del => 1);
+                                }
+                        }
 		}
 	}
 
@@ -225,6 +258,8 @@ show_form:;
 <P>
 % if ($netgroups) {
 % 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Netgroup General Settings for '.$netgroups, 'network' => $netgroups, 'suppressKeys' => { 'PID_DIR' => 1, 'BASE_DIR' => 1 }, 'showDefault' => 1, 'formatFor' => 'group' );
+%       $m->comp('/Admin/FormNPSnort', %ARGS, 'network' => $netgroups, 'formatFor' => 'group',
+%                'showDefault' => 1);
 % }
 </form>
 
