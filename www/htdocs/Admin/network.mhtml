@@ -122,9 +122,7 @@ if ( ($submitButton eq "Commit Changes") && $network && ($network ne $WH) ) {
                                                                         -network => $network);
                                         $rv .= " $rv2" if ($rv2);
                                 }
-                        }
-
-			if ($section eq "snort") {
+                        } elsif ($section eq "snort") {
                                 if ($var eq 'mode' && $ARGS{"override:mode"}) {
                                         $np->cfg->snort(-key 	 => 'mode',
 							-network => $network, 
@@ -302,6 +300,8 @@ BSW: <input name='BSW' id='BSW' value='<%$BSW%>' size=16 maxlength=80><BR>
 % 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Network General Settings for '.$network.$ngtxt, 
 %		 'showDefault' => 1, 'formatFor' => 'network', 
 %		 'network' => $network, 'suppressKeys' => { 'PID_DIR' => 1, 'BASE_DIR' => 1 } );
+
+</tr><tr><td colspan=3>
 %       $m->comp('/Admin/FormNPSnort', %ARGS, 'network' => $network, 'formatFor' => 'network',
 %                'showDefault' => 1);
 % }

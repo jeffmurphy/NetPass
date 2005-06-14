@@ -12,23 +12,24 @@
 <TH onclick="showHideObj2(getElementById('snortConfig').tBodies[0]);" COLSPAN=2>Snort</TH>
 </TR></THEAD>
 <TBODY>
-%} elsif ($formatFor eq "network") {
+%} elsif ($formatFor =~ /network|group/) {
 <THEAD><TR>
 <TH onclick="showHideObj2(getElementById('snortConfig').tBodies[0]);" COLSPAN=5>Snort Settings for <%$network%></TH>
 </TR></THEAD>
 <TBODY>
 <TR>
 <TH>Option</TH><TH>Value</TH><TH>Override Default</TH><TH COLSPAN=2>Default Value</TH>
+</TR>
 %}
 <TR><TD CLASS='left'>mode</TD>
 <TD CLASS='right'>
-<%$q->popup_menu (
-                        -name     => 'snort:mode',
-                        -values   => ['enabled', 'disabled', 'not_really'],
-                        -default  => $np->cfg->snort(-key => 'mode', -network => $network)
-                    )%>
+%print $q->popup_menu (
+%                        -name     => 'snort:mode',
+%                        -values   => ['enabled', 'disabled', 'not_really'],
+%                        -default  => $np->cfg->snort(-key => 'mode', -network => $network)
+%                     );
 </TD>
-% if ($formatFor eq "network" && $showDefault) {
+% if ($formatFor =~ /network|group/ && $showDefault) {
 <td class='center'><input type='checkbox' <%!$np->cfg->snortLocation(-key => 'mode', -network => $network, -location => $formatFor)? "" : "checked"%> name="override:mode"></td>
 <td class='right'><%$np->cfg->snort(-key => 'mode')%></td>
 <td class='left'>(<%join(',', @{$np->cfg->snortLocation(-key => 'mode', -network => $network)})%>)</td>
@@ -90,7 +91,7 @@
 
 	print "</TD></TR></TABLE></TD>";
 
-	if ($formatFor eq "network" && $showDefault) {
+	if ($formatFor =~ /network|group/ && $showDefault) {
 		my $c = !$np->cfg->snortLocation(-key => 'servers', -network => $network, -location => $formatFor) ? 0 : 1;
                 print "<TD CLASS='center'>";
 		print $q->checkbox (
@@ -130,4 +131,3 @@
 </TR>
 </TBODY>
 </TABLE>
-<BR>
