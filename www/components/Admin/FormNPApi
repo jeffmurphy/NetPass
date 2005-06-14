@@ -5,23 +5,6 @@
 </%args>
 
 <%perl>
-	if ($submit eq "Commit Changes") {
-
-		foreach my $nparg (keys %ARGS) {
-			my $var;
-			if ($nparg =~ /^npapi:(\w+)$/) {
-				$var        = $1;
-			} else {
-				next;
-			}
-
-			if (!$np->cfg->{'cfg'}->exists('npapi')) {
-				$np->cfg->{'cfg'}->npapi({});
-			}
-			$np->cfg->{'cfg'}->obj('npapi')->$var($ARGS{"npapi:$var"});
-		}
-	}
-
 sub getnpapivalue {
 	my $val = shift;
 

@@ -1,49 +1,25 @@
 <%doc>
 </%doc>
 <%args>
-	$submit		=> '';
 	$network	=> '';
+	$formatFor      => '';
+	$showDefault    => 0;
 </%args>
 
-<%perl>
-	if ($submit eq "Commit Changes") {
-		foreach my $nparg (keys %ARGS) {
-			my $var;
-			if ($nparg =~ /^snort:(.+)$/) {
-				$var        = $1;
-			} else {
-				next;
-			}
-
-			if ($var eq 'mode') {
-				$np->cfg->snort(-key => 'mode', -network => $network, -val => $ARGS{$nparg})
-					if ($ARGS{$nparg} =~ /^(enabled|disabled|not_really)$/);
-			} elsif ($var =~ /^rorw_(.+)$/) {
-				my $v = $1;
-				$np->cfg->snort(-key => $v, -sval => 'servers', -network => $network, -val => $ARGS{$nparg})
-					 if ($ARGS{$nparg} =~ /^(ro|rw)$/ && !exists $ARGS{"snort:delete_$v"});
-			} elsif ($var eq 'addnewsensor' && defined $ARGS{'snort:addnewsensor'}) {
-				if ($ARGS{'snort:newport'} =~ /^\d+$/ &&
-				    $ARGS{'snort:newrorw'} =~ /^(ro|rw)$/ &&
-				    $ARGS{'snort:newsensor'} =~ /^\w*\.*\w*\.*\w+\.\w+$/) {
-					my $v = $ARGS{'snort:newsensor'}.':'.$ARGS{'snort:newport'};
-					$np->cfg->snort(-key => $v, -sval => 'servers', -network => $network,
-						        -val => $ARGS{'snort:newrorw'});
-				}
-			} elsif ($var =~ /^delete_(.+)$/ && defined $ARGS{$nparg} ) {
-				my $v = $1;
-				$np->cfg->snort(-key => $v, -sval => 'servers', -network => $network, -del => 1);
-			}
-		}
-	}
-
-</%perl>
-
 <TABLE WIDTH=800 class="expandable" ID="snortConfig" CELLSPACING=2 CELLPADDING=2>
-<THEAD>
-<TR><TH onclick="showHideObj2(getElementById('snortConfig').tBodies[0]);" COLSPAN=2>Snort</TH></TR>
-</THEAD>
+% if ($formatFor eq "") {
+<THEAD><TR>
+<TH onclick="showHideObj2(getElementById('snortConfig').tBodies[0]);" COLSPAN=2>Snort</TH>
+</TR></THEAD>
 <TBODY>
+%} elsif ($formatFor eq "network") {
+<THEAD><TR>
+<TH onclick="showHideObj2(getElementById('snortConfig').tBodies[0]);" COLSPAN=5>Snort Settings for <%$network%></TH>
+</TR></THEAD>
+<TBODY>
+<TR>
+<TH>Option</TH><TH>Value</TH><TH>Override Default</TH><TH COLSPAN=2>Default Value</TH>
+%}
 <TR><TD CLASS='left'>mode</TD>
 <TD CLASS='right'>
 <%$q->popup_menu (
@@ -51,7 +27,13 @@
                         -values   => ['enabled', 'disabled', 'not_really'],
                         -default  => $np->cfg->snort(-key => 'mode', -network => $network)
                     )%>
-</TD></TR>
+</TD>
+% if ($formatFor eq "network" && $showDefault) {
+<td class='center'><input type='checkbox' <%!$np->cfg->snortLocation(-key => 'mode', -network => $network, -location => $formatFor)? "" : "checked"%> name="override:mode"></td>
+<td class='right'><%$np->cfg->snort(-key => 'mode')%></td>
+<td class='left'>(<%join(',', @{$np->cfg->snortLocation(-key => 'mode', -network => $network)})%>)</td>
+% }
+</TR>
 <TR><TD CLASS='left'>Snort Sensors</TD>
 <TD CLASS='right' ALIGN=center>
 <TABLE WIDTH=80% BGCOLOR="#ffffff" CELLSPACING=2 CELLPADDING=2>
@@ -87,7 +69,7 @@
 	print "<TD CLASS=\"gray\" ALIGN=center>";
 	print $q->textfield (
 				-name	=> "snort:newsensor",
-				-size	=> 40,
+				-size	=> 30,
 			    );
 	print "</TD><TD CLASS=\"gray\" ALIGN=center>";
         print $q->textfield (
@@ -105,12 +87,47 @@
 				-name   => "snort:addnewsensor",
 				-label  => " Add",
 			   );
-	print "</TD>";
-	print "</TR>";
+
+	print "</TD></TR></TABLE></TD>";
+
+	if ($formatFor eq "network" && $showDefault) {
+		my $c = !$np->cfg->snortLocation(-key => 'servers', -network => $network, -location => $formatFor) ? 0 : 1;
+                print "<TD CLASS='center'>";
+		print $q->checkbox (
+					-name	 => 'override:servers',
+					-label	 => "",
+					-checked => $c
+				   );
+		print "</TD>";
+		my $h = $np->cfg->snort(-key => 'servers');
+
 </%perl>
 
-</TABLE>
-</TD></TR>
+<TD CLASS="right" ALIGN=center VALIGN=top>
+<TABLE WIDTH=80% BGCOLOR="#ffffff" CELLSPACING=2 CELLPADDING=2>
+<TR>
+<TD CLASS="gray" ALIGN=center>Sensor</TD>
+<TD CLASS="gray" ALIGN=center>Port</TD>
+<TD CLASS="gray" ALIGN=center>Mode</TD>
+</TR>
+
+<%perl>
+	        foreach my $s (keys %$h) {
+	                my($server, $port) = split(/:/, $s);
+	                print "<TR>";
+	                print "<TD CLASS=\"gray\" ALIGN=center>$server</TD>";
+	                print "<TD CLASS=\"gray\" ALIGN=center>$port</TD>";
+	                print "<TD CLASS=\"gray\" ALIGN=center>".$np->cfg->snort(-key => $s, -sval => 'servers');
+	                print "</TD></TR>";
+	        }
+
+		print "</TABLE></TD>";
+			
+</%perl>
+
+<td class='left'>(<%join(',', @{$np->cfg->snortLocation(-key => 'servers', -network => $network)})%>)</td>
+%	}
+</TR>
 </TBODY>
 </TABLE>
 <BR>

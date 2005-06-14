@@ -4,30 +4,6 @@
         $submit         => '';
 </%args>
 
-<%perl>
-my $restartnetpass  = 0;
-
-if ($submit eq 'Commit Changes') {
-	foreach my $ak ( keys %ARGS ) {
-		if ($ak =~ /^(\S+):(\S+)$/) {
-			my $section = $1;
-			my $var     = $2;
-
-			if ($section eq "database") {
-				my $db  = "database";
-				if (!$np->cfg->{'cfg'}->exists('database')) {
-					$np->cfg->{'cfg'}->$db({});	
-				}
-				$np->cfg->{'cfg'}->obj('database')->$var($ARGS{$ak});
-				$restartnetpass = 1;
-			}
-		}
-	}
-
-	$np->db->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
-}
-</%perl>
-
 <TABLE WIDTH=800 CLASS="expandable" ID="databaseConfig" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
 <TR><TH ONCLICK="showHideObj2(getElementById('databaseConfig').tBodies[0]);" COLSPAN=2>Database</TH></TR>

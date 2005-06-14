@@ -4,26 +4,6 @@
         $submit         => '';
 </%args>
 
-<%perl>
-my $restartnessus  = 0;
-
-if ($submit eq 'Commit Changes') {
-	foreach my $ak ( keys %ARGS ) {
-		if ($ak =~ /^(\S+):(\S+)$/) {
-			my $section = $1;
-			my $var     = $2;
-
-			if ($section eq "nessus") {
-				$np->cfg->nessus(-key => $var, -val => $ARGS{$ak});
-				$restartnessus = 1;
-			}
-		}
-	}
-
-	$np->db->reqAppAction('nessusd', 'restart', '') if ($restartnessus);
-}
-</%perl>
-
 <TABLE WIDTH=800 class="expandable" ID="nessusConfig" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
 <TR><TH onclick="showHideObj2(getElementById('nessusConfig').tBodies[0]);" COLSPAN=2>Nessus</TH></TR>

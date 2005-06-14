@@ -4,34 +4,6 @@
         $submit         => '';
 </%args>
 
-<%perl>
-
-my $restartnetpass = 0;
-my $restarthttpd   = 0;
-
-if ($submit eq 'Commit Changes') {
-	foreach my $ak ( keys %ARGS ) {
-		if ($ak =~ /^(\S+):(\S+)$/) {
-			my $section = $1;
-			my $var     = $2;
-
-			if ($section eq "policy") {
-				if ($var =~ /^PID_DIR|BASE_DIR$/) {
-					$restartnetpass = 1;
-					$restarthttpd = 1;
-				}
-				$np->cfg->policy(-key => $var, -val => $ARGS{$ak});
-			}
-
-		}
-	}
-
-	$np->db->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
-	$np->db->reqAppAction('httpd',   'restart', '') if ($restarthttpd);
-}
-
-</%perl>
-
 <TABLE WIDTH=800 ID="policyConfig" class="expandable" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
 <TR><TH onclick="showHideObj2(getElementById('policyConfig').tBodies[0]);" COLSPAN=2>General (Global)</TH></TR>
