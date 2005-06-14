@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.18 2005/06/08 12:12:26 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.19 2005/06/14 16:38:26 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -34,6 +34,67 @@ if (! $isRoot  ) {
         return;
 }
 
+my $restartnetpass = 0;
+my $restarthttpd   = 0;
+my $restartnessus  = 0;
+
+if ($submit eq 'Commit Changes') {
+        foreach my $ak ( keys %ARGS ) {
+                if ($ak =~ /^(\w+):(\S+)$/) {
+                        my $section = $1;
+                        my $var     = $2;
+
+                        if ($section eq "policy") {
+                                if ($var =~ /^PID_DIR|BASE_DIR$/) {
+                                        $restartnetpass = 1;
+                                        $restarthttpd = 1;
+                                }
+                                $np->cfg->policy(-key => $var, -val => $ARGS{$ak});
+                        } elsif ($section eq "nessus") {
+                                $np->cfg->nessus(-key => $var, -val => $ARGS{$ak});
+                                $restartnessus = 1;
+                        } elsif ($section eq "database") {
+                                my $db  = "database";
+                                if (!$np->cfg->{'cfg'}->exists('database')) {
+                                        $np->cfg->{'cfg'}->$db({});
+                                }
+                                $np->cfg->{'cfg'}->obj('database')->$var($ARGS{$ak});
+                                $restartnetpass = 1;
+                        } elsif ($section eq "npapi") {
+                        	if (!$np->cfg->{'cfg'}->exists('npapi')) {
+                                	$np->cfg->{'cfg'}->npapi({});
+                        	}
+                        	$np->cfg->{'cfg'}->obj('npapi')->$var($ARGS{"npapi:$var"});
+			} elsif ($section eq "snort") {
+                        	if ($var eq 'mode') {
+	                               	$np->cfg->snort(-key => 'mode', -val => $ARGS{$ak})
+	                                       	if ($ARGS{$ak} =~ /^(enabled|disabled|not_really)$/);
+	                        } elsif ($var =~ /^rorw_(.+)$/) {
+	                                my $v = $1;
+	      	                        $np->cfg->snort(-key => $v, -sval => 'servers', -val => $ARGS{$ak})
+						if ($ARGS{$ak} =~ /^(ro|rw)$/ && !exists $ARGS{"snort:delete_$v"});
+	                        } elsif ($var eq 'addnewsensor' && defined $ARGS{'snort:addnewsensor'}) {
+	                                if ($ARGS{'snort:newport'} =~ /^\d+$/ &&
+	                                    $ARGS{'snort:newrorw'} =~ /^(ro|rw)$/ &&
+	                                    $ARGS{'snort:newsensor'} =~ /^\w*\.*\w*\.*\w+\.\w+$/) {
+	                                        my $v = $ARGS{'snort:newsensor'}.':'.$ARGS{'snort:newport'};
+	                                        $np->cfg->snort(-key => $v, -sval => 'servers', -val => $ARGS{'snort:newrorw'});
+	                                }
+	                        } elsif ($var =~ /^delete_(.+)$/ && defined $ARGS{$ak}) {
+	                                my $v = $1;
+	                                $np->cfg->snort(-key => $v, -sval => 'servers', -del => 1);
+	                        }
+			}
+                }
+        }
+
+        $np->db->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
+        $np->db->reqAppAction('httpd',   'restart', '') if ($restarthttpd);
+	$np->db->reqAppAction('nessusd', 'restart', '') if ($restartnessus);
+
+        $np->cfg->save(-user => $m->session->{'username'});
+}
+
 print $q->start_form(-method => "POST");
 
 </%perl>
@@ -51,10 +112,6 @@ $m->comp('/Admin/FormNPNessus', 'submit' => $submit, %ARGS);
 $m->comp('/Admin/FormNPSnort',  'submit' => $submit, 'network' => "", %ARGS);
 $m->comp('/Admin/FormNPApi',    'submit' => $submit, %ARGS);
 $m->comp('/Admin/FormNPDb',     'submit' => $submit, %ARGS);
-
-if ($submit eq 'Commit Changes') {
-	$np->cfg->save(-user => $m->session->{'username'});
-}
 
 print $q->end_form();
 </%perl>
