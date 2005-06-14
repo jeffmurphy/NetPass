@@ -107,6 +107,60 @@ if ( ($submitButton eq "Commit Changes") && $network && ($network ne $WH) ) {
 				-bsw      => $BSW);
 	push @setResults, "Failed to set 'switches': $rv" if $rv;
 
+        foreach my $ak ( keys %ARGS ) {
+                if ($ak =~ /^(\w+):(\S+)$/) {
+                        my $section = $1;
+                        my $var     = $2;
+
+                        if ($section eq "policy") {
+                                if ($ARGS{"override:$var"}) {
+                                        $np->cfg->policy(-key => $var, -network => $network,
+                                                         -val => $ARGS{$ak});
+                                } else {
+                                        my $rv2 = $np->cfg->removePolicy(-key => $var,
+                                                                        -location => 'network',
+                                                                        -network => $network);
+                                        $rv .= " $rv2" if ($rv2);
+                                }
+                        }
+
+			if ($section eq "snort") {
+                                if ($var eq 'mode' && $ARGS{"override:mode"}) {
+                                        $np->cfg->snort(-key 	 => 'mode',
+							-network => $network, 
+							-val 	 => $ARGS{$ak})
+                                                if ($ARGS{$ak} =~ /^(enabled|disabled|not_really)$/);
+                                } elsif ($var =~ /^rorw_(.+)$/ && $ARGS{"override:servers"}) {
+                                        my $v = $1;
+                                        $np->cfg->snort(-key 	 => $v, 
+							-sval 	 => 'servers', 
+							-network => $network, 
+							-val 	 => $ARGS{$ak})
+                                                if ($ARGS{$ak} =~ /^(ro|rw)$/ && !exists $ARGS{"snort:delete_$v"});
+                                } elsif ($var eq 'addnewsensor' && defined $ARGS{'snort:addnewsensor'} &&
+					 $ARGS{"override:servers"}) {
+                                        if ($ARGS{'snort:newport'} =~ /^\d+$/ &&
+                                            $ARGS{'snort:newrorw'} =~ /^(ro|rw)$/ &&
+                                            $ARGS{'snort:newsensor'} =~ /^\w*\.*\w*\.*\w+\.\w+$/) {
+                                                my $v = $ARGS{'snort:newsensor'}.':'.$ARGS{'snort:newport'};
+                                                $np->cfg->snort(-key 	 => $v, 
+								-sval 	 => 'servers', 
+								-network => $network, 	
+								-val 	 => $ARGS{'snort:newrorw'});
+                                        }
+                                } elsif ($var =~ /^delete_(.+)$/ && defined $ARGS{$ak} && $ARGS{"override:servers"}) {
+                                        my $v = $1;
+                                        $np->cfg->snort(-key => $v, -sval => 'servers', -network => $network, -del => 1);
+                                }
+
+				if ($ARGS{"override:mode"} eq "" || $ARGS{"override:servers"} eq "") {
+                                        $np->cfg->snort(-key => 'mode', -network => $network, -del => 1);
+                                       	$np->cfg->snort(-key => 'servers' , -network => $network, -del => 1);
+				}
+			}
+                }
+        }
+
 	$np->cfg->save(-user => $whoami) if ($#setResults == -1);
 }
 
@@ -248,7 +302,10 @@ BSW: <input name='BSW' id='BSW' value='<%$BSW%>' size=16 maxlength=80><BR>
 % 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Network General Settings for '.$network.$ngtxt, 
 %		 'showDefault' => 1, 'formatFor' => 'network', 
 %		 'network' => $network, 'suppressKeys' => { 'PID_DIR' => 1, 'BASE_DIR' => 1 } );
+%       $m->comp('/Admin/FormNPSnort', %ARGS, 'network' => $network, 'formatFor' => 'network',
+%                'showDefault' => 1);
 % }
+
 </td></tr>
 </table>
 </form>

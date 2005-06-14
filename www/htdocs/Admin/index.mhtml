@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.10 2005/06/13 15:17:36 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.11 2005/06/14 21:12:07 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -53,7 +53,7 @@ sub snortStats {
 
 	foreach my $nw (@$networks) {
 		my $sips = $np->cfg->getSnortSensors($nw); 
-		return 0 unless (defined $sips) && (ref($sips) eq 'HASH');
+		next unless (defined $sips) && (ref($sips) eq 'HASH');
 		map($sensors->{$_} = $sips->{$_}, keys(%$sips));	
 	}
 

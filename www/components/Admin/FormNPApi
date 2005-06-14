@@ -4,28 +4,13 @@
 	$submit		=> '';
 </%args>
 
-<%perl>
-sub getnpapivalue {
-	my $val = shift;
-
-	if ($np->cfg->{'cfg'}->exists('npapi') &&
-	    $np->cfg->{'cfg'}->obj('npapi')->exists($val)) {
-		return $np->cfg->{'cfg'}->obj('npapi')->value($val);
-	}
-
-	return "";
-}
-</%perl>
-
 <TABLE WIDTH=800 class="expandable" ID="npapiConfig" CELLSPACING=2 CELLPADDING=2>
 <THEAD>
 <TR><TH onclick="showHideObj2(getElementById('npapiConfig').tBodies[0]);" COLSPAN=2>NetPass API</TH></TR>
 </THEAD>
 <TBODY>
-<TR><TD CLASS='left'>Port</TD><TD CLASS='right'><input type="text" name="npapi:port" value="<%getnpapivalue('port')%>" size="25
-" /></TD></TR>
-<TR><TD CLASS='left'>Secret</TD><TD CLASS='right'><input type="text" name="npapi:secret" value="<%getnpapivalue('secret')%>" size
-="25"/></TD></TR>
+<TR><TD CLASS='left'>Port</TD><TD CLASS='right'><input type="text" name="npapi:port" value="<%$np->cfg->npapiPort()%>" size="25" /></TD></TR>
+<TR><TD CLASS='left'>Secret</TD><TD CLASS='right'><input type="text" name="npapi:secret" value="<%$np->cfg->npapiSecret()%>" size ="25"/></TD></TR>
 </TBODY>
 </TABLE>
 <BR>
