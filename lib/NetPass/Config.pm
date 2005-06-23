@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.50 2005/06/14 20:29:54 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.51 2005/06/23 20:21:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1448,6 +1448,7 @@ sub policy {
 			_log("DEBUG", "nw=$nw examine network clause\n") if $self->debug;
 
 			if (! recur_exists ($self->{'cfg'}, "network", $nw)) {
+				_log("DEBUG", "nw=$nw no such network\n");
 				return undef; #"nosuch network";
 			}
 
@@ -2689,7 +2690,7 @@ the keys:
 
  base           the search base
  filter         the filter to use
- passwordField  the name of the password field
+ passwordfield  the name of the password field
 
 RETURNS
  arrayref     on success
@@ -2703,9 +2704,9 @@ sub getLDAP {
 	my $s = shift;
 	$s ||= "";
 	if (recur_exists($self->{'cfg'}, "ldap", $s)) {
-		return { 'base'          => $self->{'cfg'}->obj('radius')->obj($s)->value('base'),
-			 'filter'        => $self->{'cfg'}->obj('radius')->obj($s)->value('filter'),
-			 'passwordField' => $self->{'cfg'}->obj('radius')->obj($s)->value('passwordField'),
+		return { 'base'          => $self->{'cfg'}->obj('ldap')->obj($s)->value('base'),
+			 'filter'        => $self->{'cfg'}->obj('ldap')->obj($s)->value('filter'),
+			 'passwordField' => $self->{'cfg'}->obj('ldap')->obj($s)->value('passwordfield'),
 		       };
 	}
 	elsif (recur_exists($self->{'cfg'}, "ldap")) {
@@ -2752,9 +2753,12 @@ sub setLDAP {
 		$self->{'cfg'}->obj('ldap')->$server({});
 	}
 	if ($base.$filter.$pfield ne "") {
-		$self->{'cfg'}->obj('ldap')->obj($server)->base($base);
-		$self->{'cfg'}->obj('ldap')->obj($server)->filter($filter);
-		$self->{'cfg'}->obj('ldap')->obj($server)->passwordField($pfield);
+		$self->{'cfg'}->obj('ldap')->obj($server)->base($base)
+		  if ($base);
+		$self->{'cfg'}->obj('ldap')->obj($server)->filter($filter)
+		  if ($filter);
+		$self->{'cfg'}->obj('ldap')->obj($server)->passwordfield($pfield)
+		  if ($pfield);
 	} 
 	else {
 		$self->{'cfg'}->obj('ldap')->delete($server);
@@ -2867,7 +2871,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.50 2005/06/14 20:29:54 mtbell Exp $
+$Id: Config.pm,v 1.51 2005/06/23 20:21:07 jeffmurphy Exp $
 
 =cut
 

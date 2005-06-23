@@ -1,4 +1,13 @@
 
+function xh_post(url, callback, arg) {
+	xmlhttp.open("GET", url + "&printable=2");
+	xmlhttp.onreadystatechange = 
+		eval("x = function() {if (xmlhttp.readyState == 4) {" +
+		     callback + "(xmlhttp.responseText, " +
+		     '"' + arg + '"' + ");}}");
+	xmlhttp.send(null);
+}
+
 function adjust_onClick(obj, fn) {
 	if (browserType_IE) {
 		obj.onclick = eval("x=function(e){"+fn+"}");
@@ -78,6 +87,7 @@ function unHighLightList(oname, item) {
 
         var acl = document.getElementById(oname);
         if (acl) {
+		//acl.selectedIndex = -1;
                 for(var i = 0 ; i < acl.options.length ; i++) {
                         if (item) {
                                 if (item == acl.options[i].value)
@@ -85,7 +95,6 @@ function unHighLightList(oname, item) {
                         } else {
                                 acl.options[i].selected = false;
                         }
-			acl.selectedIndex = -1;
                 }
         } else {
                 dbg (1, RN + ": error cant find " + oname + " object");
@@ -95,9 +104,10 @@ function unHighLightList(oname, item) {
 
 function highLightList(oname, item) {
         var RN  = "highLightList";
-	
+	dbg(1, RN + "(" + oname + ", " + item + ")" );
         var acl = document.getElementById(oname);
         if (acl) {
+		acl.selectedIndex = -1;
                 for(var i = 1 ; i < acl.options.length ; i++) {
                         if (item) {
                                 if (acl.options[i].value == item)
@@ -106,7 +116,6 @@ function highLightList(oname, item) {
                         else {
                                 acl.options[i].selected = true;
                         }
-			acl.selectedIndex = -1;
                 }
         } else {
                 dbg (1, RN + ": error cant find " + oname + " object");
@@ -140,3 +149,4 @@ function enableList(oname) {
 		dbg (1, RN + ": error cant find " + oname + " object");
 	}
 }
+

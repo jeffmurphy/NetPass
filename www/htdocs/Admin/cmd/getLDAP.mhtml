@@ -1,0 +1,26 @@
+<%doc>
+</%doc>
+<%args>
+	$server => '';
+</%args>
+<%perl>
+	use URI;
+
+	# validate perms
+	my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+
+	if ($isRoot && $server) {
+		my $ri = $np->cfg->getLDAP($server);
+		if (ref($ri) eq "HASH") {
+			print "OK ", join(' ', 
+					URI->new($ri->{'base'})->canonical(), 
+					URI->new($ri->{'filter'})->canonical(),
+					URI->new($ri->{'passwordField'})->canonical()
+					), "\n";
+		} else {
+			print "NOK getLDAP() failed: $ri\n" if (ref($ri) ne "ARRAY");
+		}
+	} else {
+		print "NOK permission denied\n";
+	}
+</%perl>

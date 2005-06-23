@@ -1,21 +1,29 @@
 <%doc>
 </%doc>
 <%args>
-	$auth_method       => '';
-	$admin_auth_method => '';
-	$radiusServer      => '';
-	$radiusSecret      => '';
-	$admin_radiusServer       => '';
-	$admin_radiusSecret       => '';
+	$auth_method              => '';
+	$admin_auth_method        => '';
+	$radiusServer             => '';
+	$delRadiusServer          => '';
+
+	$adminradiusServer       => '';
+	$admindelRadiusServer    => '';
+
 	$submitButton             => '';
+
 	$ldapServer               => '';
-	$admin_ldapServer         => '';
+	$delLdapServer            => '';
+	$adminldapServer         => '';
+	$admindelLdapServer      => '';
+
 	$ldapBase                 => '';
-	$admin_ldapBase           => '';
+	$adminldapBase           => '';
+
 	$ldapFilter               => '';
-	$admin_ldapFilter         => '';
+	$adminldapFilter         => '';
+
 	$ldapPasswordField        => '';
-	$admin_ldapPasswordField  => '';
+	$adminldapPasswordField  => '';
 </%args>
 <%perl>
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
@@ -26,25 +34,69 @@ if (!$isRoot) {
 
 my @err;
 my $WH = "----------------------";
-my $aa = $np->cfg->policy(-key => 'ADMIN_AUTH_METHOD');
-my $ca = $np->cfg->policy(-key => 'AUTH_METHOD');
+my $aa = $admin_auth_method || $np->cfg->policy(-key => 'ADMIN_AUTH_METHOD');
+my $ca = $auth_method || $np->cfg->policy(-key => 'AUTH_METHOD');
+my $rv;
+my $whoami = $m->session->{'username'};
 
 $m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'submitButton' ], 'init' => 0);
 my $lstat = $np->db->isConfigLocked();
 
 if ($submitButton eq "Commit Changes") {
+	_log("DEBUG", "$whoami is changing system auth settings\n");
+
 	# set global policy AUTH_METHOD
+
+	$np->cfg->policy(-key => 'AUTH_METHOD', -val => $auth_method);
+
 	# set global policy ADMIN_AUTH_METHOD
-	# if radiusServer && secret == "" then remove $radiusServer
-	# if radiusServer && secret then set secret
+
+	$np->cfg->policy(-key => 'ADMIN_AUTH_METHOD', -val => $admin_auth_method);
+
+	# if radiusServer && delRadiusServer then remove $radiusServer
+
+	if ( ($auth_method eq "NetPass::Auth::Radius") && ($radiusServer ne "") &&  
+	     ($delRadiusServer eq "Delete Server") ) {
+		$rv = $np->cfg->setRadius(-server => $radiusServer);
+		push @err, $rv if ($rv);
+	}
+
+	if (  ($admin_auth_method eq "NetPass::Auth::Radius") && ($adminradiusServer ne "") &&  
+	      ($admindelRadiusServer eq "Delete Server") ) {
+		$rv = $np->cfg->setRadius(-server => $adminradiusServer);
+		push @err, $rv if ($rv);
+	}
+
+	# if ldapServer && delLdapServer then del
+
+	if ( ($auth_method eq "NetPass::Auth::LDAP") && ($ldapServer ne "") &&  
+	     ($delLdapServer eq "Delete Server") ) {
+		_log("DEBUG", "$whoami is deleting ldap server $ldapServer");
+		$rv = $np->cfg->setLDAP(-server => $ldapServer);
+		push @err, $rv if ($rv);
+	}
+
+	if (  ($admin_auth_method eq "NetPass::Auth::LDAP") && ($adminldapServer ne "") &&  
+	      ($admindelLdapServer eq "Delete Server") ) {
+		$rv = $np->cfg->setLDAP(-server => $adminldapServer);
+		_log("DEBUG", "$whoami is deleting ldap server $adminldapServer");
+		push @err, $rv if ($rv);
+	}
+
+	$np->cfg->save(-user => $whoami);
 }
 </%perl>
 
 <script language='JavaScript'><!--
 var pageDirty = false;
 setWhereAmI('Authentication &gt; Methods');
+DBG_init();
 --></script>
+<script src="/resources/js/common.js" type="text/javascript"></script>
+<script src="/resources/js/radius.js" type="text/javascript"></script>
+<script src="/resources/js/ldap.js" type="text/javascript"></script>
 
+<form method="post">
 <input type='submit' name='submitButton' id='submitButton' value='Commit Changes'><P>
 
 <TABLE WIDTH=800 ID="authMethods" CELLSPACING=2 CELLPADDING=2>
@@ -57,21 +109,24 @@ setWhereAmI('Authentication &gt; Methods');
 <TD CLASS='right'>
 <%$q->popup_menu (
                         -name    => 'auth_method',
-                        -default => $ca,
+                        -default => $auth_method || $ca,
                         -values => [ 'NetPass::Auth::DB' , 'NetPass::Auth::Radius',
 					'NetPass::Auth::LDAP', 'NetPass::Auth::Unix' ]
                     )%>
 </TD></TR>
 <TR><TD colspan=2 align='right'>
+% if ($ca eq "NetPass::Auth::Radius") {
 %	$m->comp('/Admin/FormAuthRadius', %ARGS);
+% } elsif ($ca eq "NetPass::Auth::LDAP") {
 %	$m->comp('/Admin/FormAuthLDAP', %ARGS);
+% }
 </tD></TR>
 <TR>
 <TD CLASS='left'>Admin Auth Method</TD>
 <TD CLASS='right'>
 <%$q->popup_menu (
 			-name   => 'admin_auth_method',
-                        -default => $aa,
+                        -default => $admin_auth_method || $aa,
                         -values => [ 'NetPass::Auth::DB' , 'NetPass::Auth::Radius',
 					'NetPass::Auth::LDAP', 'NetPass::Auth::Unix' ]
                     )%>
@@ -84,7 +139,7 @@ setWhereAmI('Authentication &gt; Methods');
 % }
 </tD></TR>
 </table>
-
+</form>
 
 <%perl>
 
@@ -108,3 +163,4 @@ else {
 }
 
 </%perl>
+

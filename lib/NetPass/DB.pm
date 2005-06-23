@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.46 2005/06/08 16:35:41 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.47 2005/06/23 20:21:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1475,14 +1475,15 @@ sub setUsersAndGroups {
 		    }
 	    } else {
 		    my $ugh = $self->getUserGroups($u);
-		    if (!defined($ugh)) {
+		    my $numGroups = keys %$ugh;
+		    if ($numGroups == 0) {
 			    # user doesnt exist
-			    $sql = "NSERT INTO users (username, groups) VALUES (";
+			    $sql = "INSERT INTO users (username, groups) VALUES (";
 			    $sql .= $self->dbh->quote($u). ",";
 			    $sql .= $self->dbh->quote($groups). ")";
 			    if (!$self->dbh->do($sql)) {
 				    _log("ERROR", "failed to add user: $u sql=$sql err=".$self->dbh->errstr);
-				    return "db failured ".$self->dbh->errstr;
+				    return "db failure ".$self->dbh->errstr;
 			    }
 			    _log ("INFO", qq{$whoami added user $u groups "$groups"});
 			    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
@@ -1491,7 +1492,6 @@ sub setUsersAndGroups {
 
 		    else {
 			    # user already exists
-
 			    my $groups_orig = $self->composeGroupMembership($ugh);
 			    if ($groups ne $groups_orig) {
 				    $sql  = qq{UPDATE users SET groups = };
@@ -2731,7 +2731,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.46 2005/06/08 16:35:41 jeffmurphy Exp $
+$Id: DB.pm,v 1.47 2005/06/23 20:21:07 jeffmurphy Exp $
 
 =cut
 

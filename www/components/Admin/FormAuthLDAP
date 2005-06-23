@@ -6,10 +6,6 @@ Allow for add/del and edit.
 	$prefix => '';
 	$server => '';
 </%args>
-<script language='JavaScript'>
-var <%$prefix%>ldapBase = new Object();
-var <%$prefix%>ldapFilter = new Object();
-var <%$prefix%>ldapPField = new Object();
 <%perl>
 my $rs_ = $np->cfg->getLDAP();
 my $rs  = (ref($rs_) eq "ARRAY") ? $rs_ : [];
@@ -21,27 +17,35 @@ foreach my $server (@$rs) {
 $ml = int($ml * 1.5);
 $WH = "-" x $ml;
 </%perl>
-</script>
 
 <table border=0 id='<%$prefix%>FormAuthLDAP'>
 <tr><th>LDAP Servers</th><th>Options</th></tr>
 <tr><td align='center' valign='top'>
 	<%$q->scrolling_list(-id => $prefix.'ldapServer', -name => $prefix.'ldapServer',
-			-onchange => 'ldap_onchange_ldapServer();', 
+			-onchange => "ldap_onchange_ldapServer('$prefix');", 
 			 -size => 4, -values => [ $WH, @$rs ])%><BR>
-	<input size=16 id='ldapAddServer' name='ldapAddServer'
-               onfocus='ldap_onfocus_addServer('<%$prefix%>');'
-               onblur='ldap_onblur_addServer('<%$prefix%>');'
+	<input size=16 id='<%$prefix%>ldapAddServer' name='<%$prefix%>ldapAddServer'
+               onfocus='ldap_onfocus_addServer("<%$prefix%>");'
+               onblur='ldap_onblur_addServer("<%$prefix%>");'
                value="Add Server..."
         > 
-        <input type='submit' onclick='ldap_onclick_delServer(); return false;'
+        <input type='submit' name='<%$prefix%>delLdapServer'
                value='Delete Server'>
     </td>
     <td align='right' valign='top'> 
        <table border='0'>
-        <tr><td align='right' valign='top'>Base:</td><td align='left' valign='top'><input size=16 id='<%$prefix%>ldapBase'></td></tr>
-	<tr><td align='right' valign='top'>Filter:</td><td align='left' valign='top'><input size=16 id='<%$prefix%>ldapFilter'></td></tr>
-	<tr><td align='right' valign='top'>Password Field:</td><td align='left' valign='top'><input size=16 id='<%$prefix%>ldapPasswordField'></td></tr>
+        <tr><td align='right' valign='top'>Base:</td><td align='left' valign='top'><input size=16 
+		id='<%$prefix%>ldapBase'
+		onblur="ldap_onblur_ldapBase('<%$prefix%>');">
+	    </td></tr>
+	<tr><td align='right' valign='top'>Filter:</td><td align='left' valign='top'><input size=16 
+		id='<%$prefix%>ldapFilter'
+		onblur="ldap_onblur_ldapFilter('<%$prefix%>');">
+	    </td></tr>
+	<tr><td align='right' valign='top'>Password Field:</td><td align='left' valign='top'><input size=16 
+		id='<%$prefix%>ldapPasswordField'
+		onblur="ldap_onblur_ldapPassword('<%$prefix%>');">
+	    </td></tr>
         </table>
     </td>
 </tr>

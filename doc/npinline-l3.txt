@@ -1,0 +1,101 @@
+
+ON BOOT:
+
+if (config exists) {
+   load config;
+   parse;
+   produce ebtables rules;
+   load those rules;
+} else {
+  set ebtables to bridge pkts thru unchanged;
+}
+
+
+WEB UI:
+
+configure vlan mappings.
+
+128.205.10.131      1-1000:192/892:L2;1001-2000:195/895:L3
+
+'commit changes'
+	saves to config <vlanmap>
+	does snmpset on 128.205.10.131 vlanmap
+
+
+
+snmpdaemon takes '1-1000:192/892:L2;1001-2000:195/895:L3' and writes to 
+config. snmpdaemon parses that line, produces ebtables rules, loads
+those rules. "L2" is the default. if not specified, L2 is assumed.
+
+
+LOAD CONFIG:
+
+config = "1-1000:192/892:L2;1001-2000:195/895:L3"
+
+expand1 = "1,2,3,4 192 892"
+
+echo flush    > /proc/npvnat/l2config
+echo $expand1 > /proc/npvnat/l2config  (bc of "L2")
+
+ebtables --vlanid 192 -j npvnat-l2 
+ebtables --vlanid 892 -j npvnat-l2 
+
+expand2 = "1001,1002 195 895"
+
+echo flush    > /proc/npvnat/l3config
+echo $expand2 > /proc/npvnat/l3config (bc of "L3")
+
+ebtables --vlanid 195 -j npvnat-l3
+ebtables --vlanid 895 -j npvnat-l3
+
+
+
+
+
+WHEN NEW IP APPEARS: (i.e. DIALUP)
+
+
+
+mac = aabbccddeeff  (dialup server)
+ip = 128.205.193.100
+
+npvnat-l3 grabs vlan & ipaddr from the pkt. ignores mac, irrelevant.
+
+if (ip !in hash) {
+   malloc struct { init_vlan=193, remap_vlan=0 };
+   remap_vlan = lookupQuar(init_vlan); // 893
+   // struct { init_vlan=193, remap_vlan=893 };
+   hash{ip} = struct;
+}
+
+
+
+
+snmpdaemon sees IP appear by reading the hash table.
+
+snmpdaemon sends linkup (#4) trap for $IP
+
+
+NP SERVER:
+
+resetport gets trap for switch/IP
+determines that IP can be unquaratined ******  TDB
+requestPortMove($switch, $IP, 'unquarntine');
+
+
+portmover picks up instructions, and does snmpset $switch $ip 193
+
+
+
+BACK ON INLINE DEV
+
+snmpdaemon does:
+
+     echo "$ip 193" > /proc/npvnat/set_vlan_l3
+
+
+BACK IN KERNEL
+
+given IP from set_vlan, lookup hash record, set remap_vlan=193;
+
+

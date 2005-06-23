@@ -1,0 +1,33 @@
+<%doc>
+</%doc>
+<%args>
+	$server => '';
+	$base   => '';
+	$filter => '';
+	$passwordField => '';
+</%args>
+<%perl>
+	use URI;
+
+	# validate perms
+	my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
+
+	if ($isRoot && $server) {
+		my $ri = $np->cfg->setLDAP(-server => $server, 
+					-base => $base, -filter => $filter,
+					-passwordField => $passwordField);
+		if ($ri) {
+			print "NOK $ri\n";
+		} else {
+			my $rv = $np->cfg->save(-user => $m->session->{'username'});
+			_log("DEBUG", $m->session->{'username'}." updated ldap settings for $server\n");
+			if ($rv) {
+				print "NOK $rv\n";
+			} else {
+				print "OK\n";
+			}
+		}
+	} else {
+		print "NOK permission denied\n";
+	}
+</%perl>

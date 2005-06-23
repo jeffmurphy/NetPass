@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.4 2004/10/25 17:48:25 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.5 2005/06/23 20:21:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -258,10 +258,14 @@ sub searchArpCache {
 	if ($#matches == 0) {
 		$matches[0] =~ /\($ip\)\s+at\s+(\S+)/;
 		my $mac = $1;
-		$mac =~ s/\://g;
+		my $mac2 = '';
+		foreach my $_mp (split(/:/, $mac)) {
+			$mac2 .= substr("00".$_mp, -2);
+		}
 		$mac =~ tr [A-Z] [a-z];
+		$mac2 =~ tr [A-Z] [a-z];
 		return undef if (!$ii && $mac =~ /incomplete/);
-		return $mac;
+		return $mac2;
 	}
 	
 	my $macs = {};
@@ -272,10 +276,14 @@ sub searchArpCache {
 		if($l =~ /\(($ip)\)\s+at\s+(\S+)/) {
 		        my $ip  = $1;
 			my $mac = $2;
+			my $mac2 = '';
+			foreach my $_mp (split(/:/, $mac)) {
+				$mac2 .= substr("00".$_mp, -2);
+			}
 			$mac =~ tr [A-Z] [a-z];
-			$mac =~ s/\://g;
+			$mac2 =~ tr [A-Z] [a-z];
 			next if (!$ii && $mac =~ /incomplete/);
-			$macs->{$ip} = $mac;
+			$macs->{$ip} = $mac2;
 		} 
         }
         return $macs;
@@ -308,7 +316,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Network.pm,v 1.4 2004/10/25 17:48:25 jeffmurphy Exp $
+$Id: Network.pm,v 1.5 2005/06/23 20:21:08 jeffmurphy Exp $
 
 =cut
 

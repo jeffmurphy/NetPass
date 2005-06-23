@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.23 2005/05/04 20:22:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.24 2005/06/23 20:21:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -228,7 +228,6 @@ if ($submit eq "Commit Changes") {
 		print "</PRE>" if $D;
 	}
 
-	
 	$np->db->setUsersAndGroups(-userhash => $uh, -whoami => $m->session->{'username'},
 					-ip => $ENV{'REMOTE_ADDR'});
 
@@ -246,7 +245,7 @@ if ($submit eq "Commit Changes") {
 <script language="JavaScript">
 DBG_init();
 var whoami = "<%$whoami%>";
-var usingAuthDB = <%$usingAuthDB%>;
+var usingAuthDB = <%$usingAuthDB ? $usingAuthDB : 0%>;
 var userhash = {
 <%perl>
 	my ($comma1, $comma2, $comma3) = ("", "", "");

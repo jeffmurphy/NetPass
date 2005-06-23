@@ -45,7 +45,8 @@ function DBG_init() {
                 //return;
         }
 
-        if (DBGLEVEL)
+        if (DBGLEVEL) {
                 dbgwin = window.open("about:blank", "DEBUGOUTPUT",
-                             "resizable,width=400,height=400,scrollbars");
+				     "resizable,width=400,height=400,scrollbars");
+	}
 }
