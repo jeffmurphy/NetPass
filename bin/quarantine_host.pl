@@ -57,15 +57,18 @@ pod2usage(2) if (!defined $ip || $ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
 
 my $id		= ();
 my $type	= ();
+my $time 	= ();
 
 if ($opts{'t'} =~ /\,/ || $opts{'i'} =~ /\,/) {
 	@$id 	= split(',', $opts{'i'});
 	@$type	= split(',', $opts{'t'});
+	$time   = [map(time(), @$type)];
 	die "Number of types doesnt correspond with the number of ids"
 		if ($#$id != $#$type);
 } else {
 	$id 	= $opts{'i'};
 	$type	= $opts{'t'};
+	$time	= time();
 }
 
 my $soap = createSoapConnection($opts{'s'});
@@ -76,6 +79,7 @@ my $res    = eval {$soap->quarantineByIP(
 				    -secret	=> $secret,
 				    -ip		=> $ip,
 				    -type	=> $type,
+				    -time	=> $time,
 				    -id		=> $id)->result};
 die "Unable to quarantine $ip" unless defined $res;
 
