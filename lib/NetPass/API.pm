@@ -226,8 +226,8 @@ sub snortEnabledNetworks {
 
 =head2 $rv = getRegisterInfo(-secret => secret -mac => mac, -macs => [], -ip => ip, -ips => [])
 
-This routine is basically a NetPass::API wrapper to DB::getRegisterInfo, for information
-regarding arguments see DB::getRegisterInfo.
+This routine is basically a NetPass::API wrapper to NetPass::DB::getRegisterInfo,
+for information regarding arguments see DB::getRegisterInfo.
 
 =cut
 
@@ -242,6 +242,23 @@ sub getRegisterInfo {
 	return $np->db->getRegisterInfo(@$args);
 }
 
+=head2 $rv = addSnortRuleEntry(-secret => $secret -rule => $rule -user => $user -desc => $desc)
+
+This routine is basically a NetPass::API wrapper to NetPass::DB::addSnortRuleEntry,
+for information regarding arguments see NetPass::DB::addSnortRuleEntry.
+
+=cut
+
+sub addSnortRuleEntry {
+	my $self = shift;
+	my $np   = $::np;
+
+	my($secret, $args) = $self->$get_secret_from_args(@_);
+	return undef if $secret eq "";
+	return undef unless ($self->$check_soap_auth($secret));
+
+	return $np->db->addSnortRuleEntry(@$args);
+}
 
 =head2 my $results = quarantineByIP(-secret => $secret, -ip => $ip, -id => $id, -type => $type, -time => $time)
 
