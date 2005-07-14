@@ -41,6 +41,27 @@ my $check_soap_auth = sub {
         return ($their_secret eq $my_secret) ? 1 : 0;
 };
 
+my $get_secret_from_args = sub {
+        my $self = shift;
+        my @args = @_;
+        my $secret;
+
+        if (ref($args[0]) eq 'HASH') {
+                return undef if ($#args > 0 || !exists $args[0]->{'-secret'});
+                $secret = $args[0]->{'-secret'};
+                delete $args[0]->{'-secret'};
+        } else {
+                my $i;
+                my $j;
+                for ($i = 0; $i <= $#args; $i++) {
+                        last if ($args[$i] eq '-secret');
+                }
+                ($j, $secret) = splice(@args, $i, 2);
+        }
+
+        return ($secret, \@args);
+};
+
 =head2 $rule = getSnortPCAPFilter(-secret => $secret, -sensor => $hostname -ignorequar => [1|0])
 
 Get the necessary pcap rules for the particular sensor. Argument 
@@ -58,6 +79,7 @@ sub getSnortPCAPFilter {
         my $parms = parse_parms({
                                   -parms    => \@_,
                                   -legal    => [ qw(-secret -sensor -ignorequar) ],
+				  -required => [ qw(-secret -sensor) ],
                                   -defaults => { -secret  => '',
                                                  -sensor  => '',
 						 -ignorequar => 0,
@@ -116,7 +138,8 @@ sub getSnortRules {
 
         my $parms = parse_parms({
                                   -parms    => \@_,
-                                  -legal    => [ qw(-secret -type -ignorequarrule) ],
+                                  -legal    => [ qw(-secret -type) ],
+				  -required => [ qw(-secret -type) ],
                                   -defaults => { -secret  => '',
                                                  -type    => '',
                                                }
@@ -201,6 +224,24 @@ sub snortEnabledNetworks {
         return \@snortnws;
 }
 
+=head2 $rv = getRegisterInfo(-secret => secret -mac => mac, -macs => [], -ip => ip, -ips => [])
+
+This routine is basically a NetPass::API wrapper to DB::getRegisterInfo, for information
+regarding arguments see DB::getRegisterInfo.
+
+=cut
+
+sub getRegisterInfo {
+	my $self = shift;
+        my $np   = $::np;
+
+	my($secret, $args) = $self->$get_secret_from_args(@_);
+	return undef if $secret eq "";
+        return undef unless ($self->$check_soap_auth($secret));
+
+	return $np->db->getRegisterInfo(@$args);
+}
+
 
 =head2 my $results = quarantineByIP(-secret => $secret, -ip => $ip, -id => $id, -type => $type, -time => $time)
 
@@ -224,6 +265,7 @@ sub quarantineByIP {
     	my $parms = parse_parms({
                              	  -parms    => \@_,
                              	  -legal    => [ qw(-secret -type -id -ip -time) ],
+				  -required => [ qw(-secret -type -id -ip -time) ],
                              	  -defaults => { -secret  => '',
 						 -type    => '',
 						 -id	  => '',
