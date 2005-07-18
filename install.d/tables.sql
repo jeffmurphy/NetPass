@@ -121,6 +121,12 @@ CREATE TABLE clientHistory (
 	PRIMARY KEY (rowid)
 ) ENGINE=NDBCLUSTER;
 
+CREATE TABLE sideLinks (
+        name	        VARCHAR(24)     NOT NULL,
+        url             VARCHAR(255)     NOT NULL,
+        PRIMARY KEY (name)
+) ENGINE=NDBCLUSTER;
+
 CREATE INDEX clientHistory_idx1 ON clientHistory (macAddress);
 CREATE INDEX clientHistory_idx2 ON clientHistory (dt);
 
