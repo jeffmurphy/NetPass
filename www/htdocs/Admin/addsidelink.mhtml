@@ -1,0 +1,103 @@
+<%doc>
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/addsidelink.mhtml,v 1.1 2005/07/19 14:45:20 mtbell Exp $
+
+#   (c) 2004 University at Buffalo.
+#   Available under the "Artistic License"
+#   http://www.gnu.org/licenses/license-list.html#ArtisticLicense
+</%doc>
+
+<%args>
+$action		=> '';
+$sidelinks	=> '';
+$name		=> '';
+$url		=> '';
+</%args>
+
+<script><!--
+setWhereAmI('AddSideLinks');
+--></script>
+
+<%perl>
+my @rwGroups = ('Admin', 'QuarAdmin');
+my ($rw, $aclGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
+
+print $q->h2("Modify Side Links");
+print $q->start_form(-method=>"POST", -action => "addsidelink.mhtml");
+
+my $defname = "";
+my $defurl  = "";
+
+if ($action eq '>>') {
+	if ($sidelinks eq '') {
+		print $q->p({-class => "error"}, "No sidelink selected");
+		return;
+	}
+	my $tsl = $np->db->getSideLinks();
+	my $rv = $np->db->delSideLink(-name => $sidelinks);
+	print $q->p({-class => "error"}, "Unable to delete sidelink $name") if !$rv;
+	$defname = $sidelinks;
+	$defurl  = $tsl->{$sidelinks}->{'url'};
+} elsif ($action eq '<<') {
+	if ($name eq '' || $url eq '') {
+		print $q->p({-class => "error"}, "Cannot add sidelink Undefined field");
+		return;
+	}
+	my $rv = $np->db->addSideLink(-name => $name, -url => $url);
+	print $q->p({-class => "error"}, "Unable to add sidelink $name") if !$rv;
+}
+
+my $sl = $np->db->getSideLinks();
+
+</%perl>
+
+<table cellpadding=2 cellspacing=2 border=0>
+  <tr>
+     <th colspan=3>Modify Side Links</th>
+  </tr><tr>
+     <td class='gray'>
+<%perl>
+	print $q->scrolling_list(
+					-name	=> 'sidelinks',
+					-size	=> 8,
+					-values => [sort keys %$sl],
+					-style	=> "width:150px",
+			       );
+
+</%perl>
+     </td>
+     <td class='gray'>
+<%perl>
+	print $q->submit(
+				-name	=> 'action',
+				-value  => '>>'
+			);
+	print $q->br();
+	print $q->submit(
+				-name	=> 'action',
+				-value  => '<<'
+			);
+</%perl>
+     </td>
+     <td class='gray'>
+<%perl>
+	print "Name<BR>";
+	print $q->textfield(
+				-name	 => 'name',
+				-size	 => 25,
+				-default => $defname
+			   );
+	print $q->br().$q->br();
+	print "Url<BR>";
+        print $q->textfield(
+                                -name    => 'url',
+                                -size    => 25,
+				-default => $defurl, 
+                           );
+</%perl>
+     </td>
+  </tr>
+</table>
+
+<%perl>
+print $q->end_form();
+</%perl>
