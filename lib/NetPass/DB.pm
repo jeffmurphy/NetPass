@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.47 2005/06/23 20:21:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.48 2005/07/19 14:47:50 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -664,6 +664,82 @@ sub delPage {
     return 0;
 }
 
+=head2 getSideLinks()
+
+Get a list of User Defined SideLinks from the sideLinks table in the database.
+Returns a HASH ref containing the name/url pair on success or C<undef> on 
+failure.
+
+=cut
+
+sub getSideLinks {
+	my $self = shift;
+	my $q = qq{SELECT name, url FROM sideLinks};
+
+	my $hr = $self->{'dbh'}->selectall_hashref($q, "name");
+	return undef unless (defined $hr && ref($hr) eq "HASH" );
+
+	return $hr;
+}
+
+=head2 addSideLink(-name => $name, -url => $url)
+
+Add a sidelink to the database with name = $name and url = $url.
+Returns true on success, C<undef> on failure.
+
+=cut
+
+sub addSideLink {
+	my $self = shift;
+	my $parms = parse_parms({
+                             	  -parms => \@_,
+                                  -required => [ qw(-name -url) ],
+                                  -defaults => {
+                                                -name   => '',
+                                                -url    => ''
+                                               }
+                            	}
+                               );
+
+	return undef if !defined $parms;
+    	my ($name, $url) = $parms->get('-name', '-url');
+
+	my $q = qq{INSERT INTO sideLinks VALUES(?,?)};
+	my $sth = $self->{'dbh'}->prepare($q);
+
+	return undef if !$sth->execute($name, $url);
+	$sth->finish;
+	return 1;	
+}
+
+=head2 delSideLink(-name => $name)
+
+Delete a sidelink from the database with name = $name.
+Returns true on success, C<undef> on failure.
+
+=cut
+
+sub delSideLink {
+	my $self = shift;
+        my $parms = parse_parms({
+                                  -parms => \@_,
+                                  -required => [ qw(-name) ],
+                                  -defaults => {
+                                                -name   => ''
+                                               }
+                                }
+                               );
+
+        return undef if !defined $parms;
+        my ($name) = $parms->get('-name');
+
+	my $q = qq{DELETE FROM sideLinks WHERE name = ?};
+	my $sth = $self->{'dbh'}->prepare($q);
+
+	return undef if !$sth->execute($name);
+	$sth->finish;
+	return 1;
+}
     
 =head2 requestMovePort(-switch => switch, -port => port, -vlan => <quarantine | unquarantine>)
 
@@ -2731,7 +2807,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.47 2005/06/23 20:21:07 jeffmurphy Exp $
+$Id: DB.pm,v 1.48 2005/07/19 14:47:50 mtbell Exp $
 
 =cut
 

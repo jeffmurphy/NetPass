@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/addsidelink.mhtml,v 1.1 2005/07/19 14:45:20 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/addsidelink.mhtml,v 1.2 2005/07/19 14:52:43 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -18,7 +18,7 @@ setWhereAmI('AddSideLinks');
 --></script>
 
 <%perl>
-my @rwGroups = ('Admin', 'QuarAdmin');
+my @rwGroups = ('Admin');
 my ($rw, $aclGroups) = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]);
 
 print $q->h2("Modify Side Links");

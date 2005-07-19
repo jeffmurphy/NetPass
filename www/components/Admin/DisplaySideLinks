@@ -1,0 +1,19 @@
+<%doc>
+</%doc>
+
+<%args>
+</%args>
+
+<%perl>
+	my $sidelinks = $np->db->getSideLinks();
+	if (!defined $sidelinks || ref($sidelinks) ne 'HASH') {
+		print $q->p({-class=>'error'}, "Unable to retrieve Sidelinks");	
+		return;
+	}
+	foreach my $name (sort keys %$sidelinks) {
+		my $url = $sidelinks->{$name}->{'url'};
+		$url = 'http://'.$url if ($url !~ /^http/);
+		printf("<a class=\"sbLinks\" href=\"%s\" title=\"\">%s</a><br>",
+			$url, $name);
+	}
+</%perl>
