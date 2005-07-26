@@ -62,6 +62,29 @@ my $get_secret_from_args = sub {
         return ($secret, \@args);
 };
 
+my $execute_user_defined_function = sub {
+	my $self     = shift;
+	my $function = shift;
+	my @args     = @_;
+
+	eval { require NetPass::API::Local; };
+
+	if ($@) {
+		_log("DEBUG", "NetPass::API::Local does not exist or has an error in it ".$@);
+		return 0;	
+	}
+
+	my $e  = \&{"NetPass::API::Local::$function"};
+	my $rv = eval { &$e(@args); }; 
+
+	if ($@) {
+		_log("DEBUG", "$e does not exist or has an error in it ".$@);
+		return 0;
+	}
+
+	return $rv;
+};
+
 =head2 $rule = getSnortPCAPFilter(-secret => $secret, -sensor => $hostname -ignorequar => [1|0])
 
 Get the necessary pcap rules for the particular sensor. Argument 
@@ -90,6 +113,7 @@ sub getSnortPCAPFilter {
 	my ($secret, $sensor, $ignorequar) = $parms->get('-secret', '-sensor', '-ignorequar');
 
 	return undef unless ($self->$check_soap_auth($secret));
+	return undef if $self->$execute_user_defined_function("getSnortPCAPFilter", @_) < 0;
 
         if ($sensor !~ /^\w*\.*\w*\.*\w+\.\w+:\d+$/) {
                 _log("ERROR", "Incorrect sensor format $sensor");
@@ -150,6 +174,7 @@ sub getSnortRules {
 
 	return undef unless ($self->$check_soap_auth($secret));
 	return undef unless ($type =~ /^(enabled|disabled|all)$/);
+	return undef if $self->$execute_user_defined_function("getSnortRules", @_) < 0;
 
 	_log("DEBUG", "retrieving snort rules");
 
@@ -177,6 +202,7 @@ sub snortEnabled {
 
 	return undef unless ($self->$check_soap_auth($secret));
 	return undef unless defined $nw;
+	return undef if $self->$execute_user_defined_function("snortEnabled", @_) < 0;
 
 	return $np->cfg->snortEnabled($nw);
 }
@@ -201,6 +227,7 @@ sub snortEnabledNetworks {
 	my @snortnws;
 
         return undef unless ($self->$check_soap_auth($secret));
+	return undef if $self->$execute_user_defined_function("snortEnabledNetworks", @_) < 0;
 	$nws = $np->cfg->getNetworks();
 
 	if (!defined($nws) || ref($nws) ne 'ARRAY') {
@@ -238,6 +265,7 @@ sub getRegisterInfo {
 	my($secret, $args) = $self->$get_secret_from_args(@_);
 	return undef if $secret eq "";
         return undef unless ($self->$check_soap_auth($secret));
+	return undef if $self->$execute_user_defined_function("getRegisterInfo", @_) < 0;
 
 	return $np->db->getRegisterInfo(@$args);
 }
@@ -256,6 +284,7 @@ sub addSnortRuleEntry {
 	my($secret, $args) = $self->$get_secret_from_args(@_);
 	return undef if $secret eq "";
 	return undef unless ($self->$check_soap_auth($secret));
+	return undef if $self->$execute_user_defined_function("addSnortRuleEntry", @_) < 0;
 
 	return $np->db->addSnortRuleEntry(@$args);
 }
@@ -294,6 +323,7 @@ sub quarantineByIP {
     	my ($secret, $type, $id, $ip, $time) = $parms->get('-secret', '-type', '-id', '-ip', '-time');
 
 	return undef unless ($self->$check_soap_auth($secret)); 
+	return undef if $self->$execute_user_defined_function("quarantineByIP", @_) < 0;
 
 	if (ref($type) eq 'ARRAY' && ref($id) eq 'ARRAY' && ref($time) eq 'ARRAY') {
 		$arrays = 1;
