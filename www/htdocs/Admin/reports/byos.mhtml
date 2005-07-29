@@ -15,7 +15,7 @@ use GD::Graph::pie;
 use FileHandle;
 use File::stat;
 
-my $NPBASE     = $np->cfg()->{'cfg'}->obj('policy')->value('base_dir');
+my $NPBASE     = $np->cfg->policy(-key => 'base_dir');
 my $REPORTSDIR = $NPBASE."/www/htdocs/Admin/reports";
 my $GRAPHIMG   = "byospiechart.png";
 
