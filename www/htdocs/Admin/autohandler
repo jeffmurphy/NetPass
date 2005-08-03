@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.16 2005/07/19 14:45:52 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.17 2005/08/03 02:44:39 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -66,7 +66,7 @@ if ($printable == 0) {
 %$m->comp("/Admin/DisplaySideLinks");
 </DIV>
 <P><P>
-<BR><H6><I><%join('.', (split(/\./, hostname))[0,1])%></I></H6>
+<BR><I style='color:white;border: solid 1px white; padding: 2px; text-align:center;'><%join('.', (split(/\./, hostname))[0,1])%></I>
 
 <%perl>
 	}

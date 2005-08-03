@@ -70,7 +70,7 @@ my $execute_user_defined_function = sub {
 	eval { require NetPass::API::Local; };
 
 	if ($@) {
-		_log("DEBUG", "NetPass::API::Local does not exist or has an error in it ".$@);
+		#_log("DEBUG", "NetPass::API::Local does not exist or has an error in it ".$@);
 		return 0;	
 	}
 

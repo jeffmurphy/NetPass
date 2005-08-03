@@ -47,6 +47,7 @@
 
 <%perl>
 	my $h = $np->cfg->snort(-key => 'servers', -network => $network);
+	if ($h && (ref($h) eq "HASH")) {
 	foreach my $s (keys %$h) {
 		my($server, $port) = split(/:/, $s);
 		print "<TR>";
@@ -65,6 +66,7 @@
 					-label	=> " Delete",
 				   );
 		print "</TD></TR>";
+	}
 	}
 	print "<TR>";
 	print "<TD CLASS=\"gray\" ALIGN=center>";
@@ -113,6 +115,7 @@
 </TR>
 
 <%perl>
+		if ($h && (ref($h) eq "HASH")) {
 	        foreach my $s (keys %$h) {
 	                my($server, $port) = split(/:/, $s);
 	                print "<TR>";
@@ -121,6 +124,7 @@
 	                print "<TD CLASS=\"gray\" ALIGN=center>".$np->cfg->snort(-key => $s, -sval => 'servers');
 	                print "</TD></TR>";
 	        }
+		}
 
 		print "</TABLE></TD>";
 			

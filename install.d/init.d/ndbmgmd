@@ -3,6 +3,10 @@
 # ndb_mgmd         Start/Stop the ndb_mgmd.
 #
 # chkconfig: 2345 40 60
+# description: MySQL NDB Management Daemon
+#
+# processname: ndb_mgmd
+# pidfile: 
 #
 # Source function library.
 . /etc/rc.d/init.d/functions

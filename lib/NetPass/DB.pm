@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.48 2005/07/19 14:47:50 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.49 2005/08/03 02:44:39 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1563,7 +1563,7 @@ sub setUsersAndGroups {
 			    }
 			    _log ("INFO", qq{$whoami added user $u groups "$groups"});
 			    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
-					 "user added: $u groups: $groups");
+					 -msg => ["user added: $u groups: $groups"]);
 		    } 
 
 		    else {
@@ -1579,8 +1579,8 @@ sub setUsersAndGroups {
 					    return "db failure ".$self->{'dbh'}->errstr;
 				    }
 				    _log ("INFO", qq{$whoami modified user $u groups "$groups_orig" to "$groups"});
-				    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT',
-						 "groups for $u changed from: $groups_orig to: $groups");
+				    $self->audit(-ip => $myip, -user => $whoami, -severity => 'ALERT', -msg =>
+						 ["groups for $u changed from: $groups_orig to: $groups"]);
 			    }
 		    }
 	    }
@@ -1617,7 +1617,7 @@ sub createUserWithGroups {
 	return "invalid params (no groups given)";
     }
 
-    $self->reconnect() || return "db failure";
+    $self->reconnect() || return "db failure: disconnected";
 
     my $gs = join(';', @groups);
     my $sql = qq{INSERT INTO users VALUES ('$user', '$gs')};
@@ -1629,18 +1629,52 @@ sub createUserWithGroups {
     return 0;
 }
 
-=head2 getAppAction ()
+=head2 getAppAction( )
 
-Fetch the current list of pending tasks for appStarter to perform. Returns a
-reference to an array of array references. 
+Fetch the current list of pending tasks for appStarter to perform. 
 
-   [ [ $application, $action, $actionAs] , [ $application, ... ] , ... ] 
+RETURNS
+
+ a reference to an array of array references on success
+
+   [ [ rowid, application, action, actionAs] , [ rowid, application, ... ] , ... ] 
+
+ "db failure" on failure
 
 =cut
 
 sub getAppAction {
     my $self = shift;
 
+    $self->reconnect() || return "db failure: disconnected";
+
+    my $aref = $self->{'dbh'}->selectall_arrayref(qq{SELECT rowid, application, action, actionAs FROM appStarter WHERE status = 'pending'});
+    if (!defined($aref)) {
+	    return "db failure: ".$self->{'dbh'}->errstr;
+    }
+    return $aref;
+}
+
+=head2 ackAppAction(rowid)
+
+Change the status of rowid to 'completed'
+
+RETURNS
+  1            on success
+  "db failure" on failure
+
+=cut
+
+sub ackAppAction {
+    my $self  = shift;
+    my $rowid = shift;
+
+    my $sql = "UPDATE appStarter SET status = 'completed' WHERE rowid = ".$self->{'dbh'}->quote($rowid);
+    my $rv  = $self->{'dbh'}->do($sql);
+    if (!defined($rv)) {
+        return "db failure: ". $self->{'dbh'}->errstr;
+    }
+    return 1;
 }
 
 =head2 reqAppAction ($proc, $action, $actionas)
@@ -2744,6 +2778,30 @@ sub commit {
 	return $self->{'dbh'}->commit;
 }
 
+=head2 clearRegister( )
+
+Delete all data from the register data.
+
+RETURNS
+
+ 1            on success
+ "db failure" on database failure
+
+=cut
+
+sub clearRegister {
+	my $self = shift;
+	$self->reconnect() || return "db failure: not connected";
+
+	my $rv = $self->{'dbh'}->do('DELETE FROM register');
+	if (!defined($rv)) {
+		_log("ERROR", "db failure ".$self->{'dbh'}->errstr);
+		return "db failure ".$self->{'dbh'}->errstr;
+	}
+	return 1;
+}
+
+
 =head2 updateRegister(-mac => '', -status => [QUAR|PQUAR|UNQUAR|PUNQUAR])
 
 Update the register table for the given MAC address.
@@ -2807,7 +2865,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.48 2005/07/19 14:47:50 mtbell Exp $
+$Id: DB.pm,v 1.49 2005/08/03 02:44:39 jeffmurphy Exp $
 
 =cut
 

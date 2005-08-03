@@ -67,6 +67,11 @@ start() {
 	echo 
         #[ $RETVAL -eq 0 ] && exit $RETVAL
 
+	echo -n $"Starting appstarter: "
+	daemon ${B}/bin/appstarter.pl
+	echo 
+        #[ $RETVAL -eq 0 ] && exit $RETVAL
+
 	return 0	
 }
 

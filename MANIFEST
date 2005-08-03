@@ -24,6 +24,7 @@ bin/resetport.pl
 bin/proc_counter.pl
 bin/portmover.pl
 bin/npapid.pl
+bin/npsvc.pl
 bin/resetport-restart.sh
 bin/ciconf.pl
 bin/rm_stale_cookies.pl
@@ -34,6 +35,7 @@ bin/lsconf.pl
 bin/rogue-dhcp-detect.pl
 bin/npsubagent.pl
 bin/npurlfilter.pl
+bin/update_nessus_plugins.sh
 doc/cron.monthly/mysql_binlog_rotate
 doc/logrotate.d/apache
 doc/logrotate.d/netpass
@@ -70,6 +72,7 @@ doc/ebtablesnmpsetup.txt
 doc/npinline-l3.txt
 etc/netpass-example.conf
 etc/oui.txt
+etc/npsvc.conf
 install.d/logrotate.d/apache
 install.d/logrotate.d/netpass
 install.d/logrotate.d/snort
@@ -153,6 +156,8 @@ www/components/Admin/FormNPDb
 www/components/Admin/FormNPNessus
 www/components/Admin/FormNPPolicy
 www/components/Admin/FormNPSnort
+www/components/Admin/DisplaySideLinks
+www/components/Admin/DialogBulkMovePort
 www/components/Client/BeginScan
 www/components/Client/GetInfo
 www/components/Client/Login
@@ -198,6 +203,7 @@ www/htdocs/Admin/switch.mhtml
 www/htdocs/Admin/help.mhtml
 www/htdocs/Admin/chpwd.mhtml
 www/htdocs/Admin/auth.mhtml
+www/htdocs/Admin/addsidelink.mhtml
 www/htdocs/Admin/cmd/lockcfg.mhtml
 www/htdocs/Admin/cmd/setresult.mhtml
 www/htdocs/Admin/cmd/getRadiusSecret.mhtml

@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/index.mhtml,v 1.6 2005/06/08 16:35:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/index.mhtml,v 1.7 2005/08/03 02:44:40 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -106,6 +106,8 @@ print $q->table({-border=>0, -width=>600},
 
 	);
 
+$del = pop(@$del) if (ref($del) eq "ARRAY");
+
 return if(!$submit && !$search && !$del);
 
 if ($submit) {
@@ -120,7 +122,7 @@ if ($submit) {
 
 if ($del ne '') {
 	if ($del !~ /;/) {
-		print "<P class='error'>Delete parse error.</P>";
+		#print "<P class='error'>Delete parse error. ($del)</P>";
 	} else {
 		my ($dN, $dG) = split(/;/, $del);
 		if ($isRoot || grep /^$dG$/, @$rwGroups)  {

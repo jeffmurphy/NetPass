@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.3 2005/04/27 03:54:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.4 2005/08/03 02:44:39 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -47,11 +47,14 @@ if (! $isRoot ) {
 }
 
 if ($ARGS{'quarantineall'}) {
-	$np->db->reqAppAction('quarall', 'start', '');
-        $np->db->audit(  -user    => $m->session->{'username'},
-                        -severity => "ALERT",
-                        -msg      => [ "Activated Quarantine All Global Reset" ]);
-
+	if ($np->db->clearRegister()) {
+		$np->db->reqAppAction('quarall', 'start', '');
+	        $np->db->audit(  -user    => $m->session->{'username'},
+	                        -severity => "ALERT",
+	                        -msg      => [ "Activated Quarantine All Global Reset" ]);
+	} else {
+		print "<p class='error'>Failed to clear register table. Unquarantine all aborted.</P>";
+	}
 } elsif ($ARGS{'unquarantineall'}) {
 	$np->db->reqAppAction('unquarall', 'start', '');
         $np->db->audit(  -user     => $m->session->{'username'},
@@ -60,11 +63,27 @@ if ($ARGS{'quarantineall'}) {
 }
 
 print $q->start_form(-name => 'form', -method => "POST");
-print "<h2>Global Reset</h2>";
-print "<FONT CLASS='error'>WARNING:</FONT>The following will cause a system wide reset.<BR>Make sure a global reset is exactly what you want to do.<P>"; 
-print "<TABLE CLASS='gray' CELLSPACING=2 CELLPADDING=2 BORDER=0 HEIGHT=200>";
-print "<TR><TH HEIGHT=25 WIDTH=200 COLSPAN=2>Global Reset</TH></TR><TR>";
-print "<TD ALIGN='center'>";
+</%perl>
+<h2>Global Reset</h2>
+
+<FONT CLASS='error'>WARNING:</FONT>The following will cause <B>all managed ports</B> to be reset to the state you choose.<BR>
+Make sure a global reset is exactly what you want to do. <P>
+
+If you choose to <B>quarantine</B> all ports then <B>all registration data will be deleted</B> thereby forcing
+all users to go back through the registration process.<P>
+
+Once you've initiated the global reset, go to the 
+<a href="/Admin/index.mhtml">NetPass Admin Home</a> page to check its progress.<P>
+
+Also note that the status area on the Home page only shows the status of the <I>local</I> NetPass server. If you
+are running in a Clustered (HA) Configuration, then the Global Reset process might be running on another server
+and the home page <I>will not</I> show that it is running. Take note of the server you are attached to when
+you start the global reset (the server name is in the lower left corner of this screen).
+
+<TABLE CLASS='gray' CELLSPACING=2 CELLPADDING=2 BORDER=0 HEIGHT=200>
+<TR><TH HEIGHT=25 WIDTH=200 COLSPAN=2>Global Reset</TH></TR><TR>
+<TD ALIGN='center'>
+<%perl>
 print $q->button (
 			-name	=> 'quarall',	
 			-value	=> 'Quarantine All',

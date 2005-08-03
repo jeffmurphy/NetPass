@@ -159,3 +159,22 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm added NetPass::Auth::LDAP, ..Auth::Unix and ..Auth::DB modules
 	jcm moved NetPass::RADIUS to NetPass::Auth::Radius
 	jcm moved doc/startup/* to install.d/init.d/*
+
+2005-08-01
+	jcm admin UI over-haul. segment access by network/group
+	jcm client UI modifications. tie walk-thru messages to client's network
+	mtb snort integration
+	mtb netpass API
+	jcm moved config file into database
+	mtb migrated to mysql cluster
+	mtb service watcher (npsvc)
+	jcm macscan app
+	jcm appstarter app
+	jcm per-network/group policy settings
+	mtb basic incident tracking
+	jcm 'strikes' system
+	mtb lots of bugs created
+	jcm lots of bugs fixed
+
+2005-08-10 2.0 released
+

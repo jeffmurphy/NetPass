@@ -73,7 +73,11 @@ stop(){
 	[ $ret -eq 0 ] && rm -f /var/lock/subsys/mysqld
 	[ $ret -eq 0 ] && rm -f $datadir/mysql.sock
 
+	sleep 10
+	killproc mysqld -KILL
+	killproc mysqld_safe -KILL
 	killproc ndbd
+	echo
 	return $ret
 }
  

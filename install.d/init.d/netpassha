@@ -13,7 +13,13 @@
 # Source networking configuration.
 . /etc/sysconfig/network
 
-HASCRIPT="hascript.sh"
+# specify one of your NetPass servers. currently this script
+# isnt smart enough to accept mulitple and try each in turn
+# also, specify which redirector this machine is. either
+# "1" or "2"
+
+NPSERVER="npw2.cit.buffalo.edu"
+MYTYPE="-r 1"   # or "-r 2"
 
 [ -f /etc/sysconfig/netpass ] && . /etc/sysconfig/netpass
 
@@ -28,9 +34,10 @@ prog="netpassha"
 
 start() {
 	# Start daemons.
-	if [ -f ${B}/bin/${HASCRIPT} ] ; then
+	if [ -f ${B}/bin/interfacecfg.pl ] ; then
 		echo -n $"Starting netpass-ha: "
-		daemon ${B}/bin/${HASCRIPT}
+		${B}/bin/interfacecfg.pl -c "dbi:mysql:database=netpass;host=${NPSERVER}" ${MYTYPE} | /bin/sh 2>&1 >& /dev/null
+		success
 		echo
 		#[ $RETVAL -eq 0 ] && exit $RETVAL
 	fi
@@ -40,6 +47,8 @@ start() {
 
 stop() {
         # at this time, there's no way to shutdown HA
+
+	action $"Stopping $prog: " /bin/true
 
 	return 0
 }

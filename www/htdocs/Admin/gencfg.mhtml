@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.19 2005/06/14 16:38:26 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/gencfg.mhtml,v 1.20 2005/08/03 02:44:39 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,9 +88,10 @@ if ($submit eq 'Commit Changes') {
                 }
         }
 
-        $np->db->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
-        $np->db->reqAppAction('httpd',   'restart', '') if ($restarthttpd);
-	$np->db->reqAppAction('nessusd', 'restart', '') if ($restartnessus);
+	# the config is auto-reloaded. we dont need to do this anymore
+        #$np->db->reqAppAction('netpass', 'restart', '') if ($restartnetpass);
+        #$np->db->reqAppAction('httpd',   'restart', '') if ($restarthttpd);
+	#$np->db->reqAppAction('nessusd', 'restart', '') if ($restartnessus);
 
         $np->cfg->save(-user => $m->session->{'username'});
 }

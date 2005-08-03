@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.5 2005/05/04 03:27:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.6 2005/08/03 02:44:40 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -372,7 +372,8 @@ sub saveChanges {
 
 		if ($args->{"status:$id"} ne $args->{"statusOrig:$id"}) {
 			$np->db->audit(
-				-user => $m->session->{'logged_in'},
+				-user => $m->session->{'username'},
+				-ip => $ENV{'REMOTE_ADDR'},
 			      	-msg => [ "ScanAdmin: $id status changed to", $status, "from", 
 					  $args->{'statusOrig:'.$id} ]);
 		}

@@ -22,7 +22,8 @@ rpm -iv libnet-1.1.2.1-2.i386.rpm
 mkdir -p /var/cache/cpan/build /var/cache/cpan/sources
 unset DISPLAY
 up2date --nox -i glib-devel openssl-devel libnet   perl-CPAN
-cp Config.pm /usr/lib/perl5/5.8.0/CPAN/Config.pm
+# 5.8.5 = RH4
+cp Config.pm /usr/lib/perl5/5.8.5/CPAN/Config.pm
 cat <<EOF
 
 Using CPAN to install some perl modules. If CPAN asks whether
@@ -31,8 +32,11 @@ you want to install dependencies, answer "y" (yes).
 EOF
 sleep 5
 
-echo "install Bundle::CPAN"      | perl -MCPAN -e shell
-echo "install Mail::IMAPClient"  | perl -MCPAN -e shell
+for i in Bundle::CPAN Mail::IMAPClient ExtUtils::AutoInstall Convert::ASN1 Authen::SASL \
+Digest::MD5 URI::ldap IO::Socket::SSL XML::SAX::Base MIME::Base64 ; do 
+	echo "install " $i | perl -MCPAN -e shell
+done
+
 echo "force install Net::SSLeay" | perl -MCPAN -e shell
 echo "install Net::LDAP"         | perl -MCPAN -e shell
 

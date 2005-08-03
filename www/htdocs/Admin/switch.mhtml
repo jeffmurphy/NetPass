@@ -45,6 +45,10 @@ if ( 	$switch && ($switch ne $WH)         &&
 	}
 }
 
+if ($switch && ($switch ne $WH) && !$submitButton) {
+	($rocomm, $rwcomm) = $np->cfg->getCommunities($switch);
+}
+
 if ($#err > -1) {
 	print "<P class='error'>The following errors occurred:</P> ";
 	print "<OL><LI class='error'>", join("<LI class='error'>", @err), "</OL>";

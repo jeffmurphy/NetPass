@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.5 2005/04/27 03:54:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/portmover.pl,v 1.6 2005/08/03 02:44:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -16,6 +16,7 @@ table and processes pending transactions.
  moveport.pl [-c cstr] [-U user/pass] [-n] [-q] [-D] 
      -c cstr        db connect string
      -U user/pass   db user[/pass]
+     -t             thread queue size
      -n             "not really"
      -q             be quiet. exit status only.
      -D             enable debugging
@@ -47,6 +48,18 @@ negates the C<-q> flag)
 Enable debugging output. This flag causes this script to run in the foreground.
 Otherwise, this script will detach and run in the background.
 
+=item B<-t thead-queue-size>
+
+A number denoting how many switches to delegate to each thread for processing.
+The default is 20. If you have 100 switches in your NetPass configuration,
+5 threads will be spawned. Each thread will deal with moving ports back 
+and forth on the switches that are assigned to it. 
+
+Each thread requires a connection to the database, so don't set this number 
+too low or you'll needless use DB resources. If you make the number too
+high, then a slow switch or a large number of ports to be moved could
+slow things down for many people.
+
 =back
 
 =head1 DESCRIPTION
@@ -74,7 +87,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: portmover.pl,v 1.5 2005/04/27 03:54:06 jeffmurphy Exp $
+$Id: portmover.pl,v 1.6 2005/08/03 02:44:38 jeffmurphy Exp $
 
 =cut
 

@@ -69,7 +69,7 @@ my $delete = "DELETE FROM stats_procs WHERE dt <= FROM_UNIXTIME($onedayago)";
 my $insert = "INSERT INTO stats_procs (serverid, dt, proc, count) VALUES (?,NOW(),?,?)";
 $np->db->{'dbh'}->do($delete);
 
-my $sth = $np->dbh->{'dbh'}->prepare($insert);
+my $sth = $np->db->{'dbh'}->prepare($insert);
 
 my $t = new Proc::ProcessTable;
 

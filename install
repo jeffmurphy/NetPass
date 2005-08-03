@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.22 2005/05/17 15:13:14 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.23 2005/08/03 02:44:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.22 2005/05/17 15:13:14 jeffmurphy Exp $
+$Id: install,v 1.23 2005/08/03 02:44:38 jeffmurphy Exp $
 
 =cut
 
@@ -336,7 +336,7 @@ sub installIPTables {
 	lprint "copy $base/$cfg to /etc/$cfg, using netblocks=$netblocks\n";
 
 	if (-f "/etc/$cfg") {
-		lprint "hmm. /etc/$cfg already exists. we wont over-write it. abort.\n";
+		lprint "hmm. /etc/$cfg already exists. We wont over-write it. We're going to skip\nthis section of the install.\n";
 		return;
 	}
 
@@ -354,7 +354,7 @@ one line, separated with spaces:
 
 ");
 
-	my $npserv = ask("Enter the IP addresses of all of you'r NetPass servers (a netblock is OK).
+	my $npserv = ask("Enter the IP addresses of all of your NetPass servers (a netblock is OK).
 We'll use this to permit MySQL traffic between those servers. Without this, MySQL cluster
 will not function. Enter the addresses on a single line, separated by spaces:
 
@@ -1042,9 +1042,9 @@ sub squidGuardConfig {
 	ldie "cant open $cf for writing: $!" unless defined ($fh);
 	foreach my $line  (@orig) {
 		if ($line =~ /redirect 302:http/) {
-			print "\t\tredirect 302:http://$sn/?url=%u\n";
+			print $fh "\t\tredirect 302:http://$sn/?url=%u\n";
 		} else {
-			print $line;
+			print $fh $line;
 		}
 	}
 	$fh->close;
@@ -1279,7 +1279,7 @@ sub apacheConfig_set {
 
 	for (my $i=0 ; $i < $#$c ; $i++) {
 		if ($c->[$i] =~ /$k/) {
-			splice(@$c, $i+1, 0, $l);
+			splice(@$c, $i, 1, $l);
 			$i++;
 		}
 	}

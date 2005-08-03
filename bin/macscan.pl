@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.10 2005/04/27 03:54:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.11 2005/08/03 02:44:38 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -82,7 +82,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.10 2005/04/27 03:54:06 jeffmurphy Exp $
+$Id: macscan.pl,v 1.11 2005/08/03 02:44:38 jeffmurphy Exp $
 
 =cut
 
@@ -243,12 +243,14 @@ sub thread_entry {
 								 -network => $nw);
 
 				if ($macscan == 0) {
-					_log("INFO", "macscan is disabled for this port: $switch/$p ($nw)\n");
+					# too verbose
+					#_log("INFO", "macscan is disabled for this port: $switch/$p ($nw)\n");
 					next;
 				}
 
 				if ($multi_mac ne "ALL_OK") {
-					_log("INFO", "multi_mac is $multi_mac for this port: $switch/$p ($nw)\n");
+					# too verbose
+					#_log("INFO", "multi_mac is $multi_mac for this port: $switch/$p ($nw)\n");
 					next;
 				}
 

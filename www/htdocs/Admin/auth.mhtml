@@ -42,6 +42,11 @@ my $whoami = $m->session->{'username'};
 $m->comp('/Admin/LockConfig', 'enableWhenLocked' => [ 'submitButton' ], 'init' => 0);
 my $lstat = $np->db->isConfigLocked();
 
+Radius and LDAP servers are shared. If you select Radius for both Client and Admin
+authentication, you will see two "Radius Server" configuration areas, but they
+both refer to the same information. So if you add a Radius server to one, it will 
+appear in both.
+
 if ($submitButton eq "Commit Changes") {
 	_log("DEBUG", "$whoami is changing system auth settings\n");
 

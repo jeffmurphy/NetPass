@@ -196,6 +196,15 @@
                     )%>
 </TD></TR>
 <TR>
+<TD CLASS='left'>ResetPort Max Port Poll Time</TD>
+<TD CLASS='right'>
+<%$q->textfield (
+                        -name     => 'policy:resetport_port_poll_time',
+                        -default  => $np->cfg->policy(-key => 'resetport_port_poll_time'),
+			-size     => 5
+                    )%> seconds
+</TD></TR>
+<TR>
 <TD CLASS='left'>ResetPort Link Flap Tolerance</TD>
 <TD CLASS='right'>
 <%$q->textfield (

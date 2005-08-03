@@ -3,21 +3,10 @@
 
 changes
 
-	when user comes back update sw/po and ip fields based on mac
-	stash sw/po in ssession so we dont have to re-search when
-	we re-validate
-
-	Admin/Scan/index.mhtml
-		http://
-
-
 	tie QC into dhcp so that we can verify that the given IP
 	is really currently associated with the corresponding MAC
 
 	search by time range with calendar button on various forms
-
-	per-message/scantype quarantine/unquarantine?
-
 
 stats
 	arp table
@@ -25,11 +14,6 @@ stats
 	portmoves pending
 	OS
 	port resets
-
-
-
-nessusScans table -> convert timestamps to DATETIMEs
-
 
 
 
@@ -42,16 +26,6 @@ make sure we dont unquar. throw some canned message instead
 
 if state is PQUAR we dont tear down the session. so if you set the reg to
 QUAR, instead of a login page, they get the "ready to rescan" page.
-
-BUG
-	reg two hosts on the same port. set them both to quarantined
-	and they both get the multi_mac message and neither can rescan
-	to get out! 
-
-BUG
-	OS field not recording in table....
-
-
 
 multi-root networsk (spauld/wilk/rich)
 
