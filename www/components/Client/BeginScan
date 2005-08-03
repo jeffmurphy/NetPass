@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.8 2005/05/08 02:35:46 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.9 2005/08/03 01:17:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -46,18 +46,19 @@
 		my $plugin_total              = $parms->{'pitot'};
 		return		if ($plugin_total < 1);
 
-		my $progress_bar_width        = "500"; #px
-		my $progress_step_pixel_width = int(($progress_bar_width/$plugin_total)+1); 
+		my $max_iteration = (split('/', $cbm->[2]))[1];
+		$max_iteration ||= $plugin_total;
+
+		my $progress_bar_width        = "500"; #px same as table width
+		my $progress_step_pixel_width = int($progress_bar_width/$max_iteration)-2; 
 		my $progress_image            = '/resources/images/progress.gif';
-		$progress_bar_width	      = $progress_step_pixel_width*$plugin_total; # this evens out the progress bar
-		$progress_step_pixel_width    -= 4;
 
 		# nessus passes in an array. the 3rd element is basically 
 		# "pluginnum/totplugin" so we eval it to get percent done
 
 		my $percent_done = int(100*(eval($cbm->[2])));
 
-		print qq{<image src="$progress_image" border="0" width="$progress_step_pixel_width" height="10" alt="$percent_done percent">};
+		print qq{<image style='margin: 0px 1px 0px 1px; padding: 1px 1px 1px 1px;' src="$progress_image" border="0" width="$progress_step_pixel_width" height="10" alt="$percent_done percent">};
     		$m->flush_buffer();
 	};
 
@@ -112,6 +113,7 @@
 		goto scan_finished;
     	}
 
+	print "\n<!-- PIDS: ", join(',',@$pids), "-->\n";
 	$nessus->plugin_set(join(';', @$pids));
        	$nessus->attack($ip);
 
