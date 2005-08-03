@@ -188,73 +188,73 @@ sub get_mac_port_table {
     my $p2ifoid = ".1.3.6.1.2.1.17.1.4.1.2";
 # Check to see what mac's are for the switch
 
-my %selfhash = ();
-my $reslcl = $snmp->snmp->get_table(-baseoid=>$lcloid);
-foreach my $selfoid (keys(%{$reslcl})){
- if ($reslcl->{$selfoid} == 4){
-   my @selfoidtmp = split(/\./,$selfoid);
-   $selfoidtmp[11] = "2";
-   my $selfoid = join('.',@selfoidtmp);
-   $selfhash{$selfoid} = 1;
- }
-}
+    my %selfhash = ();
+    my $reslcl = $snmp->snmp->get_table(-baseoid=>$lcloid);
+    foreach my $selfoid (keys(%{$reslcl})){
+	if ($reslcl->{$selfoid} == 4){
+	    my @selfoidtmp = split(/\./,$selfoid);
+	    $selfoidtmp[11] = "2";
+	    my $selfoid = join('.',@selfoidtmp);
+	    $selfhash{$selfoid} = 1;
+	}
+    }
 
 # Create hash of vlans that are on ports
     if (!defined($res = $snmp->snmp->get_table($vlanoid))) {
         $snmp->err($snmp->snmp->error);
         return undef;
-        }
-my %vlanhash;
+    }
+    my %vlanhash;
     foreach my $void (keys(%{$res})) {
-      my $vlan = $res->{$void};
-      $vlanhash{$vlan} = 1;
-      }
+	my $vlan = $res->{$void};
+	$vlanhash{$vlan} = 1;
+    }
     my $orig_cn = $snmp->snmp_community;
     foreach my $vlan (keys(%vlanhash)) {
-      $snmp->snmp_community("$orig_cn\@$vlan");
-      my $snmp2 = $snmp->_create_snmp();
-
-# create bidge port to ifindex mapping hash
-
-      if (!defined($resp = $snmp2->get_table($p2ifoid))) {
-        $snmp->err($snmp2->error);
-        return undef;
+	$snmp->snmp_community("$orig_cn\@$vlan");
+	my $snmp2 = $snmp->_create_snmp();
+	
+# create bridge port to ifindex mapping hash
+	
+	if (!defined($resp = $snmp2->get_table($p2ifoid))) {
+	    $snmp->err($snmp2->error);
+	    return undef;
         }
-      my %p2ihash = ();
-      foreach my $p2ioid (keys(%{$resp})) {
-        my $bport = substr($p2ioid,rindex($p2ioid,".")+1);
-        $p2ihash{$bport} = $resp->{$p2ioid};
+	my %p2ihash = ();
+	foreach my $p2ioid (keys(%{$resp})) {
+	    my $bport = substr($p2ioid,rindex($p2ioid,".")+1);
+	    $p2ihash{$bport} = $resp->{$p2ioid};
         }
-      if (!defined($res = $snmp2->get_table($oid))) {
-        $snmp->err($snmp2->error);
-        $snmp->snmp_community($orig_cn);
-        #return undef;
-       }
-
-
-  MAC: foreach my $key (keys %{$res}) {
-       if (exists($selfhash{$key})){
-         next;
-        }
-	my ($m1, $m2, $m3, $m4, $m5, $m6) = ($key =~ /^.*?\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/); # MAC pieces, base 10.
-	my $mac = sprintf("%2.2x", $m1) .
-	  sprintf("%2.2x", $m2) .
-	  sprintf("%2.2x", $m3) .
-	  sprintf("%2.2x", $m4) .
-	  sprintf("%2.2x", $m5) .
-	  sprintf("%2.2x", $m6);
-
-	my $ifIndex = $p2ihash{$res->{$key}};
-	if (defined ($ifIndex)) {
-	    $m2p->{$mac} = [] if !exists $m2p->{$mac};
-	    $p2m->{$ifIndex} = [] if !exists $p2m->{$ifIndex};
-	    push @{$m2p->{$mac}}     , $ifIndex;
-	    push @{$p2m->{$ifIndex}} , $mac;
+	if (!defined($res = $snmp2->get_table($oid))) {
+	    $snmp->err($snmp2->error);
+	    $snmp->snmp_community($orig_cn);
+	    #return undef;
 	}
-    } # vlan foreach
+	
+	
+      MAC: foreach my $key (keys %{$res}) {
+	  if (exists($selfhash{$key})){
+	      next;
+	  }
+	  my ($m1, $m2, $m3, $m4, $m5, $m6) = ($key =~ /^.*?\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/); # MAC pieces, base 10.
+	  my $mac = sprintf("%2.2x", $m1) .
+	      sprintf("%2.2x", $m2) .
+	      sprintf("%2.2x", $m3) .
+	      sprintf("%2.2x", $m4) .
+	      sprintf("%2.2x", $m5) .
+	      sprintf("%2.2x", $m6);
+	  
+	  my $ifIndex = $p2ihash{$res->{$key}};
+	  if (defined ($ifIndex)) {
+	      $m2p->{$mac} = [] if !exists $m2p->{$mac};
+	      $p2m->{$ifIndex} = [] if !exists $p2m->{$ifIndex};
+	      push @{$m2p->{$mac}}     , $ifIndex;
+	      push @{$p2m->{$ifIndex}} , $mac;
+	  }
+      } # vlan foreach
     } # mac foreach
     $snmp->snmp_community($orig_cn);
-
+    
     return ($m2p, $p2m);
 }
 
@@ -279,39 +279,41 @@ sub get_mac_port {
 # Need to get unquar and quar vlans for network, otherwise would need to go
 # through all the vlans on the switch.
 
-    my $cfg = new NetPass::Config('/opt/netpass/etc/netpass.conf');
-    my @taglist = $cfg->availableVlans(-network=>$myNW);
-    my $orig_cn = $self->snmp_community;
-    foreach my $vlan (@taglist) {
-      $self->snmp_community("$orig_cn\@$vlan");
-      my $snmp2 = $self->_create_snmp();
+	my $np = new NetPass(-cstr   =>  undef,
+                     		-dbuser => '', -dbpass => '',
+                	    	-debug  => 0,
+                     		-quiet  => 0);
 
-# create bidge port to ifindex mapping hash
+    	my @taglist = $np->cfg->availableVlans(-network=>$myNW);
+    	my $orig_cn = $self->snmp_community;
+    	foreach my $vlan (@taglist) {
+      		$self->snmp_community("$orig_cn\@$vlan");
+      		my $snmp2 = $self->_create_snmp();
 
-      if (!defined($resp = $snmp2->get_table($p2ifoid))) {
-        $self->err($snmp2->error);
-        return undef;
-        }
-      my %p2ihash = ();
-      foreach my $p2ioid (keys(%{$resp})) {
-        my $bport = substr($p2ioid,rindex($p2ioid,".")+1);
-        $p2ihash{$bport} = $resp->{$p2ioid};
-        }
-      if (!defined($res1 = $snmp2->get_request("$oid.$decmac"))) {
-        next;
-       }
-        if ($res1->{"$oid.$decmac"} =~ /\d+/){
-          $self->snmp_community($orig_cn);
-          return $p2ihash{$res1->{"$oid.$decmac"}};
-        }
-        else {
-          next;
-         }
-     }
-     $self->snmp_community($orig_cn);
-     return undef;
+		# create bridge port to ifindex mapping hash
 
-
+		if (!defined($resp = $snmp2->get_table($p2ifoid))) {
+			$self->err($snmp2->error);
+			return undef;
+		}
+		my %p2ihash = ();
+		foreach my $p2ioid (keys(%{$resp})) {
+			my $bport = substr($p2ioid,rindex($p2ioid,".")+1);
+			$p2ihash{$bport} = $resp->{$p2ioid};
+		}
+		if (!defined($res1 = $snmp2->get_request("$oid.$decmac"))) {
+			next;
+		}
+		if ($res1->{"$oid.$decmac"} =~ /\d+/){
+			$self->snmp_community($orig_cn);
+			return $p2ihash{$res1->{"$oid.$decmac"}};
+		}
+		else {
+			next;
+		}
+	}
+	$self->snmp_community($orig_cn);
+	return undef;
 }
 
 
@@ -345,11 +347,11 @@ sub get_next_switch {
         }
 
         foreach my $key (keys %{$response}) {
-          my $hexip = $response->{$key};
-          push(my @ip,hex(substr($hexip,2,2)));
-          push(@ip,hex(substr($hexip,4,2)));
-          push(@ip,hex(substr($hexip,6,2)));
-          push(@ip,hex(substr($hexip,8,2)));
+		my $hexip = $response->{$key};
+		push(my @ip,hex(substr($hexip,2,2)));
+		push(@ip,hex(substr($hexip,4,2)));
+		push(@ip,hex(substr($hexip,6,2)));
+		push(@ip,hex(substr($hexip,8,2)));
                 return join(".",@ip);
         }
         return "";
