@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.49 2005/08/03 02:44:39 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.50 2005/08/03 17:49:55 mtbell Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1015,32 +1015,32 @@ sub addSnortRuleEntry {
     return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
     my ($rule, $user, $desc) = $parms->get('-rule', '-user', '-desc');
 
-    if ($rule =~ /sid\:(\d+)\;/) {
+    if ($rule =~ /sid\:\s*(\d+)\;/) {
 	$data->{sid} = $1;
     } else {
 	return "undefined sid";
     }
 
-    if ($rule =~ /msg\:\"([\w-]+)\s+([^";]+)\"\;/) {
+    if ($rule =~ /msg\:\s*\"([\w-]+)\s+([^";]+)\"\;/) {
 	$data->{category} = $1;
 	$data->{name}     = $2;
     } else {
 	return "unknown msg";
     }
 
-    if ($rule =~ /rev\:(\d+)\;/) {
+    if ($rule =~ /rev\:\s*(\d+)\;/) {
 	$data->{rev} = $1;
     } else {
 	return "unknown rev";	
     }
 
-    if ($rule =~ /classtype\:([^;]+)\;/) {
+    if ($rule =~ /classtype\:\s*([^;]+)\;/) {
 	$data->{classtype} = $1;
     } else {
 	return "unknown classtype";
     }
 
-    if ($rule =~ /reference\:([^;]+)\;/) {
+    if ($rule =~ /reference\:\s*([^;]+)\;/) {
 	$data->{reference} = $1;
     }
 
@@ -2865,7 +2865,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.49 2005/08/03 02:44:39 jeffmurphy Exp $
+$Id: DB.pm,v 1.50 2005/08/03 17:49:55 mtbell Exp $
 
 =cut
 
