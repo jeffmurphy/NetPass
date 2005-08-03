@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.50 2005/08/03 17:49:55 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.51 2005/08/03 20:22:40 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -491,7 +491,7 @@ sub getPage {
 
     $self->reconnect() || return undef;
 
-    return undef unless defined($name) && ($name =~ /^msg:/);
+    return undef unless defined($name);
 
     my $sql  = "SELECT content FROM pages WHERE name = ".$self->dbh->quote($name);
     my $page = '';
@@ -2865,7 +2865,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.50 2005/08/03 17:49:55 mtbell Exp $
+$Id: DB.pm,v 1.51 2005/08/03 20:22:40 jeffmurphy Exp $
 
 =cut
 

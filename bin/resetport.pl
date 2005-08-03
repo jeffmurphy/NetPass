@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.15 2005/08/03 02:44:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.16 2005/08/03 20:22:40 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,7 +88,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.15 2005/08/03 02:44:38 jeffmurphy Exp $
+$Id: resetport.pl,v 1.16 2005/08/03 20:22:40 jeffmurphy Exp $
 
 =cut
 
@@ -393,9 +393,10 @@ sub thread_entry {
 	my $thrq     = shift;
 
 	my $pq = { 
-		  'q' => {} ,
-		  'u' => {} ,
-		  'qt' => {}
+		  'q' =>  {},
+		  'u' =>  {},
+		  'qt' => {},
+		  'ut' => {}
 		 };
 
 	print $self->tid(), " connecting to DB\n" if $opts{'D'};

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.5 2005/06/08 16:35:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.6 2005/08/03 20:22:40 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -46,7 +46,7 @@ if($name && $group) {
 	$content = $np->db->getPage(-name => $name, -group => $group);
 
 	if(!defined($content)) {
-        	print $q->error("Sorry, there was an error while processing your request!");
+        	print $q->p({-class=>'error'}, "Sorry, there was an error while processing your request! (getPage couldn't load the page)");
 		return;
 	}
 }
