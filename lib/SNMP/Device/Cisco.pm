@@ -1,7 +1,7 @@
 package SNMP::Device::Cisco;
 
 use SNMP::Device;
-use NetPass::Config;
+use NetPass;
 use Net::SNMP;
 use NetPass::LOG qw (_log _cont);
 
@@ -280,7 +280,7 @@ sub get_mac_port {
 # through all the vlans on the switch.
 
 	my $np = new NetPass(-cstr   =>  undef,
-                     		-dbuser => '', -dbpass => '',
+                     		-dbuser => undef, -dbpass => undef,
                 	    	-debug  => 0,
                      		-quiet  => 0);
 
