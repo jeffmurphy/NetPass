@@ -102,12 +102,12 @@ function unHighLightList(oname, item) {
 }
 
 
-function highLightList(oname, item) {
+function highLightList(oname, item, dontclear) {
         var RN  = "highLightList";
 	dbg(1, RN + "(" + oname + ", " + item + ")" );
         var acl = document.getElementById(oname);
         if (acl) {
-		acl.selectedIndex = -1;
+		if (dontclear != 1) acl.selectedIndex = -1;
                 for(var i = 1 ; i < acl.options.length ; i++) {
                         if (item) {
                                 if (acl.options[i].value == item)

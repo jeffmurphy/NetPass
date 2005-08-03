@@ -322,7 +322,7 @@ function userform_showACLforGroup() {
 			for(var acl in userhash[su][o.value]) {
 				userform_disableModAll();
 				dbg(1, RN + ": acl/"+su+"/"+o.value+"="+acl);
-				highLightList("AccessControlList", acl);
+				highLightList("AccessControlList", acl, 1);
 			} 
 		}
 	}
