@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.9 2005/06/02 18:28:30 mtbell Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.10 2005/08/03 20:37:36 mtbell Exp $
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -132,8 +132,10 @@ if ($ruledel eq "Delete" && $readOnly ne "disabled") {
 	}
 } elsif ($rulesave eq "Save" && $readOnly ne "disabled") {
 	if ($raw) {
+		my $r = $rule;
+		$r =~ s/\r\n/ /g;
                 my $rv = $np->db->addSnortRuleEntry(
-                                                     -rule => $rule,
+                                                     -rule => $r,
                                                      -user => $m->session->{'username'},
                                                      -desc => $desc
                                                    );
