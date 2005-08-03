@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.9 2005/08/03 01:17:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.10 2005/08/03 01:26:12 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -58,7 +58,7 @@
 
 		my $percent_done = int(100*(eval($cbm->[2])));
 
-		print qq{<image style='margin: 0px 1px 0px 1px; padding: 1px 1px 1px 1px;' src="$progress_image" border="0" width="$progress_step_pixel_width" height="10" alt="$percent_done percent">};
+		print qq{<image style='margin: 0px 1px 0px 1px; ' src="$progress_image" border="0" width="$progress_step_pixel_width" height="10" alt="$percent_done percent">};
     		$m->flush_buffer();
 	};
 
