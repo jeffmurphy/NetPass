@@ -1,0 +1,35 @@
+<%doc>
+</%doc>
+<%perl>
+use Proc::ProcessTable;
+my $pt      = new Proc::ProcessTable;
+my $running = 0;
+my @pl      = ();
+
+foreach my $pte ( @{$pt->table} ){
+	if ($pte->cmndline =~ /^reset:\s(.*)/) {
+		push @pl, $1;
+		$running = 1;
+	}
+}
+</%perl>
+
+<table border=0 width=550>
+<tr><th>Global Reset Status</th></tr>
+<tr><td class='gray' align='center'>
+% if (! $running) {
+Global Reset is not running.
+% } else {
+<input type='submit' name='stopGlobalReset' value='Stop Global Reset'>
+<PRE>
+%     print join("\n", @pl);
+</PRE>
+% }
+<P><I>You may periodically hit Reload to update the status.</I>
+<P><I>If you are running in a Clustered (HA) Configuration, 
+this page may be served by a server other than the one where the
+Global Reset is running. If that's the case, this status box
+will tell you that Global Reset is not running, even though it is 
+running on the other NetPass server.</I>
+</td></tr>
+</table>
