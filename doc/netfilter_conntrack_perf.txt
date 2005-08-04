@@ -1,0 +1,233 @@
+           Netfilter conntrack performance tweaking, v0.6
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+             Hervé Eychenne <rv _AT_ wallfire _DOT_ org>
+
+This document explains some of the things you need to know for netfilter
+conntrack (and thus NAT) performance tuning.
+
+Latest version of this document can be found at:
+http://www.wallfire.org/misc/netfilter_conntrack_perf.txt
+
+------------------------------------------------------------------------------
+
+There are two parameters we can play with:
+- the maximum number of allowed conntrack entries, which will be called
+  CONNTRACK_MAX in this document
+- the size of the hash table storing the lists of conntrack entries, which
+  will be called HASHSIZE (see below for a description of the structure)
+
+CONNTRACK_MAX is the maximum number of "sessions" (connection tracking entries)
+that can be handled simultaneously by netfilter in kernel memory.
+
+A conntrack entry is stored in a node of a linked list, and there are several
+lists, each list being an element in a hash table.  So each hash table entry
+(also called a bucket) contains a linked list of conntrack entries.
+To access a conntrack entry corresponding to a packet, the kernel has to:
+- compute a hash value according to some defined characteristics of the packet.
+  This is a constant time operation.
+  This hash value will then be used as an index in the hash table, where a
+  list of conntrack entries is stored.
+- iterate over the linked list of conntrack entries to find the good one.
+  This is a more costly operation, depending on the size of the list (and on
+  the position of the wanted conntrack entry in the list).
+
+The hash table contains HASHSIZE linked lists.  When the limit is reached
+(the total number of conntrack entries being stored has reached CONNTRACK_MAX),
+each list will contain ideally (in the optimal case) about
+CONNTRACK_MAX/HASHSIZE entries.
+
+The hash table occupies a fixed amount of non-swappable kernel memory,
+whether you have any connections or not.  But the maximum number of conntrack
+entries determines how many conntrack entries can be stored (globally into the
+linked lists), i.e. how much kernel memory they will be able to occupy at most.
+
+
+This document will now give you hints about how to choose optimal values for
+HASHSIZE and CONNTRACK_MAX, in order to get the best out of the netfilter
+conntracking/NAT system.
+
+Default values of CONNTRACK_MAX and HASHSIZE
+============================================
+
+By default, both CONNTRACK_MAX and HASHSIZE get average values for
+"reasonable" use, computed automatically according to the amount of
+available RAM.
+
+Default value of CONNTRACK_MAX
+------------------------------
+
+On i386 architecture, CONNTRACK_MAX = RAMSIZE (in bytes) / 16384 =
+RAMSIZE (in MegaBytes) * 64.
+So for example, a 32 bits PC with 512MB of RAM can handle 512*1024^2/16384 =
+512*64 = 32768 simultaneous netfilter connections by default.
+
+But the real formula is:
+CONNTRACK_MAX = RAMSIZE (in bytes) / 16384 / (x / 32)
+where x is the number of bits in a pointer (for example, 32 or 64 bits)
+
+Please note that:
+- default CONNTRACK_MAX value will not be inferior to 128
+- for systems with more than 1GB of RAM, default CONNTRACK_MAX value is
+  limited to 65536 (but can of course be set to more manually).
+
+Default value of HASHSIZE
+-------------------------
+
+By default, CONNTRACK_MAX = HASHSIZE * 8.  This means that there is an average
+of 8 conntrack entries per linked list (in the optimal case, and when
+CONNTRACK_MAX is reached), each linked list being a hash table entry
+(a bucket).
+
+On i386 architecture, HASHSIZE = CONNTRACK_MAX / 8 =
+RAMSIZE (in bytes) / 131072 = RAMSIZE (in MegaBytes) * 8.
+So for example, a 32 bits PC with 512MB of RAM can store 512*1024^2/128/1024 =
+512*8 = 4096 buckets (linked lists)
+
+But the real formula is:
+HASHSIZE = CONNTRACK_MAX / 8 = RAMSIZE (in bytes) / 131072 / (x / 32)
+where x is the number of bits in a pointer (for example, 32 or 64 bits)
+
+Please note that:
+- default HASHSIZE value will not be inferior to 16
+- for systems with more than 1GB of RAM, default HASHSIZE value is limited
+  to 8192 (but can of course be set to more manually).
+
+Reading CONNTRACK_MAX and HASHSIZE
+==================================
+
+Current CONNTRACK_MAX value can be read at runtime, via the /proc filesystem.
+
+Before Linux kernel version 2.4.23, use:
+# cat /proc/sys/net/ipv4/ip_conntrack_max
+
+As of Linux kernel version 2.4.23, use:
+# cat /proc/sys/net/ipv4/netfilter/ip_conntrack_max
+  (old /proc/sys/net/ipv4/ip_conntrack_max is then deprecated!)
+
+
+Current HASHSIZE is always available (for every kernel version) in syslog
+messages, as the number of buckets (which is HASHSIZE) is printed there at
+ip_conntrack initialization.
+As of Linux kernel version 2.4.24, current HASHSIZE value can be read at
+runtime with:
+# cat /proc/sys/net/ipv4/netfilter/ip_conntrack_buckets
+
+
+Modifying CONNTRACK_MAX and HASHSIZE
+====================================
+
+Default CONNTRACK_MAX and HASHSIZE values are reasonable for a typical host,
+but you may increase them on high-loaded firewalling-only systems.
+So CONNTRACK_MAX and HASHSIZE values can be changed manually if needed.
+
+While accessing a bucket is a constant time operation (hence the interest
+of having a hash of lists), keep in mind that the kernel has to iterate over
+a linked list to find a conntrack entry.  So the average size of a linked
+list (CONNTRACK_MAX/HASHSIZE in the optimal case when the limit is reached)
+must not be too big.  This ratio is set to 8 by default (when values are
+computed automatically).
+On systems with enough memory and where performance really matters, you can
+consider trying to get an average of one conntrack entry per hash bucket,
+which means HASHSIZE = CONNTRACK_MAX.
+
+Setting CONNTRACK_MAX
+---------------------
+
+Conntrack entries are stored in linked lists, so the maximum number of
+conntrack entries (CONNTRACK_MAX) can be easily configured dynamically.
+
+Before Linux kernel version 2.4.23, use:
+# echo $CONNTRACK_MAX > /proc/sys/net/ipv4/ip_conntrack_max
+
+As of Linux kernel version 2.4.23, use:
+# echo $CONNTRACK_MAX > /proc/sys/net/ipv4/netfilter/ip_conntrack_max
+
+where $CONNTRACK_MAX is an integer.
+
+Setting HASHSIZE
+----------------
+
+For mathematical reasons, hash tables have static sizes.  So HASHSIZE must be
+determined before the hash table is created and begins to be filled.
+
+Before Linux kernel version 2.4.21, a prime number should be choosed for hash
+size, ensuring that the hash table will be efficiently populated. Odd
+non-prime numbers or even numbers are strongly discouraged, as the hash
+distribution will be sub-optimal.
+
+Since Linux kernel version 2.4.21 (and for 2.6 kernel as well), conntrack
+uses jenkins2b hash algorithm which is happy with all sizes, but power
+of 2 works best.
+
+
+If netfilter conntrack is statically compiled in the kernel, the hash table
+size can be set at compile time, or (since kernel 2.6) as a boot option with
+ip_conntrack.hashsize=$HASHSIZE
+
+If netfilter conntrack is compiled as a module, the hash table size can be
+set at module insertion, with the following command:
+# modprobe ip_conntrack hashsize=$HASHSIZE
+
+where $HASHSIZE is an integer.
+
+
+Ideal case: firewalling-only machine
+------------------------------------
+
+In the ideal case, you have a machine _just_ doing packet filtering and NAT
+(i.e. almost no userspace running, at least none that would have a growing
+memory consumption like proxies, ...).
+
+The size of kernel memory used by netfilter connection tracking is:
+size_of_mem_used_by_conntrack (in bytes) =
+        CONNTRACK_MAX * sizeof(struct ip_conntrack) +
+        HASHSIZE * sizeof(struct list_head)
+where:
+- sizeof(struct ip_conntrack) can vary quite much, depending on architecture,
+  kernel version and compile-time configuration. To know its size, see the
+  kernel log message at ip_conntrack initialization time.
+  sizeof(struct ip_conntrack) is around 300 bytes on i386 for 2.6.5, but
+  heavy development around 2.6.10 make it vary between 352 and 192 bytes!
+- sizeof(struct list_head) = 2 * size_of_a_pointer
+  On i386, size_of_a_pointer is 4 bytes.
+
+So, on i386, kernel 2.6.5, size_of_mem_used_by_conntrack is around
+CONNTRACK_MAX * 300 + HASHSIZE * 8 (bytes).
+
+If we take HASHSIZE = CONNTRACK_MAX (if we have most of the memory dedicated
+to firewalling, see "Modifying CONNTRACK_MAX and HASHSIZE" section above),
+size_of_mem_used_by_conntrack would be around CONNTRACK_MAX * 308 bytes
+on i386 systems, kernel 2.6.5.
+
+Now suppose you put 512MB of RAM (a decent amount of memory considering today's
+memory prices) into the firewalling-only box, and use all but 128MB for
+conntrack, which should really be big enough for a firewall in console mode,
+for example.
+Then you could set both CONNTRACK_MAX and HASHSIZE approximately to:
+(512 - 128) * 1024^2 / 308 =~ 1307315 (instead of 32768 for CONNTRACK_MAX,
+and 4096 for HASHSIZE by default).
+As of Linux 2.4.21 (and Linux 2.6), hash algorithm is happy with
+"power of 2" sizes (it used to be a prime number before).
+
+So here we can set CONNTRACK_MAX and HASHSIZE to 1048576 (2^20), for example.
+
+This way, you can store about 32 times more conntrack entries than the
+default, and get better performance for conntrack entry access.
+
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Last changes on Jan 20, 2005
+
+Revision history:
+0.6 Hashsize parameter can be set at boot time with Linux 2.6.  Thanks to
+    Tobias Diedrich for pointing this out.
+0.5 Added further notice about the varying length of the conntrack structure.
+0.4 Since Linux 2.4.21, hash algorithm is happy with all sizes, not only
+    prime ones.  However, power of 2 is best.
+0.3 Various small precisions.
+0.2 Information about Linux kernel versions and corresponding /proc entries.
+    (/proc/sys/net/ipv4/netfilter/ip_conntrack_{max,buckets}).
+0.1 Initial writing, largely based on my discussions with Harald Welte
+    (netfilter maintainer) on the netfilter-devel mailing-list.  Many thanks
+    to him!
