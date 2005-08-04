@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/RUNONCE.pm,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/RUNONCE.pm,v 1.2 2005/08/04 20:41:18 jeffmurphy Exp $
 #
 # RUNONCE.pm
 #
@@ -10,8 +10,11 @@
 # to read them.
 #
 # $Log: RUNONCE.pm,v $
-# Revision 1.1  2004/09/24 01:05:20  jeffmurphy
-# Initial revision
+# Revision 1.2  2005/08/04 20:41:18  jeffmurphy
+# bug fixes to npsvc watcher, added some additional client logging
+#
+# Revision 1.1.1.1  2004/09/24 01:05:20  jeffmurphy
+# Initial import.
 #
 # Revision 1.5  2001/03/22 20:03:52  jcmurphy
 # *** empty log message ***
@@ -28,6 +31,7 @@ use IO::Socket;
 use Fcntl;
 my $listen  = undef;
 $RUNONCE::VERSION = "1.0";
+$RUNONCE::SANITY  = 1;
 
 sub D { 0; }
 
@@ -56,13 +60,15 @@ sub close {
 sub alreadyRunning {
 	my ($ps, $rt, $lq) = (shift, shift, shift);
 
+	my $psO = $ps;
+
 	if(defined($ps)) {
 		if($ps !~ /^\d+$/) {
 			my $portNum = getservbyname($ps, 'tcp');
 			if(!defined($portNum)) {
 				die "$$ RUNONCE::alreadyRunning() : unknown port <$ps>";
 			}
-			$portNum = $ps;
+			$ps = $portNum;
 		}
 
 	} else {
@@ -81,7 +87,7 @@ sub alreadyRunning {
 		print "\n\n$$ alreadyRunning try #$i\n"
 		  if &RUNONCE::D;
 
-		$pid = RUNONCE::alreadyRunning2($ps, $lq);
+		$pid = RUNONCE::alreadyRunning2($ps, $lq, $psO);
 		print "\n$$ alreadyRunning2 returned $pid\n"
 		  if &RUNONCE::D;
 		return $pid if($pid != -1);
@@ -90,8 +96,8 @@ sub alreadyRunning {
 	return $pid;
 }
 
-sub alreadyRunning2($$) {
-	my ($ps, $lq) = (shift, shift);
+sub alreadyRunning2($$$) {
+	my ($ps, $lq, $psO) = (shift, shift, shift);
 	my $mn = $0;
 	if($mn =~ /([^\/]+)$/) {
 		$mn = $1;
@@ -124,7 +130,7 @@ sub alreadyRunning2($$) {
 		if(defined($c)) {
 		        print "$$ reading from remote\n" if &RUNONCE::D;
 			my $l = $c->getline();
-		        print "$$ read ", length($l), " from remote\n" if &RUNONCE::D;
+		        print "$$ read ", (defined($l)?length($l):"UNDEF"), " from remote\n" if &RUNONCE::D;
 
 			if(!defined($l)) {
 				# remote end closed cnx on us
@@ -134,8 +140,10 @@ sub alreadyRunning2($$) {
 			}
 
 			chomp($l);
-			print "$$ remote sent \"$l\"\n" 
-			  if &RUNONCE::D;
+			if (&RUNONCE::D) {
+				print qq{$$ remote sent "$l" (expecting /^$psO/)\n} if !$RUNONCE::SANITY;
+				print qq{$$ remote sent "$l" (expecting "$mn")\n} if $RUNONCE::SANITY;
+			}
 
 			if($l =~ /(\d+)\s(.*)/) {
 				$remoteName = $2;
@@ -146,8 +154,12 @@ sub alreadyRunning2($$) {
 				# basename. this is a sanity check and
 				# we punt if it fails.
 
-				if($remoteName ne $mn) {
-					warn "$$ remoteName isnt what i expected.\nexpected=\"$mn\" got=\"$remoteName\"";
+				if($RUNONCE::SANITY && ($remoteName ne $mn)) {
+					warn qq{$$ remoteName isnt what i expected.\nexpected="$mn" got="$remoteName" (sanity on)};
+					return -1;
+				} 
+				elsif (!$RUNONCE::SANITY && ($remoteName !~ /^$psO/)) {
+					warn qq{$$ remoteName isnt what i expected.\nexpected=/^$psO/ got="$remoteName" (sanity off)};
 					return -1;
 				}
 			} else {

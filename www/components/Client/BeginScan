@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.10 2005/08/03 01:26:12 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/BeginScan,v 1.11 2005/08/04 20:41:18 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -46,6 +46,8 @@
 		my $plugin_total              = $parms->{'pitot'};
 		return		if ($plugin_total < 1);
 
+		#_log("DEBUG", $parms->{'mac'}." ".$parms->{'ip'}." cmb2=".$cbm->[2]."\n");
+
 		my $max_iteration = (split('/', $cbm->[2]))[1];
 		$max_iteration ||= $plugin_total;
 
@@ -58,6 +60,7 @@
 
 		my $percent_done = int(100*(eval($cbm->[2])));
 
+		print qq{<!-- $cbm->[2] -->};
 		print qq{<image style='margin: 0px 1px 0px 1px; ' src="$progress_image" border="0" width="$progress_step_pixel_width" height="10" alt="$percent_done percent">};
     		$m->flush_buffer();
 	};
@@ -69,7 +72,9 @@
                                          password => $np->cfg->nessus(-key => 'password'),
                                          ssl  => 1, timeout => 20, debug => 0,
 					 callback => $progressBar,
-					 callbackparms => { pitot => $plugin_total }
+					 callbackparms => { 'pitot' => $plugin_total,
+							    'mac'   => $mac,
+							    'ip'    => $ip }
                                          );
 
     	$nessus->preferences( 	{ host_expansion 	=> 'none',
@@ -101,8 +106,8 @@
 	print "<div style=\"display: inline;\">";
 
 	if( !$nessus->login()) {
-      		_log("ERROR", "couldnt login to nessus server\n");
-    		_log("ERROR", "Nessus login failed code=", $nessus->code,
+      		_log("ERROR", "$mac $ip couldnt login to nessus server\n");
+    		_log("ERROR", "$mac $ip Nessus login failed code=", $nessus->code,
 			" err=", $nessus->error, "\n");
 		$m->comp('/Audit', 'msg' => [ 'end scan (nessus login failed)' ]);
 
@@ -113,8 +118,9 @@
 		goto scan_finished;
     	}
 
-	print "\n<!-- PIDS: ", join(',',@$pids), "-->\n";
+	_log("DEBUG", "$mac $ip plugin_set\n");
 	$nessus->plugin_set(join(';', @$pids));
+	_log("DEBUG", "$mac $ip attack\n");
        	$nessus->attack($ip);
 
 	_log("DEBUG", "$mac $ip end scan\n");

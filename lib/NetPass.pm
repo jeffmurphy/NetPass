@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.18 2005/05/08 02:35:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.19 2005/08/04 20:41:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -716,6 +716,7 @@ sub findOurSwitchPort_linear {
 	}
 	
 	_log "DEBUG", "$mac $ip could not find us on the network!\n";
+	$self->db->audit(-mac => $mac, -ip => $ip, -msg => [ "could not find us on the network! is our switch/port configured?" ]);
 	return (undef, undef, undef, undef);
 }
 
@@ -937,7 +938,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.18 2005/05/08 02:35:45 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.19 2005/08/04 20:41:17 jeffmurphy Exp $
 
 =cut
 

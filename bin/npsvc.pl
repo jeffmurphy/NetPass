@@ -36,9 +36,12 @@ use Getopt::Std;
 use Pod::Usage;
 use FileHandle;
 use Net::SMTP;
+use Data::Dumper;
 
 use lib qw(/opt/netpass/lib);
 use RUNONCE;
+
+$RUNONCE::SANITY = 0;
 
 my $proctowatch     = {};
 my $DEFAULTCONFIG   = "/opt/netpass/etc/npsvc.conf";
@@ -48,11 +51,14 @@ my $EMAILTIMEOUT    = 300;
 $SIG{'HUP'} = \&handler;
 
 my %opts;
-getopts('c:m:w:h', \%opts);
+getopts('s:c:m:w:hD', \%opts);
 pod2usage(2) if exists $opts{'h'};
 
 my $config   = (exists $opts{'c'}) ? $opts{'c'} : $DEFAULTCONFIG;
 my $waittime = (exists $opts{'w'}) ? $opts{'w'} : $WAITPERIOD; 
+my $D        = (exists $opts{'D'}) ? 1          : 0;
+my $ST       = (exists $opts{'s'}) ? $opts{'s'} : 30;
+
 die "File $config does not exist!" unless -e $config; 
 
 my $mailserver = (exists $opts{'m'}) ? $opts{'m'} : ""; 
@@ -60,15 +66,21 @@ my $mailserver = (exists $opts{'m'}) ? $opts{'m'} : "";
 $proctowatch = processConfFile($config);
 sleep($waittime);
 
+print "Config is:\n", Dumper($proctowatch), "\n";
+
 while (1) {
+	print scalar(localtime), " wakeup\n" if $D;
 	foreach my $svc (keys %$proctowatch) {
+		print scalar(localtime), " doing $svc\n" if $D;
 		my $pid = RUNONCE::alreadyRunning($svc);
 		next if ($pid > 0);
 		RUNONCE::close;
 		
 		my $action = $proctowatch->{$svc}{'action'};
+
 		if ($mailserver ne "" &&
 		    time() > ($proctowatch->{$svc}{'lastemailed'} + $EMAILTIMEOUT)) {
+			print scalar(localtime), " sending email for $svc\n";
 			Email("npsvc",
 			      $proctowatch->{$svc}{'email'},
 			      "$svc down $action",
@@ -76,10 +88,13 @@ while (1) {
 			      $mailserver);
 			      $proctowatch->{$svc}{'lastemailed'} = time();
 		}
-		system($proctowatch->{$svc}{'cmd'})
-			if ($action eq 'restart');
+		if ($action eq 'restart') {
+			print scalar(localtime), " restarting $svc\n";
+			system($proctowatch->{$svc}{'cmd'});
+		}
 	}
-	sleep (30);
+	print scalar(localtime), " sleeping for $ST seconds\n" if $D;
+	sleep ($ST);
 }
 
 exit 0;
@@ -115,14 +130,24 @@ sub processConfFile {
 
 	$fh->open($file) || die "Unable to open $file";
 	while (my $line = $fh->getline) {
+		chomp($line);
+		print "config: <$line>\n" if $D;
         	next if ($line =~ /^\s*\#/);
         	my($port, $email, $action, $cmd) = split(/\s+/, $line, 4);
-		chomp $cmd;
+		print "config(pre-regexp): <$port> <$email> <$action> <$cmd>\n" if $D;
+		if ($email !~ /^\w+\@\w*\.*\w*\.*\w+\.\w+$/) {
+			print "config(email) <$email> didnt parse\n";
+		}
+		if (! -e (split(/\s+/, $cmd))[0]) {
+			print "config(cmd) <$cmd> not executable\n";
+		}
         	next	 if ($cmd eq '' || 
 			     $email !~ /^\w+\@\w*\.*\w*\.*\w+\.\w+$/ || 
 			     $port eq '' ||
 			     $action !~ /^(restart|norestart)$/ ||
-			     !-e $cmd);
+			     !-e (split(/\s+/, $cmd))[0]);
+		print "config(post-regexp): <$port> <$email> <$action> <$cmd>\n" if $D;
+
         	$pw{$port}{'cmd'}    = $cmd;
         	$pw{$port}{'email'}  = $email;
         	$pw{$port}{'action'} = $action;
