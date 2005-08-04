@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.11 2005/05/16 16:10:42 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.12 2005/08/04 06:45:24 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -45,7 +45,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.11 2005/05/16 16:10:42 jeffmurphy Exp $
+$Id: interfacecfg.pl,v 1.12 2005/08/04 06:45:24 jeffmurphy Exp $
 
 =cut
 
@@ -60,6 +60,7 @@ use Pod::Usage;
 sub getIps($);
 sub director($);
 sub realserver($);
+sub getmem();
 
 my %opts;
 my %ifaces;
@@ -207,7 +208,7 @@ sub director ($) {
 
 	printf("echo \"\t\t\t\tldirectord\" >> %s\n\n", $HARESOURCES);
 
-	print <<END
+	print <<END2
 # set ip_forward OFF for vs-dr director (1 on, 0 off)
 cat       /proc/sys/net/ipv4/ip_forward
 echo "0" >/proc/sys/net/ipv4/ip_forward
@@ -221,6 +222,25 @@ cat       /proc/sys/net/ipv4/conf/default/send_redirects
 echo "1" >/proc/sys/net/ipv4/conf/eth0/send_redirects
 cat       /proc/sys/net/ipv4/conf/eth0/send_redirects
 
+#echo 1048576 > /proc/sys/net/ipv4/netfilter/ip_conntrack_max # 512 MB
+#echo 2097152 > /proc/sys/net/ipv4/netfilter/ip_conntrack_max # 1024 MB
+#echo 4194304 > /proc/sys/net/ipv4/netfilter/ip_conntrack_max # 2048 MB
+
+END2
+	;
+	my $memsize = getmem();
+	print "# getmem says we have at least $memsize MB in the local machine\n";
+	if ($memsize == 2048) {
+		print "echo 4194304 > /proc/sys/net/ipv4/netfilter/ip_conntrack_max # 2048 MB\n";
+	} 
+	elsif ($memsize == 1024) {
+		print "echo 2097152 > /proc/sys/net/ipv4/netfilter/ip_conntrack_max # 1024 MB\n";
+	} 
+	else {
+		print "echo 1048576 > /proc/sys/net/ipv4/netfilter/ip_conntrack_max # 512 MB\n";
+	}
+
+	print <<END
 # start heartbeat
 /etc/init.d/heartbeat stop
 /etc/init.d/heartbeat start
@@ -329,3 +349,20 @@ sub getIps ($) {
 	       int2ip($m),
 	       int2ip($b));
 }
+
+sub getmem() {
+	open(FD, "/proc/meminfo") || return 512;
+	my $ms = 0;
+	while(my $l = <FD>) {
+		if ($l =~ /^MemTotal:\s*(\d+)/) {
+			$ms = $1;
+			last;
+		}
+	}
+	close(FD);
+	$ms /= 1024;
+	return 2048 if ($ms > 2048);
+	return 1024 if ($ms > 1024);
+	return 512;
+}
+

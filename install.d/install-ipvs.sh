@@ -49,6 +49,12 @@ net.ipv4.conf.default.send_redirects = 1
 net.ipv4.conf.eth0.send_redirects = 1
 EOF
 
+cat <<EOF >>/etc/modprobe.conf
+options ip_conntrack hashsize=1048576  #  512 MB RAM
+#options ip_conntrack hashsize=2097152 # 1024 MB RAM
+#options ip_conntrack hashsize=4194304 # 2048 MB RAM
+EOF
+
 /sbin/ipvsadm-save > /etc/sysconfig/ipvsadm
 chkconfig --level 345 ipvsadm on
 
