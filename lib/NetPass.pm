@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.19 2005/08/04 20:41:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.20 2005/08/05 15:33:59 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -330,7 +330,7 @@ sub authenticateUser {
 
     no strict 'refs';
 
-    my $auth_mod = $self->{'cfg'}->policy(-key => 'AUTH_METHOD');
+    my $auth_mod = $self->cfg->policy(-key => 'AUTH_METHOD');
     _log "DEBUG", "auth_meth = $auth_mod\n";
 
     if (exists $self->{'auth_mod_loaded'}) {
@@ -367,7 +367,7 @@ sub authenticateAdmin {
 
     no strict 'refs';
 
-    my $auth_mod = $self->{'cfg'}->policy(-key => 'ADMIN_AUTH_METHOD');
+    my $auth_mod = $self->cfg->policy(-key => 'ADMIN_AUTH_METHOD');
     _log "DEBUG", "admin_auth_meth = $auth_mod\n";
 
     if (exists $self->{'auth_mod_loaded'}) {
@@ -425,7 +425,7 @@ port is quarantined if multiple macs are seen
 sub enforceMultiMacPolicy {
 	my ($self, $mac, $ip, $status, $sw, $po, $mp, $pm) = @_;
 
-	if ( $self->policy(-key => 'MULTI_MAC') eq "ALL_OK" ) {
+	if ( $self->cfg->policy(-key => 'MULTI_MAC') eq "ALL_OK" ) {
 		_log "DEBUG", "$mac $ip MULTI_MAC policy is ALL_OK $sw/$po\n";
 		my $allOK = 1;
 		my @OKmacs;
@@ -481,7 +481,7 @@ sub enforceMultiMacPolicy {
 	# XXX ELSE DISALLOWED
 	# XXX for future implementation
 	
-	_log "ERROR", "MULTI_MAC policy ".$self->policy(-key => 'MULTI_MAC')." not implemented\n";
+	_log "ERROR", "MULTI_MAC policy ".$self->cfg->policy(-key => 'MULTI_MAC')." not implemented\n";
 	return ($status, $sw, $po);
 }
 
@@ -938,7 +938,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.19 2005/08/04 20:41:17 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.20 2005/08/05 15:33:59 jeffmurphy Exp $
 
 =cut
 
