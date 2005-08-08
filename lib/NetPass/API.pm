@@ -365,8 +365,8 @@ sub quarantineByIP {
 
 	if ($arrays) { 
 		for (my $i = 0; $i <= $#$type; $i++) {
-			my $t = "Unknown"; 
-			$t = localtime($time->[$i]) if $time->[$i] =~ /^\d+$/;
+			my $t = $time->[$i];
+			$t    = localtime($time->[$i]) if $time->[$i] =~ /^\d+$/;
 
 			if ($mode eq "not_really") {
 				push @msgs, sprintf("%s report-only for violation of %d plugin at %s.",
@@ -378,8 +378,8 @@ sub quarantineByIP {
 			}
 		}
 	} else {
-		my $t = "Unknown";
-		$t = localtime($time) if $time =~ /^\d+$/;
+		my $t = $time;
+		$t    = localtime($time) if $time =~ /^\d+$/;
 
 		if ($mode eq "not_really") {
 			push @msgs, sprintf("%s report-only for violation of %d plugin at %s",
