@@ -177,6 +177,12 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm lots of bugs fixed
 
 2005-08-10 2.0 released
-	jcm bug fixes to appstarter
+	jcm bug fixes to appstarter. 'drop table appStarter' and re-create it according
+		to the install.d/tables.sql definition
 	jcm perms adjustments to ids cfg
 	jcm bug fix in netpass.pm validate code
+	jcm auth methods bug fix
+	jcm netpass startup script changes
+	jcm installer changes: install npsvc into inittab, configure conf file
+	jcm installer changes: add NPAPI port to iptables.sh
+	jcm npsvc: replace system() with fork/exec
