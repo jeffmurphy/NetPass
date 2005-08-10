@@ -50,9 +50,12 @@ net.ipv4.conf.eth0.send_redirects = 1
 EOF
 
 cat <<EOF >>/etc/modprobe.conf
-options ip_conntrack hashsize=1048576  #  512 MB RAM
-#options ip_conntrack hashsize=2097152 # 1024 MB RAM
-#options ip_conntrack hashsize=4194304 # 2048 MB RAM
+#  512 MB RAM
+options ip_conntrack hashsize=1048576
+# 1024 MB RAM
+#options ip_conntrack hashsize=2097152
+# 2048 MB RAM
+#options ip_conntrack hashsize=4194304
 EOF
 
 /sbin/ipvsadm-save > /etc/sysconfig/ipvsadm
@@ -61,5 +64,20 @@ chkconfig --level 345 ipvsadm on
 echo "install Parse::RecDescent" | perl -MCPAN -e shell
 
 up2date --nox -i perl-Digest-HMAC
+
+cat <<EOF
+
+Edit /etc/modprobe.conf and adjust the hashsize line according to
+how much memory this system has.
+
+Edit /etc/iptables.sh and adjust the local system rules section
+and then execute:
+
+   # /etc/iptables.sh
+   # /etc/init.d/iptables save
+
+to make the rules active.
+
+EOF
 
 exit 0

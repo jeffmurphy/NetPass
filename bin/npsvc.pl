@@ -70,6 +70,14 @@ print "Config is:\n", Dumper($proctowatch), "\n";
 
 while (1) {
 	print scalar(localtime), " wakeup\n" if $D;
+
+	if (! -e "/var/lock/subsys/netpass") {
+		print scalar(localtime), " /var/lock/subsys/netpass doesnt exist. go to sleep.\n"
+		  if $D;
+		sleep ($ST);
+		next;
+	}
+
 	foreach my $svc (keys %$proctowatch) {
 		print scalar(localtime), " doing $svc\n" if $D;
 		my $pid = RUNONCE::alreadyRunning($svc);
@@ -90,7 +98,7 @@ while (1) {
 		}
 		if ($action eq 'restart') {
 			print scalar(localtime), " restarting $svc\n";
-			system($proctowatch->{$svc}{'cmd'});
+			runAs($proctowatch->{$svc}{'cmd'});
 		}
 	}
 	print scalar(localtime), " sleeping for $ST seconds\n" if $D;
@@ -155,4 +163,39 @@ sub processConfFile {
 	}
 	$fh->close();
 	return \%pw;
+}
+
+sub runAs {
+	my $cmd = shift;
+	my $as  = shift;
+	$as ||= "netpass";
+	my ($uid,$gid) = (getpwnam($as))[2,3];
+	if (!defined($uid)) {
+		_log("ERROR", "no such user $as\n");
+		return;
+	}
+	unless ($cmd) {
+		_log("ERROR", "cmd empty\n");
+		return;
+	}
+
+	_log("DEBUG", qq{exec'ing as $as cmd "$cmd"\n}) if $D;
+	my $child = fork;
+	return if ($child); # parent
+
+	open STDIN, '/dev/null';
+	open STDOUT, '>/dev/null';
+	setsid;
+
+	if (setgid($gid)) {
+		_log("ERROR", "child $$ failed to setgid($gid) $!\n");
+		exit 0;
+	}
+	if (setuid($uid)) {
+		_log("ERROR", "child $$ failed to setuid($uid) $!\n");
+		exit 0;
+	}
+	exec($cmd);
+	_log("ERROR", "child $$ failed to exec($cmd) $!\n");
+	exit 0;
 }

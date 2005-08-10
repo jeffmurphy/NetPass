@@ -72,6 +72,8 @@ start() {
 	echo 
         #[ $RETVAL -eq 0 ] && exit $RETVAL
 
+	touch /var/lock/subsys/netpass
+
 	return 0	
 }
 
@@ -91,6 +93,8 @@ stop() {
 	echo -n $"Shutting down npapid: "
 	killproc npapid.pl
 	echo
+
+	rm -f /var/lock/subsys/netpass
 
 	return 0
 }

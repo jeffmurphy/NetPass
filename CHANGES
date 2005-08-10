@@ -177,4 +177,6 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm lots of bugs fixed
 
 2005-08-10 2.0 released
-
+	jcm bug fixes to appstarter
+	jcm perms adjustments to ids cfg
+	jcm bug fix in netpass.pm validate code

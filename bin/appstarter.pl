@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/appstarter.pl,v 1.4 2005/08/03 02:44:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/appstarter.pl,v 1.5 2005/08/10 19:52:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -116,7 +116,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: appstarter.pl,v 1.4 2005/08/03 02:44:38 jeffmurphy Exp $
+$Id: appstarter.pl,v 1.5 2005/08/10 19:52:15 jeffmurphy Exp $
 
 =cut
 
@@ -189,7 +189,7 @@ while (1) {
 
     RUNONCE::handleConnection();
 
-    my $x = $np->db->getAppAction();
+    my $x = $np->db->getAppAction(1);
     if (ref($x) ne "ARRAY") {
 	    _log("ERROR", "getAppAction failed: $x\n");
     } else {
@@ -211,6 +211,7 @@ while (1) {
 				    stop($row) unless !isRunning($row->[1]);
 			    }
 		    }
+		    $np->db->ackAppAction($row->[0]);
 	    }
     }
 
@@ -276,23 +277,31 @@ sub runAs {
 		return;
 	}
 
-	_log("DEBUG", qq{exec'ing as $as cmd "$cmd"\n}) if $D;
+	_log("DEBUG", qq{forking to exec as $as cmd "$cmd"\n}) if $D;
 	my $child = fork;
-	return if ($child); # parent
+	return if (defined($child) && ($child > 0)); # parent
 
-	open STDIN, '/dev/null';
-	open STDOUT, '>/dev/null';
-	setsid;
+	#open STDIN, '/dev/null';
+	#open STDOUT, '>/dev/null';
+	setsid or _log("WARN", "$$ child failed to setsid $!\n");
 
-	if (setgid($gid)) {
-		_log("ERROR", "child $$ failed to setgid($gid) $!\n");
+	_log("DEBUG", "$$ inchild change to uid=$uid gid=$gid\n");
+
+	my $rv = setgid($gid);
+
+	unless ($rv) {
+		_log("ERROR", "$$ child failed to setgid($gid) rv=$rv err=$!\n");
 		exit 0;
 	}
-	if (setuid($uid)) {
-		_log("ERROR", "child $$ failed to setuid($uid) $!\n");
+	$rv = setuid($uid);
+	unless ($rv) {
+		_log("ERROR", "$$ child failed to setuid($uid) rv=$rv err=$!\n");
 		exit 0;
 	}
-	exec($cmd);
+	{
+		_log("DEBUG", qq{$$ in child. calling exec\n}) if $D;
+		exec($cmd);
+	}
 	_log("ERROR", "child $$ failed to exec($cmd) $!\n");
 	exit 0;
 }

@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.51 2005/08/03 20:22:40 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.52 2005/08/10 19:52:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1629,15 +1629,18 @@ sub createUserWithGroups {
     return 0;
 }
 
-=head2 getAppAction( )
+=head2 getAppAction(myself = 0|1)
 
-Fetch the current list of pending tasks for appStarter to perform. 
+Fetch the current list of pending tasks for appStarter to perform. If myself
+is "0" then we will fetch any pending appAction regardless of what server
+it's specified for. If myself is "1" we will only fetch appActions for ourself.
+You can also set mysql to a specific hostname.
 
 RETURNS
 
  a reference to an array of array references on success
 
-   [ [ rowid, application, action, actionAs] , [ rowid, application, ... ] , ... ] 
+   [ [ rowid, application, action, actionAs, serverid] , [ rowid, application, ... ] , ... ] 
 
  "db failure" on failure
 
@@ -1645,13 +1648,26 @@ RETURNS
 
 sub getAppAction {
     my $self = shift;
+    my $ms   = shift;
 
     $self->reconnect() || return "db failure: disconnected";
 
-    my $aref = $self->{'dbh'}->selectall_arrayref(qq{SELECT rowid, application, action, actionAs FROM appStarter WHERE status = 'pending'});
+    my $sql = "SELECT rowid, application, action, actionAs, serverid FROM appStarter WHERE status = 'pending'";
+
+    if ($ms =~ /^1$/) { 
+	    $sql .= " AND serverid = '".hostname."'";
+    }
+    elsif ($ms !~ /^0$/) {
+	    $sql .= " AND serverid = ".$self->dbh->quote($ms);
+    }
+
+
+    my $aref = $self->{'dbh'}->selectall_arrayref($sql);
+
     if (!defined($aref)) {
 	    return "db failure: ".$self->{'dbh'}->errstr;
     }
+
     return $aref;
 }
 
@@ -1669,22 +1685,30 @@ sub ackAppAction {
     my $self  = shift;
     my $rowid = shift;
 
+    $self->reconnect || return "db failure: disconnected";
+
     my $sql = "UPDATE appStarter SET status = 'completed' WHERE rowid = ".$self->{'dbh'}->quote($rowid);
     my $rv  = $self->{'dbh'}->do($sql);
+
     if (!defined($rv)) {
         return "db failure: ". $self->{'dbh'}->errstr;
     }
     return 1;
 }
 
-=head2 reqAppAction ($proc, $action, $actionas)
+=head2 reqAppAction ($proc, $action, $actionas, $serverid)
 
 Request a particular action be preformed on the specified process.
+If you specify serverid (a FQ hostname) it will only run on that
+particular server. If you leave it empty (undef) it will run
+on all servers.
+
 Returns 0 on failure, 1 on success.
 
       Example
 
       $dbh->reqAppAction('netpass', 'restart', '');
+      $dbh->reqAppAction('netpass', 'restart', '', 'npw2-d.cit.buffalo.edu');
 
 =cut
 
@@ -1693,6 +1717,9 @@ sub reqAppAction {
     my $proc     = shift;
     my $action   = shift;
     my $actionas = shift;
+    my $serverid = shift;
+
+    $serverid ||= hostname;
 
     if (!defined($proc) || ($proc eq "")) {
         _log "ERROR", "no process name given\n";
@@ -1707,11 +1734,11 @@ sub reqAppAction {
     $self->reconnect() || return 0;
 
     my $sql = qq{SELECT status FROM appStarter WHERE application = '$proc'
-                 AND status = 'pending' AND action = '$action'};
+                 AND status = 'pending' AND action = '$action' AND serverid = '$serverid'};
 
     my $ins = qq{INSERT INTO appStarter (requested, application,
-              action, actionas, status)
-              VALUES(FROM_UNIXTIME(?), ?, ?, ?, ?)};
+              action, actionas, status, serverid)
+              VALUES(FROM_UNIXTIME(?), ?, ?, ?, ?, ?)};
 
     _log "DEBUG", "sql=$sql\n";
     my $sth = $self->{'dbh'}->prepare($sql);
@@ -1722,7 +1749,7 @@ sub reqAppAction {
     }
 
     if ($sth->rows() > 0) {
-        _log "DEBUG", "Process $proc is already registered for $action\n";
+        _log "DEBUG", "Process $proc is already registered for $action on $serverid\n";
         return 1;
     }
     $sth->finish;
@@ -1730,7 +1757,7 @@ sub reqAppAction {
     _log "DEBUG", "sql=$ins\n";
     $sth = $self->{'dbh'}->prepare($ins);
 
-    if (!$sth->execute(time(), $proc, $action, $actionas, 'pending')) {
+    if (!$sth->execute(time(), $proc, $action, $actionas, 'pending', $serverid)) {
         _log "ERROR", "Failed to insert $proc into appStarter ".$self->{'dbh'}->errstr."\n";
         return 0;
     }
@@ -2865,7 +2892,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.51 2005/08/03 20:22:40 jeffmurphy Exp $
+$Id: DB.pm,v 1.52 2005/08/10 19:52:15 jeffmurphy Exp $
 
 =cut
 

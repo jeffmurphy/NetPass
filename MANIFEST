@@ -73,7 +73,6 @@ doc/npinline-l3.txt
 doc/netfilter_conntrack_perf.txt
 etc/netpass-example.conf
 etc/oui.txt
-etc/npsvc.conf
 etc/npsvc-example.conf
 install.d/logrotate.d/apache
 install.d/logrotate.d/netpass
@@ -113,6 +112,7 @@ install.d/drop-indexes.sql
 install.d/sysconfig.snort
 install.d/create-indexes.sql
 install.d/sysctl.conf
+install.d/inittab
 lib/Bundle/NetPass/API.pm
 lib/Bundle/NetPass1.pm
 lib/Bundle/NetPass2.pm

@@ -193,6 +193,7 @@ CREATE TABLE appStarter (
 	action		ENUM('start', 'stop', 'restart'),
 	actionAs        VARCHAR(16),
 	status		ENUM('pending', 'completed'),
+	serverid	VARCHAR(128),
 	PRIMARY KEY (rowid)
 ) ENGINE=NDBCLUSTER;
 

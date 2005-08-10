@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.24 2005/08/04 06:45:23 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.25 2005/08/10 19:52:15 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.24 2005/08/04 06:45:23 jeffmurphy Exp $
+$Id: install,v 1.25 2005/08/10 19:52:15 jeffmurphy Exp $
 
 =cut
 
@@ -173,6 +173,8 @@ if ($uninstall) {
 	uninstallSwatch();
 
 	depatchConf("/etc", "fstab");
+	depatchConf("/etc", "inittab");
+	lsystem("/sbin/init q");
 	dropDatabase();
 
 	lprint ("NetPass uninstall finished.\n");
@@ -243,6 +245,13 @@ foreach my $etcf ('services', 'syslog.conf') {
 }
 lsystem("/etc/init.d/syslog restart");
 
+my $smtp_server = ask("Some of the NetPass subsystems send problem alerts via email.\n\
+Enter an SMTP server here: ");
+
+patchConf("/etc", "inittab", { '%SMTPHOST%' => $smtp_server });
+lsystem("/sbin/init q");
+
+configureNPSVC($TARGET);
 
 my $squidRV = patchSquidConf($PKGDIR, "install.d/squid.conf");
 
@@ -360,6 +369,12 @@ will not function. Enter the addresses on a single line, separated by spaces:
 
 ");
 
+	my $apicli = ask("Enter the IP addresses of all of your NetPass API Clients (a netblock is OK).
+We'll use this to permit API traffic from those clients. Enter the addresses on a single line,
+separated by spaces:
+
+");
+
 	my $npvip = '';
 	my $redir1 = ''; 
 	my $redir2 = '';
@@ -414,6 +429,10 @@ is it? ");
 		if ($trappers ne "") {
 			$l =~ s/%TRAPDEVS%/$trappers/g;
 			$l =~ s/^#TRAP//;
+		}
+		if ($apicli ne "") {
+			$l =~ s/%APICLIENTS%/$apicli/g;
+			$l =~ s/^#API//;
 		}
 		$l =~ s/%MYIP%/$myip/g;
 			
@@ -717,7 +736,7 @@ sub depatchConf {
 }
 
 sub patchConf {
-	my ($b, $f) = (shift, shift);
+	my ($b, $f, $rh) = (shift, shift, shift);
 
 	ll("Patching configuration file: $b/$f");
 
@@ -747,6 +766,14 @@ sub patchConf {
 	if ($marker eq "") {
 		lprint "WARNING: no ## marker found in $PKGDIR/install.d/$f\n";
 		return;
+	}
+
+	# perform any search/replace instructions
+
+	if (ref($rh) eq "HASH") {
+		foreach my $srk (keys %$rh) {
+			searchReplace(\@d, $srk, $rh->{$srk});
+		}
 	}
 
 	# check to see if the patch is already applied

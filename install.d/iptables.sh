@@ -93,6 +93,9 @@ iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 3128
 #TRAP   iptables -t nat -A PREROUTING -j ACCEPT -s $i -p udp --dport 162
 #TRAP done
 
+#API for i in %APICLIENTS% %NETPASSSERVERS% ; do
+#API    iptables -t nat -A PREROUTING -j ACCEPT -s $i -p tcp --dport 20003
+#API done
 
 # allow the netpass servers to talk to each other via mysql
 # 1186 = mysql cluster manager
@@ -109,7 +112,7 @@ iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 3128
 #### PUT CUSTOM RULES HERE ####
 ####    SEE BELOW ALSO     ####
 #### you'll also need to 
-#### add to the INPUT rules
+#### add to the INPUT rules (further below)
 
 # allow adsm
 iptables -t nat -A PREROUTING -p tcp --dport 1500:1505 -s 128.205.7.80/32 -j ACCEPT
@@ -163,6 +166,7 @@ iptables -A INPUT         -p tcp --dport 123 --sport 123  -j ACCEPT
 iptables -A INPUT -p tcp         --dport 1186 -j ACCEPT  # MYSQL MGT
 iptables -A INPUT -p tcp         --dport 2202 -j ACCEPT  # MYSQL NDB
 iptables -A INPUT -p tcp         --dport 3306 -j ACCEPT  # MYSQL SRV
+iptables -A INPUT -p tcp         --dport 20003 -j ACCEPT # NPAPI
 
 #iptables -A INPUT -d 224.0.0.0/4 -j ACCEPT
 
