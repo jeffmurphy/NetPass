@@ -37,6 +37,7 @@ use Pod::Usage;
 use FileHandle;
 use Net::SMTP;
 use Data::Dumper;
+use POSIX;
 
 use lib qw(/opt/netpass/lib);
 use RUNONCE;
