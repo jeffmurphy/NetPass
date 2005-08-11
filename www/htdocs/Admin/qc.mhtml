@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.24 2005/08/11 00:04:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.25 2005/08/11 00:09:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -609,8 +609,7 @@ sub saveQuarChanges {
 		}
 
 		if ( !$isRoot && !grep(/^default$/, @$rwGroups) && !grep(/^$nw$/, @$rwGroups) && !grep(/^$netgroup$/, @$rwGroups) ) {
-			my $jjj = join(',', @$rwGroups);
-			print qq{<P class='error'>Update failed for $mac because you don't have the proper permissions for it's network ($nw, $jjj, $netgroup)</P>};
+			print qq{<P class='error'>Update failed for $mac because you don't have the proper permissions for it's network ($nw or $netgroup)</P>};
 			next;
 		}
 
