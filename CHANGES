@@ -186,3 +186,4 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm installer changes: install npsvc into inittab, configure conf file
 	jcm installer changes: add NPAPI port to iptables.sh
 	jcm npsvc: replace system() with fork/exec
+	jcm bug in qc.mhtml related to someone with default:QuarAdmin perms being denied
