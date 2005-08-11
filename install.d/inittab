@@ -1,0 +1,5 @@
+
+## BEGIN-NETPASS
+# Run npsvc in runlevel 3
+npsv:3:respawn:/opt/netpass/bin/npsvc.pl -m %SMTPHOST%
+## END-NETPASS
