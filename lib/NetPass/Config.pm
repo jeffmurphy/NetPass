@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.51 2005/06/23 20:21:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.52 2005/08/16 15:50:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1282,12 +1282,6 @@ sub setSwitches {
 		$self->{'cfg'}->obj('network')->obj($network)->switches({});
 	}
 
-	if ($bsw) {
-		$self->{'cfg'}->obj('network')->obj($network)->obj('switches')->bsw($bsw);
-	} else {
-		$self->{'cfg'}->obj('network')->obj($network)->obj('switches')->bsw($bsw);
-	}
-
 	my $sa = [];
 	if (ref($switches) eq "ARRAY") {
 		$sa = $switches;
@@ -1299,6 +1293,12 @@ sub setSwitches {
 		$s{$s} = '';
 	}
 	$self->{'cfg'}->obj('network')->obj($network)->switches(\%s);
+
+	if ($bsw) {
+		$self->{'cfg'}->obj('network')->obj($network)->obj('switches')->bsw($bsw);
+	} else {
+		$self->{'cfg'}->obj('network')->obj($network)->obj('switches')->delete('bsw');
+	}
 
 	return 0;
 }
@@ -2871,7 +2871,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.51 2005/06/23 20:21:07 jeffmurphy Exp $
+$Id: Config.pm,v 1.52 2005/08/16 15:50:09 jeffmurphy Exp $
 
 =cut
 

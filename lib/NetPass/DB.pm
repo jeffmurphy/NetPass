@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.52 2005/08/10 19:52:15 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.53 2005/08/16 15:50:09 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -770,7 +770,7 @@ sub requestMovePort {
 
     my $sth = $self->{'dbh'}->do($sql);
     if ( !defined($sth) ) {
-	_log "ERROR", "failed to 'do': ".$self->{'dbh'}->errstr."\n";
+	_log "ERROR", "failed to 'do' ($sql): ".$self->{'dbh'}->errstr."\n";
 	return 0;
     }
     return 1;
@@ -2807,7 +2807,7 @@ sub commit {
 
 =head2 clearRegister( )
 
-Delete all data from the register data.
+Delete all data from the register and results tables.
 
 RETURNS
 
@@ -2822,8 +2822,14 @@ sub clearRegister {
 
 	my $rv = $self->{'dbh'}->do('DELETE FROM register');
 	if (!defined($rv)) {
-		_log("ERROR", "db failure ".$self->{'dbh'}->errstr);
-		return "db failure ".$self->{'dbh'}->errstr;
+		_log("ERROR", "db failure (register) ".$self->{'dbh'}->errstr);
+		return "db failure (register) ".$self->{'dbh'}->errstr;
+	}
+
+	$rv = $self->{'dbh'}->do('DELETE FROM results');
+	if (!defined($rv)) {
+		_log("ERROR", "db failure (results) ".$self->{'dbh'}->errstr);
+		return "db failure (results) ".$self->{'dbh'}->errstr;
 	}
 	return 1;
 }
@@ -2892,7 +2898,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.52 2005/08/10 19:52:15 jeffmurphy Exp $
+$Id: DB.pm,v 1.53 2005/08/16 15:50:09 jeffmurphy Exp $
 
 =cut
 

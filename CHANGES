@@ -195,4 +195,5 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug fix to ShowResults - didnt correctly display nessus scan 
 		results
 	jcm bug fix to install - didnt install logrotate.d/apache logrotate.d/netpass
-
+	jcm bug fix to Config.pm - altering network switches would cause
+		bsw setting to be lost
