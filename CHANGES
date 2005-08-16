@@ -176,7 +176,7 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	mtb lots of bugs created
 	jcm lots of bugs fixed
 
-2005-08-10 2.0 released
+2005-08-10 
 	jcm bug fixes to appstarter. 'drop table appStarter' and re-create it according
 		to the install.d/tables.sql definition
 	jcm perms adjustments to ids cfg
@@ -187,3 +187,12 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm installer changes: add NPAPI port to iptables.sh
 	jcm npsvc: replace system() with fork/exec
 	jcm bug in qc.mhtml related to someone with default:QuarAdmin perms being denied
+
+2005-08-16
+	jcm bug fix to NetPass.pm - invalid call to setMessage()
+	jcm bug fix to Scan/index.mhtml - permissions problem if in both
+		Reports and ScanAdmin acl
+	jcm bug fix to ShowResults - didnt correctly display nessus scan 
+		results
+	jcm bug fix to install - didnt install logrotate.d/apache logrotate.d/netpass
+

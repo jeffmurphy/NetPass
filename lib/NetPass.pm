@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.20 2005/08/05 15:33:59 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.21 2005/08/16 14:04:32 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -460,11 +460,15 @@ sub enforceMultiMacPolicy {
 			$self->db->audit(-mac => $mac, -ip => $ip, 
 				       -msg => [ "multi-mac: at least one neighbor is BAD. we will receive msg:multi_mac" ]);
 			
-			$self->db->setMessage($mac, 'msg:multi_mac');
+			$self->db->addResult(-type => 'manual', 
+					     -mac  => $mac,
+					     -id   => 'msg:multi_mac');
+
 			
 			# we return permQuar because there's really no way for
 			# them to unquarantine themselves - there's no remediation
 			# steps, results, etc.
+
 			return ("PQUAR", $sw, $po);
 		}
 		
@@ -938,7 +942,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.20 2005/08/05 15:33:59 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.21 2005/08/16 14:04:32 jeffmurphy Exp $
 
 =cut
 

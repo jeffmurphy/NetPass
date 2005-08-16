@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.25 2005/08/10 19:52:15 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.26 2005/08/16 14:04:31 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.25 2005/08/10 19:52:15 jeffmurphy Exp $
+$Id: install,v 1.26 2005/08/16 14:04:31 jeffmurphy Exp $
 
 =cut
 
@@ -1199,12 +1199,12 @@ real name.\n\n");
 sub installLogrotate {
 	# apache
 	if ($APACHE_PB_INSTALLED) {
-		lsystem("cp $PKGDIR/install.d/apache /etc/logrotate.d/");
+		lsystem("cp $PKGDIR/install.d/logrotate.d/apache /etc/logrotate.d/");
 	}
 	
 	# netpass
 
-	lsystem("cp $PKGDIR/install.d/netpass /etc/logrotate.d/");
+	lsystem("cp $PKGDIR/install.d/logrotate.d/netpass /etc/logrotate.d/");
 }
 
 sub searchReplace {

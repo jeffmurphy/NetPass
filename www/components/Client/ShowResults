@@ -111,15 +111,21 @@ if ($nres > -1) {
 		# if no custom message is configured, we'll print the default that 
 		# is supplied by nessus or snort. 
 
-		if($info =~ /^(nessus:|snort:)$/) {
-			$description =~ s/\\n/\n/g;
-			print $q->pre($description);
+		if($info =~ /^(nessus:|snort:)/) {
+			my $msg = $np->db->getPage(-name => $info, -nohtml => 1, -npcfg => $np->cfg,
+						-ip => $ip);
+			if (!defined($msg)) {
+				$description =~ s/\\n/\n/g;
+				print $q->pre($description);
+			} else {
+				print $msg;
+			}
 		} 
 		elsif($info =~ /^msg:/) {
 			print $np->db->getPage(-name => $info, -nohtml => 1, -npcfg => $np->cfg,
 						-ip => $ip);
 		}
-		print qq{</td></tr>};
+		print qq{</ul></td></tr>};
 	}
 	else {
 		my $autoexpand = ($nres <= ($np->cfg->policy(-key => 'RESULTS_EXPAND', -network =>$ip)-1));
@@ -171,15 +177,21 @@ if ($nres > -1) {
 			# if no custom message is configured, we'll print the default that 
 			# is supplied by nessus or snort. 
 
-			if($info =~ /^(nessus:|snort:)$/) {
-				$description =~ s/\\n/\n/g;
-				print $q->pre($description);
+			if($info =~ /^(nessus:|snort:)/) {
+				my $msg = $np->db->getPage(-name => $info, -nohtml => 1, -npcfg => $np->cfg,
+						-ip => $ip);
+				if (!defined($msg)) {
+					$description =~ s/\\n/\n/g;
+					print $q->pre($description);
+				} else {
+					print $msg;
+				}
 			} 
 			elsif($info =~ /^msg:/) {
 				print $np->db->getPage(-name => $info, -nohtml => 1,
 							-npcfg => $np->cfg, -ip => $ip);
 			}
-			print qq{</td></tr>};
+			print qq{</ul></td></tr>};
 		}
 	}
 } else {

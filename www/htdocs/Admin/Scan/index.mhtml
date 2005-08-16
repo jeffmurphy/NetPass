@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.6 2005/08/03 02:44:40 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.7 2005/08/16 14:04:34 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -30,8 +30,9 @@ setWhereAmI('Scan Config');
 
 my @reqGroups   = ('Admin', 'ScanAdmin', 'Reports');
 my ($isReadOnly, $aclROGroups) = $m->comp('/Admin/MemberOf', 'acl' => 'Reports');
-my $readOnly    =  $isReadOnly ? "disabled" : "";
 my ($isAdmin, $aclRWGroups) =  $m->comp('/Admin/MemberOf', 'acl' => [ @reqGroups ]);
+
+my $readOnly    =  (!$isAdmin && $isReadOnly) ? "disabled" : "";
 
 if (! $isAdmin ) {
         print $q->p({-class=>'error'},
