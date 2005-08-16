@@ -40,6 +40,7 @@ use Data::Dumper;
 use POSIX;
 
 use lib qw(/opt/netpass/lib);
+use NetPass::LOG qw(_log _cont);
 use RUNONCE;
 
 $RUNONCE::SANITY = 0;
@@ -49,7 +50,15 @@ my $DEFAULTCONFIG   = "/opt/netpass/etc/npsvc.conf";
 my $WAITPERIOD      = 300;
 my $EMAILTIMEOUT    = 300;
 
-$SIG{'HUP'} = \&handler;
+sub REAPER {
+	my $child;
+	while (($child = waitpid(-1,WNOHANG)) > 0) {
+	}
+	$SIG{'CHLD'} = \&REAPER;
+}
+
+$SIG{'HUP'}  = \&handler;
+$SIG{'CHLD'} = \&REAPER; # just incase they fail to disassociate
 
 my %opts;
 getopts('s:c:m:w:hD', \%opts);
@@ -59,6 +68,12 @@ my $config   = (exists $opts{'c'}) ? $opts{'c'} : $DEFAULTCONFIG;
 my $waittime = (exists $opts{'w'}) ? $opts{'w'} : $WAITPERIOD; 
 my $D        = (exists $opts{'D'}) ? 1          : 0;
 my $ST       = (exists $opts{'s'}) ? $opts{'s'} : 30;
+
+if (exists $opts{'D'}) {
+	NetPass::LOG::init *STDOUT;
+} else {
+	NetPass::LOG::init [ 'npsvc', 'local0' ];
+}
 
 die "File $config does not exist!" unless -e $config; 
 
@@ -93,7 +108,7 @@ while (1) {
 			Email("npsvc",
 			      $proctowatch->{$svc}{'email'},
 			      "$svc down $action",
-			      "$svc down $action",
+			      "Service $svc is down. Performing action: $action",
 			      $mailserver);
 			      $proctowatch->{$svc}{'lastemailed'} = time();
 		}
@@ -116,12 +131,15 @@ sub Email {
                 warn("There was a problem sending email...");
         }
 
+	use Sys::Hostname;
+	my $shn = (split(/\./, hostname))[0];
+	$shn ||= hostname;
         $smtp->mail($from);
         $smtp->to($to);
         $smtp->data();
-        $smtp->datasend("Subject: $subject");
+        $smtp->datasend("Subject: $shn: $subject");
         $smtp->datasend("\n\n\n");
-        $smtp->datasend($mesg);
+        $smtp->datasend($shn.":\n\n".$mesg);
         $smtp->quit;
 
         return (1);
@@ -184,8 +202,6 @@ sub runAs {
 	my $child = fork;
 	return if (defined($child) && ($child > 0)); # parent
 
-	#open STDIN, '/dev/null';
-	#open STDOUT, '>/dev/null';
 	setsid or _log("WARN", "$$ child failed to setsid $!\n");
 
 	_log("DEBUG", "$$ inchild change to uid=$uid gid=$gid\n");
@@ -203,8 +219,11 @@ sub runAs {
 	}
 	{
 		_log("DEBUG", qq{$$ in child. calling exec\n}) if $D;
+		open STDIN, '/dev/null';
+		open STDOUT, '>/dev/null';
 		exec($cmd);
 	}
 	_log("ERROR", "child $$ failed to exec($cmd) $!\n");
 	exit 0;
 }
+

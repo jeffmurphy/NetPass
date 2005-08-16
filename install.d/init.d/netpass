@@ -49,21 +49,21 @@ start() {
         }
 
 	echo -n $"Starting resetport: "
-	daemon ${B}/bin/resetport.pl ${B}/log/snmptraps.log 
+	daemon --user=netpass ${B}/bin/resetport.pl ${B}/log/snmptraps.log 
 	echo
         #[ $RETVAL -eq 0 ] && exit $RETVAL
 
         echo -n $"Starting portmover: "
-	daemon ${B}/bin/portmover.pl 
+	daemon --user=netpass ${B}/bin/portmover.pl 
 	echo 
         #[ $RETVAL -eq 0 ] && exit $RETVAL
 
         echo -n $"Starting macscan: "
-	daemon ${B}/bin/macscan.pl 
+	daemon --user=netpass ${B}/bin/macscan.pl 
 	echo
 
 	echo -n $"Starting npapid: "
-	daemon ${B}/bin/npapid.pl
+	daemon --user=netpass ${B}/bin/npapid.pl
 	echo 
         #[ $RETVAL -eq 0 ] && exit $RETVAL
 

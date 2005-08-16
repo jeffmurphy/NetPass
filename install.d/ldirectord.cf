@@ -29,6 +29,19 @@ virtual=%VIP%:443
         protocol=tcp
         checktype=negotiate
 
+# Virtual Server for NPAPI
+virtual=%VIP%:20003
+        real=%RS1%:20003 gate
+        real=%RS2%:20003 gate
+	checkport=80
+        service=http
+        request="/npapid-netpass-check.cgi"
+	receive="NPAPID-OK"
+        scheduler=rr
+        persistent=360
+        protocol=tcp
+        checktype=negotiate
+
 # Virtual Server for gw
 virtual=1
         real=%RS1%:0 gate

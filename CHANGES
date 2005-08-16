@@ -199,3 +199,7 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 		bsw setting to be lost
 	jcm bug fix to mr.mhtml - permissions problem if in both
                 Reports and ScanAdmin acl
+	jcm bug fixes to npsvc daemon
+	jcm added npapid to ldirectord 
+	jcm added npapid-netpass-check.cgi checker so LVS can see if it's
+		running or not.

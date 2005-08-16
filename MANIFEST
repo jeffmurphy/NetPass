@@ -255,6 +255,7 @@ www/htdocs/mason2.html
 www/htdocs/netpass.mhtml
 www/htdocs/survey.mhtml
 www/htdocs/snmptrapd-netpass-check.cgi
+www/htdocs/npapid-netpass-check.cgi
 CHANGES
 LICENSE
 MANIFEST
