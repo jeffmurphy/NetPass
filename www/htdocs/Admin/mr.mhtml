@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.10 2005/05/06 03:09:33 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.11 2005/08/16 16:31:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -71,8 +71,7 @@ print $q->table({-border=>0, -width=>600},
                                                 -name   => "ip",
                                                 -value  => $ip,
                                                 -filter => '/^\d+\.\d+\.\d+\.\d+$/',
-                                                -error  => 'Please format the IP Address in the format
- specified.'
+                                                -error  => 'Please format the IP Address in the format specified.'
                                 ).
                                 $q->small(' e.g. '.$np->cfg->policy(-key => 'EXAMPLE_IPADDR', -network => $ENV{'REMOTE_ADDR'}))
                         )
@@ -84,8 +83,7 @@ print $q->table({-border=>0, -width=>600},
                                                 -name   => "mac",
                                                 -value  => $mac,
                                                 -filter => '/^\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}:{0,1}\w{2}$/',
-                                                -error  => 'Please format the MAC Address in the forma
-t specified.'
+                                                -error  => 'Please format the MAC Address in the format specified.'
                                 ).
                                 $q->small(' e.g. AABBCCDDEEFF')
                         )
@@ -129,7 +127,7 @@ if ($register) {
 
 	if ( ! $isRoot ) {
 		my $netgroup = $np->cfg->getNetgroup(-network => $nw);
-		if ( !grep(/^$nw$/, @$rwGroups) && !grep(/^$netgroup$/, @$rwGroups) ) {
+		if ( !grep(/^default$/, @$rwGroups) && !grep(/^$nw$/, @$rwGroups) && !grep(/^$netgroup$/, @$rwGroups) ) {
 			$err = "You don't have permission to register an IP address on the $nw network.";
 		}
 	}

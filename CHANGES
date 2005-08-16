@@ -197,3 +197,5 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug fix to install - didnt install logrotate.d/apache logrotate.d/netpass
 	jcm bug fix to Config.pm - altering network switches would cause
 		bsw setting to be lost
+	jcm bug fix to mr.mhtml - permissions problem if in both
+                Reports and ScanAdmin acl
