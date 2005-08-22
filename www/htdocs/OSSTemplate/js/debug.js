@@ -1,4 +1,4 @@
-var DBGLEVEL = 0;
+var DBGLEVEL = 1;
 var dbgwin;
 var browserType_IE = 0;
 
