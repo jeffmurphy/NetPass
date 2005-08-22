@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.52 2005/08/16 15:50:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.53 2005/08/22 19:26:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -424,7 +424,8 @@ sub secondary_redirector {
 
 =head2 $bool = $cfg-E<gt>ha_servers(network)
 
-If HA is enabled, returns the list of netpass servers assigned to this network. Else undef.
+If HA is enabled, returns the list (ARRAYREF) of netpass servers assigned to this network. 
+Else undef.
 
 =cut
 
@@ -2871,7 +2872,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.52 2005/08/16 15:50:09 jeffmurphy Exp $
+$Id: Config.pm,v 1.53 2005/08/22 19:26:07 jeffmurphy Exp $
 
 =cut
 

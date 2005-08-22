@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.7 2005/08/16 14:04:34 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.8 2005/08/22 19:26:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -120,10 +120,32 @@ return if(!$submit && !$search && !$update);
 
 if ($update) {
         if ($readOnly eq "") {
-		if ($service eq "Nessus") {
-			$np->db->reqAppAction('reload_nessus_plugins', 'start', '');
+		my %hosts = ( &hostname => 1 );
+		my $allnw = $np->cfg->getNetworks();
+		if (ref($allnw) eq "ARRAY") {
+			foreach my $nw (@$allnw) {
+				if ( $np->cfg->ha($nw) ) {
+					my $svrs = $np->cfg->ha_servers($nw);
+					if (ref($svrs) eq "ARRAY") {
+						foreach my $sn (@$svrs) {
+							$hosts{$sn} = 1;
+						}
+					}
+				}
+			}
 		} else {
-			$np->db->reqAppAction('reload_snort_plugins', 'start', '');
+			_log ("ERROR", "getNetworks returns no networks\n");
+			print $q->p({-class=>'error'}, "No networks are configured? I can't reload the plugins.");
+		}
+
+		if ($service eq "Nessus") {
+			foreach my $hn (keys %hosts) {
+				$np->db->reqAppAction('reload_nessus_plugins', 'start', 'root', $hn);
+			}
+		} else {
+			foreach my $hn (keys %hosts) {
+				$np->db->reqAppAction('reload_snort_plugins', 'start', 'root', $hn);
+			}
 		}
         } else {
                 # this really shouldnt happen. we dont give them a Refresh Plugins button

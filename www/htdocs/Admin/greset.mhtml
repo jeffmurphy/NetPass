@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.5 2005/08/10 19:52:16 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.6 2005/08/22 19:26:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -39,6 +39,8 @@ setWhereAmI('Global Reset');
 
 <%perl>
 
+use Sys::Hostname;
+
 my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
 my $isRW;
 ($isRW, $junk)   = $m->comp('/Admin/MemberOf', 'acl' => [ 'QuarAdmin' ], 'group' => 'default');
@@ -50,7 +52,7 @@ if (! $isRoot && ! $isRW ) {
 
 if ($ARGS{'quarantineall'}) {
 	if ($np->db->clearRegister()) {
-		$np->db->reqAppAction('quarall', 'start', '');
+		$np->db->reqAppAction('quarall', 'start', '', hostname);
 	        $np->db->audit(  -user    => $m->session->{'username'},
 	                        -severity => "ALERT",
 	                        -msg      => [ "Activated Quarantine All Global Reset" ]);
@@ -58,7 +60,7 @@ if ($ARGS{'quarantineall'}) {
 		print "<p class='error'>Failed to clear register table. Unquarantine all aborted.</P>";
 	}
 } elsif ($ARGS{'unquarantineall'}) {
-	$np->db->reqAppAction('unquarall', 'start', '');
+	$np->db->reqAppAction('unquarall', 'start', '', hostname);
         $np->db->audit(  -user     => $m->session->{'username'},
                         -severity => "ALERT",
                         -msg      => [ "Activated Unquarantine All Global Reset" ]);

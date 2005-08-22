@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/appstarter.pl,v 1.5 2005/08/10 19:52:15 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/appstarter.pl,v 1.6 2005/08/22 19:26:06 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -116,7 +116,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: appstarter.pl,v 1.5 2005/08/10 19:52:15 jeffmurphy Exp $
+$Id: appstarter.pl,v 1.6 2005/08/22 19:26:06 jeffmurphy Exp $
 
 =cut
 
@@ -132,6 +132,10 @@ use POSIX qw(:sys_wait_h setsid setuid setgid);
 
 use RUNONCE;
 use NetPass::LOG qw(_log _cont);
+
+use Proc::ProcessTable;
+use Sys::Hostname;
+
 
 my $myName = "appstarter";
 
@@ -197,20 +201,20 @@ while (1) {
 
 	    foreach my $row (@$x) {
 		    if ($row->[2] eq "start") {
-			    if (isRunning($row->[1])) {
+			    if (isRunning($row)) {
 				    _log("WARNING", $row->[1]. " is already running, so wont start another copy.\n");
-				    # behavior is to ack the duplicate.XXX
 			    } else {
 				    start($row);
 			    }
 		    }
 		    elsif ($row->[2] eq "stop") {
-			    if (!isRunning($row->[1])) {
+			    if (!isRunning($row)) {
 				    _log("WARNING", $row->[1]. " is not running, so cant stop.\n");
 			    } else {
 				    stop($row) unless !isRunning($row->[1]);
 			    }
 		    }
+
 		    $np->db->ackAppAction($row->[0]);
 	    }
     }
@@ -220,14 +224,14 @@ while (1) {
 }
 
 sub isRunning {
-	my $cn = shift;
+	my $row = shift;
+	my $cn = $row->[1];
 
 	_log("DEBUG", "isRunning $cn\n") if $D;
 
 	my @pids = ();
 
 	if ($cn =~ /^([u]{0,1}[n]{0,1})quarall$/) {
-		use Proc::ProcessTable;
 		my $pt = new Proc::ProcessTable;
 		my $un = $1;
 		foreach my $pte (@{$pt->table}) {
@@ -237,13 +241,24 @@ sub isRunning {
 		_log("DEBUG", "isRunning looking for $cn found: ".join(',',@pids)."\n") if $D;
 		return @pids;
 	}
+
+	if ($cn eq "reload_nessus_plugins") {
+		my $pt = new Proc::ProcessTable;
+		foreach my $pte (@{$pt->table}) {
+			push @pids, $pte->pid
+			  if ($pte->cmndline =~ /(nessus-fetch|nessus-update-plugins|import_nessus_scans)/);
+		}
+		_log("DEBUG", "isRunning looking for $cn found: ".join(',',@pids)."\n") if $D;
+		return @pids;
+	}
+
 	_log("DEBUG", "shouldnt be here\n");
 }
 
 
 sub start {
 	my $row = shift;
-	my ($rowid, $cmd, $junk, $as) = @$row;
+	my ($rowid, $cmd, $junk, $as, $hn) = @$row;
 
 	if ($cmd eq "quarall") {
 		runAs("/opt/netpass/bin/bulk_moveport.pl -N 0.0.0.0/0 -a   quarantine", $as);
@@ -251,15 +266,57 @@ sub start {
 	elsif ($cmd eq "unquarall") {
 		runAs("/opt/netpass/bin/bulk_moveport.pl -N 0.0.0.0/0 -a unquarantine", $as);
 	}
+	elsif ($cmd eq "reload_nessus_plugins") {
+		runAs("/opt/netpass/bin/update_nessus_plugins.sh", $as);
+	}
 }
 
 sub stop {
-	my $cmd = shift;
+	my $row = shift;
+	my ($rowid, $cmd, $junk, $as, $hn) = @$row;
+	my @pids;
+
 	if ($cmd eq "quarall") {
 		# search for "reset: quarantine"
+
+		my $pt = new Proc::ProcessTable;
+		my $un = $1;
+		foreach my $pte (@{$pt->table}) {
+			push @pids, $pte->pid 
+			  if ($pte->cmndline =~ /^reset:\squarantine/);
+		}
+		_log("DEBUG", "stopping $cmd pids: ".join(',',@pids)."\n") if $D;
+		kill 9, @pids;
+		return @pids;
 	} 
 	elsif ($cmd eq "unquarall") {
 		# search for "reset: unquarantine"
+
+		my $pt = new Proc::ProcessTable;
+		my $un = $1;
+		foreach my $pte (@{$pt->table}) {
+			push @pids, $pte->pid 
+			  if ($pte->cmndline =~ /^reset:\sunquarantine/);
+		}
+		_log("DEBUG", "stopping $cmd pids: ".join(',',@pids)."\n") if $D;
+		kill 9, @pids;
+		return @pids;
+	}
+	elsif ($cmd eq "reload_nessus_plugins") {
+		# search for "nessus-fetch"
+		# search for "nessus-update-plugins"
+		# search for "import_nessus_scans"
+		# search for "update_nessus_plugins.sh"
+
+		my $pt = new Proc::ProcessTable;
+		my $un = $1;
+		foreach my $pte (@{$pt->table}) {
+			push @pids, $pte->pid 
+			  if ($pte->cmndline =~ /(nessus-fetch|nessus-update-plugins|import_nessus_scans|update_nessus_plugins\.sh)/);
+		}
+		_log("DEBUG", "stopping $cmd pids: ".join(',',@pids)."\n") if $D;
+		kill 9, @pids;
+		return @pids;
 	}
 }
 
@@ -281,8 +338,6 @@ sub runAs {
 	my $child = fork;
 	return if (defined($child) && ($child > 0)); # parent
 
-	#open STDIN, '/dev/null';
-	#open STDOUT, '>/dev/null';
 	setsid or _log("WARN", "$$ child failed to setsid $!\n");
 
 	_log("DEBUG", "$$ inchild change to uid=$uid gid=$gid\n");
@@ -300,6 +355,8 @@ sub runAs {
 	}
 	{
 		_log("DEBUG", qq{$$ in child. calling exec\n}) if $D;
+		open STDIN, '/dev/null';
+		open STDOUT, '>/dev/null';
 		exec($cmd);
 	}
 	_log("ERROR", "child $$ failed to exec($cmd) $!\n");

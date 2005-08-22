@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.25 2005/08/11 00:09:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.26 2005/08/22 19:26:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -260,32 +260,51 @@ if($count==0) {
 my @rows = ();
 
 </%perl>
+<script language="JavaScript">
+function ldap_popup(url, w, h) {
+	var opts="top=0,left=0,scrollbars,status=no,menubar=no,location=no,toolbar=no,resizable=yes,fullsize=no,width="
+		+ w + ",height=" + h;
+        window.open(url, "LDAP Query", opts);
+}
+</script>
+
 <table width='80%'>
 <tr><td colspan=8></td>
     <td colspan=2 align='right'><input type='submit' name='submit' value='Save Changes' <%$readOnly%>></td>
 </tr>
 <tr><th>Registered On</th><th>Last Seen</th><th><%$np->cfg->policy(-key => 'USERNAME_PROMPT', -network => $ENV{'REMOTE_ADDR'}) || "Username"%>
     <th>IP Address</th><th>MAC Address</th><th>Unquar<BR>When?</th><th>Status</th><th>Incident<BR>History</th><th>Results<br><span style='font-size:10pt;'>Pending/U-Fixed</span></th><th>Add Result</th></tr>
+<%perl>
+while (my $row = $results->fetchrow_hashref() ) {
+	my $myPendingResults = $np->db->getResults(-mac => $row->{'macAddress'}, -status => 'pending');
+	my $myUFixedResults  = $np->db->getResults(-mac => $row->{'macAddress'}, -status => 'user-fixed');
+	my $nPR = 0;
+	my $nUFR = 0;
+        my $macAddress = $row->{'macAddress'};
+        my $disabled = ($row->{'status'} =~ /^[P]{0,1}QUAR$/i) ? "" : "disabled";
+        my $ldap_url = $np->cfg->policy(-key => 'LDAP_USER_QUERY',   -network => $row->{'ipAddress'});
+        my $ldap_puh = $np->cfg->policy(-key => 'LDAP_POPUP_HEIGHT', -network => $row->{'ipAddress'});
+        my $ldap_puw = $np->cfg->policy(-key => 'LDAP_POPUP_WIDTH',  -network => $row->{'ipAddress'});
+	my $ldap_ref = '';
+	if ($ldap_url) {
+		$ldap_puh ||= 480;
+		$ldap_puw ||= 640;
+		$ldap_ref = sprintf(qq{<a href="javascript:ldap_popup('$ldap_url', %d, %d);">}, 
+				$row->{'username'},
+				$ldap_puw, $ldap_puh);
+	}
 
-%while (my $row = $results->fetchrow_hashref() ) {
-%	my $myPendingResults = $np->db->getResults(-mac => $row->{'macAddress'}, -status => 'pending');
-%	my $myUFixedResults  = $np->db->getResults(-mac => $row->{'macAddress'}, -status => 'user-fixed');
-%	my $nPR = 0;
-%	my $nUFR = 0;
-%       my $macAddress = $row->{'macAddress'};
-%       my $disabled = ($row->{'status'} =~ /^[P]{0,1}QUAR$/i) ? "" : "disabled";
-%
-%	if (ref($myPendingResults) eq "HASH") {
-%		$nPR = $#{$myPendingResults->{'type'}} + 1;
-%	} else {
-%		print "<P class='error'>getResults($macAddress) failed: $myPendingResults</P>";
-%	}
-%	if (ref($myUFixedResults) eq "HASH") {
-%		$nUFR = $#{$myUFixedResults->{'type'}} + 1;
-%	} else {
-%		print "<P class='error'>getResults($macAddress) failed: $myUFixedResults</P>";
-%	}
-
+	if (ref($myPendingResults) eq "HASH") {
+		$nPR = $#{$myPendingResults->{'type'}} + 1;
+	} else {
+		print "<P class='error'>getResults($macAddress) failed: $myPendingResults</P>";
+	}
+	if (ref($myUFixedResults) eq "HASH") {
+		$nUFR = $#{$myUFixedResults->{'type'}} + 1;
+	} else {
+		print "<P class='error'>getResults($macAddress) failed: $myUFixedResults</P>";
+	}
+</%perl>
 <tr>
 	<td align='center'><%$row->{'lastSeen'}%>
                 <input type='hidden' name='ids'                          value="<%$macAddress%>">
@@ -295,9 +314,9 @@ my @rows = ();
                 <input type='hidden' name='statusOrig:<%$macAddress%>'   value="<%$row->{'status'}%>">
         </td>
 	<td align='center'><%$row->{'registeredOn'}%></td>
-	<td align='center'><%$row->{'username'}%></td>
+	<td align='center'><%$ldap_ref%><%$row->{'username'}%><%$ldap_ref?"</a>":""%></td>
 	<td align='center'><%$row->{'ipAddress'}%></td>
-	<td align='center'><code><%$row->{'macAddress'}%></code></td>
+	<td align='center'><code><a href="/Admin/reports/byclient.mhtml?macs=<%$row->{'macAddress'}%>"><%$row->{'macAddress'}%></a></code></td>
 	<td align='center'><%$q->popup_menu(-name    => "uqlinkup:" . $row->{'macAddress'},
                                             -values  => [ 'no', 'yes' ],
                                             -labels  => {

@@ -203,3 +203,9 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm added npapid to ldirectord 
 	jcm added npapid-netpass-check.cgi checker so LVS can see if it's
 		running or not.
+	jcm altered /etc/init.d/netpass so most scripts run as 'netpass'
+		and only those that require root run as root
+
+2005-08-27
+	jcm additions to appstarter so that the nessus (scanconfig) 'refresh plugins'
+		button actually does something

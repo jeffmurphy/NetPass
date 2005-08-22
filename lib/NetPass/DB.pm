@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.53 2005/08/16 15:50:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.54 2005/08/22 19:26:07 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1700,8 +1700,11 @@ sub ackAppAction {
 
 Request a particular action be preformed on the specified process.
 If you specify serverid (a FQ hostname) it will only run on that
-particular server. If you leave it empty (undef) it will run
-on all servers.
+particular server. If you leave it empty (undef) we'll used the
+hostname of the host we are running on as the value. If you want
+to run the same command on multiple servers (e.g. if you are running
+in HA mode) then you need to insert a separate row for each
+server.
 
 Returns 0 on failure, 1 on success.
 
@@ -1719,7 +1722,7 @@ sub reqAppAction {
     my $actionas = shift;
     my $serverid = shift;
 
-    $serverid ||= hostname;
+    $serverid  ||= hostname;
 
     if (!defined($proc) || ($proc eq "")) {
         _log "ERROR", "no process name given\n";
@@ -1740,7 +1743,6 @@ sub reqAppAction {
               action, actionas, status, serverid)
               VALUES(FROM_UNIXTIME(?), ?, ?, ?, ?, ?)};
 
-    _log "DEBUG", "sql=$sql\n";
     my $sth = $self->{'dbh'}->prepare($sql);
 
     if (!$sth->execute()) {
@@ -1754,7 +1756,6 @@ sub reqAppAction {
     }
     $sth->finish;
 
-    _log "DEBUG", "sql=$ins\n";
     $sth = $self->{'dbh'}->prepare($ins);
 
     if (!$sth->execute(time(), $proc, $action, $actionas, 'pending', $serverid)) {
@@ -2898,7 +2899,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.53 2005/08/16 15:50:09 jeffmurphy Exp $
+$Id: DB.pm,v 1.54 2005/08/22 19:26:07 jeffmurphy Exp $
 
 =cut
 

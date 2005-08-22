@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.6 2005/04/25 19:15:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/autohandler,v 1.7 2005/08/22 19:26:08 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -8,6 +8,12 @@
 <%args>
 </%args>
 <%init>
+
+if ( ($r->uri =~ /^\/Admin\//) && ($ENV{'HTTP_X_MOZ'} eq "prefetch") ) {
+	use Apache::Constants;
+	_log("DEBUG", "GWA denied for ".join(' ', $r->hostname, $r->uri));
+	return FORBIDDEN;
+}
 
 use NetPass;
 use NetPass::Config;

@@ -128,19 +128,19 @@ sub Email {
         my $smtp = Net::SMTP->new($mailserver);
 
         if (!$smtp) {
-                warn("There was a problem sending email...");
-        }
-
-	use Sys::Hostname;
-	my $shn = (split(/\./, hostname))[0];
-	$shn ||= hostname;
-        $smtp->mail($from);
-        $smtp->to($to);
-        $smtp->data();
-        $smtp->datasend("Subject: $shn: $subject");
-        $smtp->datasend("\n\n\n");
-        $smtp->datasend($shn.":\n\n".$mesg);
-        $smtp->quit;
+                _log("WARNING", "There was a problem creating the SMTP object.\n");
+        } else {
+		use Sys::Hostname;
+		my $shn = (split(/\./, hostname))[0];
+		$shn ||= hostname;
+		$smtp->mail($from);
+		$smtp->to($to);
+		$smtp->data();
+		$smtp->datasend("Subject: $shn: $subject");
+		$smtp->datasend("\n\n\n");
+		$smtp->datasend($shn.":\n\n".$mesg);
+		$smtp->quit;
+	}
 
         return (1);
 }
@@ -202,7 +202,7 @@ sub runAs {
 	my $child = fork;
 	return if (defined($child) && ($child > 0)); # parent
 
-	setsid or _log("WARN", "$$ child failed to setsid $!\n");
+	setsid or _log("WARNING", "$$ child failed to setsid $!\n");
 
 	_log("DEBUG", "$$ inchild change to uid=$uid gid=$gid\n");
 
