@@ -209,3 +209,9 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 2005-08-27
 	jcm additions to appstarter so that the nessus (scanconfig) 'refresh plugins'
 		button actually does something
+	jcm altered qc.mhtml and byclient.mhtml so that they used the LDAP settings
+		also tied them together so clicking on mac addr takes you from
+		qc to byclient
+	jcm added some code to reject google web accelerator if it accesses the
+		admin pages
+	jcm javascript fixes to Admin pages for IE compatibility

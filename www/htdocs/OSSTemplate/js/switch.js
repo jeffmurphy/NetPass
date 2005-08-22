@@ -39,7 +39,7 @@ function switch_onblur_addSwitch(o) {
 				var vm = document.getElementById("vlanmap");
 				if (vm) {
 					for(i = vm.options.length-1 ; i > 0 ; i--)
-						vm.options[i] = undefined;
+						vm.options[i] = null; // IE doesnt like undefined;
 				}
                         } else {
                                 dbg (1, RN + ": switch already exists: " + o.value);
@@ -102,13 +102,15 @@ function switch_onclick_deleteVlan() {
 	dbg(1, RN);
 	var vm = document.getElementById('vlanmap');
 	if (vm) {
+		dbg(1, RN + ": found vlanmap field");
 		for (var i = vm.options.length-1 ; i > 0 ; i--) {
+			dbg(1, RN + ": checking item " + i);
 			if (vm.options[i].selected) {
-				vm.options[i] = undefined;
+				dbg(1, RN + ": item " + i + " is selected. deleting it. " + vm.options[i]);
+				vm.options[i] = null;
 			}
 		}
 	} else {
 		dbg (1, RN + ": cant find vlanmap field");
 	}
-	return false;
 }

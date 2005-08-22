@@ -118,7 +118,7 @@ function ldap_onclick_delServer() {
 	if (o) {
 		for (var i = o.options.length-1 ; i > 0 ; i--) {
 			if (o.options[i].selected)
-				o.options[i] = undefined;
+				o.options[i] = null; // IE doesnt like undefined;
 		}
 	}
 }

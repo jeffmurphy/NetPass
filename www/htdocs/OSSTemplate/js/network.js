@@ -163,7 +163,7 @@ function network_onclick_delHaNPServer() {
 				// you cant delete yourself.
 				if (servs.options[i].value != network_ourHostname) {
 					dbg(1, RN + ": del " + servs.options[i].value);
-					servs.options[i] = undefined;
+					servs.options[i] = null; // IE doesnt like undefined;
 				}
 			}
 		}
@@ -190,7 +190,7 @@ function network_onclick_delSwitch() {
 		// element 0 is WH
 		for(var i = switches.options.length-1 ; i > 0 ; i--) {
 			if (switches.options[i].selected) 
-				switches.options[i] = undefined;
+				switches.options[i] = null; // IE doesnt like undefined;
 		}
 	}
 	return false;

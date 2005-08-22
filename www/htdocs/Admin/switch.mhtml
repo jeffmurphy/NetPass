@@ -112,13 +112,13 @@ if ($switch) {
 	</td>
 	<td class='vlanmapRow'><input id='addVlan' name='addVlan' size=20 value='Add Vlan Map...'
 		onblur='switch_onblur_addVlan(this);' onfocus='switch_onfocus_addVlan(this);'><BR>
-		<B><U>Format examples:</U></B><BR>
+		<B>Hit TAB after entrering in the new mapping.<P><U>Format examples:</U></B><BR>
 		<I>portA,portB-portF:unquar/quar</I><BR>
 		<I>1,5-7:101/201</I><BR>
 		<I>1-24:101/201</I><BR>
 		<I>1,2,3,4,5:101/201</I><BR>
 	</td>
-	<td class='vlanmapRow'><input type='submit' onclick='switch_onclick_deleteVlan();return false;'
+	<td class='vlanmapRow'><input type='button' onclick='switch_onclick_deleteVlan();return false;'
 		name='deleteVlan' id='deleteVlan' value='Delete Vlan'>
 	</td>
 </tr>
