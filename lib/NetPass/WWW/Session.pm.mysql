@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Header: /tmp/netpass/NetPass/lib/NetPass/WWW/Session.pm.mysql,v 1.5 2005/08/31 20:09:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/WWW/Session.pm.mysql,v 1.6 2005/08/31 20:15:50 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -89,6 +89,7 @@ sub handler
     return -1 if $r->content_type && $r->content_type !~ m|^text/|i;
 
     my $status = $ah->handle_request($r);
+    $r->header_out("Cache-Control" => 'no-cache');
     return $status;
 
 }
