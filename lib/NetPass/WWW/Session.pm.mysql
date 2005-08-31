@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Header: /tmp/netpass/NetPass/lib/NetPass/WWW/Session.pm.mysql,v 1.4 2005/05/20 15:16:12 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/WWW/Session.pm.mysql,v 1.5 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -63,7 +63,8 @@ my $ah =
         session_lock_user_name     => 'root',
         session_lock_password      => '',
 
-        session_use_cookie	=> 1,
+	session_args_param      => 'npsess',
+        session_use_cookie	=> 0,
         session_cookie_name     => $cookieName,
         session_cookie_expires  => '+1y',
         session_cookie_domain   => '%COOKIEDOM%',

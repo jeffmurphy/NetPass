@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.8 2005/08/22 19:26:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/index.mhtml,v 1.9 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -149,7 +149,7 @@ if ($update) {
 		}
         } else {
                 # this really shouldnt happen. we dont give them a Refresh Plugins button
-                $np->db->audit(  -user => $m->session->{'logged_in'},
+                $np->db->audit(  -user => $m->session->{'username'},
                                 -severity => "ALERT",
                                 -msg => [ "tried to Refresh Plugins but is ReadOnly" ]);
         }
@@ -160,7 +160,7 @@ if($submit) {
                 saveChanges($dbh,\%ARGS, $ids);
         } else {
                 # this really shouldnt happen. we dont give them a submit button
-                $np->db->audit(  -user => $m->session->{'logged_in'},
+                $np->db->audit(  -user => $m->session->{'username'},
                                 -severity => "ALERT",
                                 -msg => [ "tried to change ScanAdmin but is ReadOnly" ]);
 
@@ -326,7 +326,7 @@ sub getResults {
 
     	my $count = $sth->rows;
 
-        my $link      = "index.mhtml?key=$key&type=$type&status=$status&search=Search&start=";
+        my $link      = "index.mhtml?key=$key&type=$type&status=$status&search=Search&service=$service&start=";
         my $prev_link = $link . ($start-$limit);
         my $next_link = '';
 
@@ -388,7 +388,7 @@ sub saveChanges {
 
 		if ($args->{"message:$id"} ne $args->{"messageOrig:$id"}) {
 			$np->db->audit(
-				-user => $m->session->{'logged_in'},
+				-user => $m->session->{'username'},
 			      	-msg => [ "ScanAdmin: $id message changed to", $args->{"message:$id"},
 					  "from", $args->{'messageOrig:'.$id} ]);
 		}

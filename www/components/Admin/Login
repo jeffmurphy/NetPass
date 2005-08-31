@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.12 2005/05/06 20:13:34 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.13 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -9,14 +9,11 @@ This component outputs a login prompt form. It returns 1 if the user has success
 logged in, otherwise it returns 0.
 
 </%doc>
-
-
 <%args>
         $username  => undef;
         $password  => undef;
 	$wherefrom => undef;
 </%args>
-
 <%perl>
 #use Data::Dumper; print "<PRE>", Dumper($m->session), "</PRE>";
 
@@ -41,8 +38,10 @@ logged in, otherwise it returns 0.
 			$m->session->{'my_groups'} = $np->db->getUserGroups($username);
 			my $uri = $r->uri;
 			if ($uri =~ /^\/Admin/) {
-				$m->redirect($uri);
+				_log("DEBUG", "redir ".add_session_id2($uri)."\n");
+				$m->redirect(add_session_id2($uri));
 			} else {
+				_log("DEBUG", "redir2 /Admin/index.mhtml\n");
 				$m->redirect('/Admin/index.mhtml');
 			}
 

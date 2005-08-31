@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.6 2005/08/22 19:26:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.7 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -68,6 +68,7 @@ if ($ARGS{'quarantineall'}) {
 
 print $q->start_form(-name => 'form', -method => "POST");
 </%perl>
+
 <h2>Global Reset</h2>
 
 <FONT CLASS='error'>WARNING:</FONT>The following will cause <B>all managed ports</B> to be reset to the state you choose.<BR>
@@ -128,7 +129,7 @@ print $q->submit (
 				    border-color:#8b0000;",
                  );
 print "</TD>";
-print "</TR></TABLE>";
+print "</TR></TABLE></form>";
 
 </%perl>
 

@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.8 2005/05/01 19:46:04 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/netpass.mhtml,v 1.9 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,7 +15,7 @@
 
 <%perl>
 
-_log("DEBUG", $m->session->{'_session_id'}." calling /Client/GetInfo\n");
+_log("DEBUG", "$$ ". $m->session->{'_session_id'}." calling /Client/GetInfo\n");
 $m->comp('/Client/GetInfo', %ARGS);
 
 my $mac = $m->session->{'remote_mac'};
@@ -27,10 +27,10 @@ $m->comp('/Client/Login', %ARGS);
 _log("DEBUG", "$mac $ip calling /Client/Validate\n");
 $m->comp("/Client/Validate", %ARGS);
 
-_log("DEBUG", "$mac $ip Phase: ".$m->session->{'phase'}."\n");
+_log("DEBUG", "$mac $ip ".$m->session->{'_session_id'}." Phase: ".$m->session->{'phase'}."\n");
 
 if($np->cfg->policy(-key => 'COOKIE_DETECT', -network => $ip)) {
-	return if ($m->comp('/CookieDetect', 'ip' => $ip, %ARGS) != 1);
+	return if ($m->comp('/CookieDetect', 'mac' => $mac, 'ip' => $ip, %ARGS) != 1);
 }
 
 if($m->session->{'phase'} eq 'LOGIN') {
@@ -39,7 +39,8 @@ if($m->session->{'phase'} eq 'LOGIN') {
 	$m->comp('/Client/WelcomePage', %ARGS);
 
 } elsif($m->session->{'phase'} eq 'SCAN') {
-	_log("DEBUG", "$mac $ip calling /Client/BeginScan\n");
+	_log("DEBUG", "$mac $ip calling /Client/BeginScan session ".$m->session->{'_session_id'}."\n");
+	$m->comp('/Audit', msg => [ "sessionid ".$m->session->{'_session_id'} ] );
 	$m->comp('/Client/BeginScan', %ARGS);
 
 } elsif($m->session->{'phase'} eq 'REMEDIATE') {
@@ -180,6 +181,7 @@ if($m->session->{'phase'} eq 'LOGIN') {
 } else {}
 
 ################################################
+
 
 return;
 

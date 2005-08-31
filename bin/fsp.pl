@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/fsp.pl,v 1.4 2005/04/12 20:53:43 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/fsp.pl,v 1.5 2005/08/31 20:09:16 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,7 +44,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: fsp.pl,v 1.4 2005/04/12 20:53:43 jeffmurphy Exp $
+$Id: fsp.pl,v 1.5 2005/08/31 20:09:16 jeffmurphy Exp $
 
 =cut
 
@@ -56,7 +56,6 @@ use Pod::Usage;
 
 use NetPass::LOG qw(_log _cont);
 require NetPass;
-require NetPass::Config;
 
 pod2usage(1) if $#ARGV < 1;
 
@@ -70,7 +69,7 @@ NetPass::LOG::init *STDOUT if exists $opts{'D'};
 my ($ma, $ip)         = (shift, shift);
 my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-my $np = new NetPass(-config => exists $opts{'c'} ? $opts{'c'} : undef,
+my $np = new NetPass(-cstr => exists $opts{'c'} ? $opts{'c'} : undef,
 		     -dbuser => $dbuser, -dbpass => $dbpass,
 		     -debug => exists $opts{'D'} ? 1 : 0,
 		     -quiet => exists $opts{'q'} ? 1 : 0);

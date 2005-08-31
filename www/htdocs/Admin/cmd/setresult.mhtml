@@ -25,7 +25,9 @@
 			my $ng = $np->cfg->getNetgroup(-network => $nw);
 			my ($isOK, $groups) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin', 'QuarAdmin' ]);
 			my ($isRoot, $junk) = $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin' ], 'group' => 'default');
-			if ($isRoot || ($isOK && (grep (/^$nw$/, @$groups) || grep (/^$ng$/, @$groups)))) {
+			if ($isRoot || ($isOK && (grep (/^default$/, @$groups) || 
+						  grep (/^$nw$/, @$groups)     || 
+						  grep (/^$ng$/, @$groups)))) {
 				$rv = $np->db->updateResult(-mac => $ma, -rowid => $rid, 
 							    -status => $st);
 				if ($rv) {

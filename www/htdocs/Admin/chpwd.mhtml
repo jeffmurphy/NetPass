@@ -92,7 +92,8 @@ if ($m->session->{'logged_in'} && exists $m->session->{'my_groups'} && (keys %$m
 <tr><td class='left'>New (Confirm) Password:</td>
 	<td class='right'><input  name='new2' type='password'></td></tr>
 <tr><td colspan=2><center><input type='submit' name='submit' value='Change Password'></center></td></tr>
-</table></form>
+</table>
+</form>
 % } else {
 	Sorry. You don't have permission to use this form.
 % }

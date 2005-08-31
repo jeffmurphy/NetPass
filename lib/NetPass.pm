@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.21 2005/08/16 14:04:32 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.22 2005/08/31 20:09:16 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -676,7 +676,7 @@ sub findOurSwitchPort_linear {
 			
 			if ( defined($snmp->err) ) {
 				_log ("ERROR", "new SNMP::Device failed: ".$snmp->err."\n");	
-				return (undef, undef, undef, undef);
+				next;
 			}
 			
 			my ($mp, $pm) = $snmp->get_mac_port_table();
@@ -942,7 +942,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.21 2005/08/16 14:04:32 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.22 2005/08/31 20:09:16 jeffmurphy Exp $
 
 =cut
 

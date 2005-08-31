@@ -215,3 +215,20 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm added some code to reject google web accelerator if it accesses the
 		admin pages
 	jcm javascript fixes to Admin pages for IE compatibility
+
+2005-08-31
+	jcm bug fix. a non-responsive switch would abort the port search and leave
+		users stuck in quarantine
+	jcm disabled use of cookies for session tracking. placed session id in 
+		http POST instead. the problem was that toolbars like google
+		would sue the same cookie store that IE uses. this would cause
+		weird things to occur because the session state would become
+		corrupt. 
+	jcm minor bug in fsp.pl - a diagnostic script.
+	jcm bug fix to Admin/cmd/setresult.mhtml to fix a permissions problem where
+		an network admin wouldnt be able to change the status of a client's
+		result
+	jcm bug fix to ScanAdmin audit messages (incorrectly ref'd logged_in)
+	jcm bug fix in bynet report (macos arp padding issue)
+	jcm bug fix in scan config (snort list limited to first 250)
+

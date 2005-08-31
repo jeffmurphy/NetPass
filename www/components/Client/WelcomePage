@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/WelcomePage,v 1.7 2005/04/24 03:42:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/WelcomePage,v 1.8 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -35,6 +35,7 @@
 				 -size => 8
 				 ), "</td></tr></table>";
 	print $q->hidden(-name => 'js_enabled', -value => '');
+	print $q->hidden(-name => 'npsess', -value => $m->session->{_session_id});
 
 	print $q->submit(-name => 'beginScan',
 			 -value => 'I understand, begin the scan ..');

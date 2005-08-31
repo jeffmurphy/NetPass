@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.7 2005/04/24 03:42:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.8 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -163,7 +163,7 @@ return if(!$search);
 
 my ($results, $count, $result_set, $next_link, $prev_link) = getAudits($np->db->{'dbh'},$ip,$mac,$uid,$sev,$type,$message,$start);
 
-if($count<0) {
+if ($count < 0) {
 	print $q->p( {-class => 'error'}, "Sorry, there was an error while processing your request!");
 }
 
@@ -190,19 +190,24 @@ my @rows = (
 			$q->th("Message")
 		));
 
-while (my $row = $results->fetchrow_hashref() ) {
-	push( @rows,	$q->TR( {-class=> $row->{severity} },
-				$q->td({-align=>'center'}, $row->{dt})         .
-				$q->td({-align=>'center'}, $row->{username})   .
-				$q->td({-align=>'center'}, $row->{ipAddress})  .
-				$q->td({-align=>'center'}, NetPass::padMac($row->{macAddress})) .
-				#$q->td({-align=>'center'}, $row->{severity})   .
-				#$q->td({-align=>'center'}, $row->{location})   . 
-				$q->td({-align=>'center'}, $row->{message}) 
+foreach my $row ( sort { $a->[0] <=> $b->[0] } @$results ) {
+	# 0 dt
+	# 1 username
+	# 2 ipAddress
+	# 3 macAddress
+	# 4 severity
+	# 5 location
+	# 6 message
+	push( @rows,	$q->TR( {-class=> $row->[4] },
+				$q->td({-align=>'center'}, $row->[0])         .
+				$q->td({-align=>'center'}, $row->[1])   .
+				$q->td({-align=>'center'}, $row->[2])  .
+				$q->td({-align=>'center'}, NetPass::padMac($row->[3])) .
+				#$q->td({-align=>'center'}, $row->[4])   .
+				#$q->td({-align=>'center'}, $row->[5])   . 
+				$q->td({-align=>'center'}, $row->[6]) 
 			));
 }
-
-$results->finish();
 
 print $q->table({-width=>'80%'}, @rows);
 
@@ -219,6 +224,24 @@ sub getAudits {
 	my $type = shift;
 	my $message = shift;
 	my $start = shift;
+
+	# since we dont store the audit table in NDB, we need 
+	# to fetch and merge results from the other NP servers.
+
+	my %hosts = ( &hostname => 1 );
+	my $allnw = $np->cfg->getNetworks();
+	if (ref($allnw) eq "ARRAY") {
+		foreach my $nw (@$allnw) {
+			if ( $np->cfg->ha($nw) ) {
+				my $svrs = $np->cfg->ha_servers($nw);
+				if (ref($svrs) eq "ARRAY") {
+					foreach my $sn (@$svrs) {
+						$hosts{$sn} = 1;
+					}
+				}
+			}
+		}
+	}
 
 	$start = 0 if(!($start =~ /\d+/) || $start<0);
 	my $limit = 250;
@@ -267,32 +290,49 @@ sub getAudits {
 	#print $query;
 	#print join(',', @params);
 
-	my $sth = $dbh->prepare($query);
+	my $lres = $dbh->selectall_arrayref($query);
 
-	if(!defined($sth)) {
-        	return ("prepare failed: ". $dbh->errstr, -1);
-    	}
-    
-	if( !$sth->execute(@params) ) {
-        	return ("execute failed: ". $dbh->errstr, -1);
+	if(!defined($lres)) {
+        	return ("failed to retrieve local results: ". $dbh->errstr, -1);
     	}
 
-	my $count      = $sth->rows;
+	my $count      = $#{$lres};
 
 	my $link      = "audit.mhtml?ip=$ip&mac=$mac&uid=$uid&type=$type&message=$message&search=Search&start=";
 	my $prev_link = $link . ($start-$limit);
 	my $next_link = '';
 
     	my $result_set = "";
-	if($count==$limit) {
+
+	if($count == $limit) {
     		$result_set = "$start to " . ($start+$limit);
 		$next_link = $link . ($start+$limit);
 	} else {
     		$result_set = "$start to " . ($start+$count);
 		$next_link = '';
 	}
-	return ($sth, $count, $result_set, $next_link, $prev_link);
 
+	my @results = @$lres;
+
+print "others<P>";
+	foreach my $npserv (keys %hosts) {
+print "others=$npserv<P>";
+		my $rdbh = DBI->connect('dbi:mysql:database=netpass;host='.$npserv, 
+				$np->cfg->dbUsername, $np->cfg->dbPassword);
+		if ($rdbh) {
+			my $rres = $rdbh->selectall_arrayref($query);
+			if (ref($rres) eq "ARRAY") {
+				push @results, @$rres;
+			} else {
+				print $q->p({-class => 'error'}, "There was a problem retrieving the results from $npserv");
+			}
+			$rdbh->disconnect;
+		} else {
+			print $q->p({-class => 'error'}, "Failed to connect to database on $npserv");
+		}
+	}
+
+	return (\@results, $count, $result_set, $next_link, $prev_link);
 }
 
 </%perl>

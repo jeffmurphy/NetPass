@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.5 2005/06/23 20:21:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.6 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -243,11 +243,14 @@ sub searchArpCache {
 				my $ip2 = ip2int($1);
 				$mac = $2;
 				next if (!$ii && $mac =~ /incomplete/);
-				$rv{$1} = $2 if (($ip2 & $mask) == $nw);
+				my $mac2;
+				foreach my $_mp (split(/:/, $mac)) {
+					$mac2 .= substr("00".$_mp, -2);
+				}
+				$rv{$1} = $mac2 if (($ip2 & $mask) == $nw);
 			}
 		}
 		return \%rv;
-		
 	}
 
 	# distinct address or regexp passed in
@@ -316,7 +319,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Network.pm,v 1.5 2005/06/23 20:21:08 jeffmurphy Exp $
+$Id: Network.pm,v 1.6 2005/08/31 20:09:17 jeffmurphy Exp $
 
 =cut
 

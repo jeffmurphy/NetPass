@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Client/Login,v 1.4 2005/04/24 03:42:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Client/Login,v 1.5 2005/08/31 20:09:17 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -20,6 +20,9 @@
 		return;
 	}
 	
+	my $mtime = (stat("/cookies/data/".$m->session->{_session_id}))[9];
+	_log("DEBUG", "mtime $mtime stime ".$m->session->{_session_mtime}."\n");
+
 	if (!defined($username) || ($username eq "")) {
 		_log("DEBUG", "$mac $ip /Client/Login no username given, Phase=LOGIN\n");
 		$m->session->{'phase'} = 'LOGIN';
