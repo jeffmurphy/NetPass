@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.55 2005/08/31 20:09:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.56 2005/09/01 18:27:20 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1023,7 +1023,7 @@ sub addSnortRuleEntry {
 
     if ($rule =~ /msg\:\s*\"([\w-]+)\s+([^";]+)\"\;/) {
 	$data->{category} = $1;
-	$data->{name}     = $2;
+	$data->{name}     = $1.' '.$2;
     } else {
 	return "unknown msg";
     }
@@ -2899,7 +2899,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.55 2005/08/31 20:09:17 jeffmurphy Exp $
+$Id: DB.pm,v 1.56 2005/09/01 18:27:20 jeffmurphy Exp $
 
 =cut
 

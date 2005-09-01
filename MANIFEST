@@ -171,7 +171,6 @@ www/components/Client/Survey
 www/components/Client/Validate
 www/components/Client/WelcomePage
 www/components/Client/ShowResults
-www/components/Client/.BeginScan.swp
 www/components/style/back/start_sidebar
 www/components/style/back/end_content
 www/components/style/back/end_sidebar
@@ -180,7 +179,6 @@ www/components/style/front/header
 www/components/CookieDetect
 www/components/Audit
 www/components/OSDetect
-www/components/FormAuthRadius
 www/htdocs/Admin/Editor/edit.mhtml
 www/htdocs/Admin/Editor/index.mhtml
 www/htdocs/Admin/Editor/view.mhtml
