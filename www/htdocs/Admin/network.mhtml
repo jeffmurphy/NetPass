@@ -235,7 +235,7 @@ DBG_init();
 <table border=0 width=1000 id='networkConfig'>
 <tr class='selector'>
     <td class='selector'>
-       <%$q->popup_menu(-id => 'network', -name => 'network',  -values => [ $WH, sort @$allNetworks ], 
+       <%$q->popup_menu(-id => 'network', -name => 'network',  -values => [ $WH, NetPass::Network::ipsort($allNetworks) ], 
 		-default => $network, -onchange => 'network_onchange_network();')%>
     </td>
     <td class='selector'>
@@ -287,7 +287,7 @@ DBG_init();
 <td colspan=2>
 BSW: <input name='BSW' id='BSW' value='<%$BSW%>' size=16 maxlength=80><BR>
 <%$q->scrolling_list(-id => 'switches', -name => 'switches', -size => 4, 
-	-values => [ $WH2, @$switches ] , -multiple => 'true')%></td></tr>
+	-values => [ $WH2, NetPass::Network::ipsort($switches) ] , -multiple => 'true')%></td></tr>
 </td>
 </tr>
 <tr><td colspan=3>

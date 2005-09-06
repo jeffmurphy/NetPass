@@ -93,7 +93,7 @@ if ($switch) {
 <table border='0' width=1000 id='switchConfig'>
 <tr class='selector'>
     <td class='selector'>
-       <%$q->popup_menu(-id => 'switch', -name => 'switch',  -values => [ $WH, sort @$allSwitches ], 
+       <%$q->popup_menu(-id => 'switch', -name => 'switch',  -values => [ $WH, NetPass::Network::ipsort($allSwitches) ], 
 		-default => $switch, -onchange => 'switch_onchange_switch();')%>
     </td>
     <td class='selector'>

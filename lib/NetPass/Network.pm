@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.6 2005/08/31 20:09:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.7 2005/09/06 20:29:18 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -143,7 +143,8 @@ sub cidr2int {
 
 sub ip2int {
 	my $i = shift;
-	
+
+	$i =~ s/\/.*$//; # get rid of any subnet mask	
 	if ($i !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) {
 		die Carp::longmess("ip2int: \"$i\" doesnt look like an ip address to me");
 	}
@@ -153,6 +154,19 @@ sub ip2int {
 		 ($o[1] << 16) | 
 		 ($o[2] <<  8) |
 		 ($o[3]      ) );
+}
+
+=head2 @list = ipsort($aref)
+
+Given an array ref containing IP addresses. Sort them so they
+are ascending and return a new list.
+
+=cut
+
+sub ipsort {
+	my $ar = shift;
+	return [] unless (ref($ar) eq "ARRAY");
+	return  sort { ip2int($a) <=> ip2int($b) } @$ar ;
 }
 
 =head2 $ip = host2addr($hostname || $ipaddress)
@@ -319,7 +333,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Network.pm,v 1.6 2005/08/31 20:09:17 jeffmurphy Exp $
+$Id: Network.pm,v 1.7 2005/09/06 20:29:18 jeffmurphy Exp $
 
 =cut
 

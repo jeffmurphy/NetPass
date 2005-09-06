@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.6 2004/10/25 17:48:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.7 2005/09/06 20:29:18 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -81,7 +81,7 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 	my $totalInQuar   = 0;
 	my $totalPingable = 0;
 
-	foreach my $network (sort keys %netStats) {
+	foreach my $network (NetPass::Network::ipsort([keys %netStats])) {
 		my $dottedNetwork = int2ip($network)."/".
 			int2cidr($masks{$network});
 
