@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.26 2005/08/22 19:26:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.27 2005/09/07 15:24:46 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -21,6 +21,7 @@ $status   => '';
 
 <script><!--
 setWhereAmI('Quarantine Control');
+var session_id = "<%$m->session->{_session_id}%>";
 --></script>
 
 <%perl>
@@ -98,7 +99,8 @@ function quarctl_changeResult(ma, rid) {
 	if (ma && rid) {
 		var o = document.getElementById('results-status-'+rid);
 		if (o) {
-			var url = "cmd/setresult.mhtml?printable=2&ma="+ma+"&rid="+rid+"&st="+o.value;
+			var url = "cmd/setresult.mhtml?printable=2&ma="+ma+"&rid="+rid+"&st="+o.value +
+				"&npsess=" + session_id;
 			xmlhttp.open("GET", url, true);
 			xmlhttp.onreadystatechange = function() {
 				if (xmlhttp.readyState == 4) {
