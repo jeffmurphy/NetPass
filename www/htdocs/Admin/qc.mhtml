@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.27 2005/09/07 15:24:46 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.28 2005/09/09 12:32:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -21,7 +21,6 @@ $status   => '';
 
 <script><!--
 setWhereAmI('Quarantine Control');
-var session_id = "<%$m->session->{_session_id}%>";
 --></script>
 
 <%perl>

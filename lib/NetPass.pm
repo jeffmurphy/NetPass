@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.22 2005/08/31 20:09:16 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.23 2005/09/09 12:32:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -524,6 +524,7 @@ sub search_topology {
 	my $community = shift;
 	my $mac       = shift;
 	my $loopctl   = shift;
+	my $myNW      = shift;
 
 	# first determine which port this mac address is on. if we dont find the 
 	# mac on this switch - stop.
@@ -544,7 +545,7 @@ sub search_topology {
 		return (undef, undef, undef, undef);
 	}
 
-	my $ifIndex = $snmp->get_mac_port($mac); 
+	my $ifIndex = $snmp->get_mac_port($mac, $myNW); 
 	return (undef, undef, undef, undef) if !defined($ifIndex); # not on this switch
 
 	_log ("DEBUG", "$mac possibly found on $switch / $ifIndex. checking to see if it links to another switch.\n");
@@ -565,7 +566,7 @@ sub search_topology {
 
 		return $self->search_topology($next_switch,
 					      ($self->cfg->getCommunities($next_switch))[1],
-					      $mac, $loopctl);
+					      $mac, $loopctl, $myNW);
 	}
 
 	# otherwise, it's this switch. to preserve the semantics
@@ -616,7 +617,7 @@ sub findOurSwitchPort_tree {
 				
 				my ($_sw, $_po, $_mp, $_pm) = $self->search_topology($bsw, 
 										     ($self->cfg->getCommunities($bsw))[1],
-										     $mac, {});
+										     $mac, {}, $myNW);
 				
 				next if (!defined($_sw) || !defined($_po));
 
@@ -942,7 +943,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.22 2005/08/31 20:09:16 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.23 2005/09/09 12:32:11 jeffmurphy Exp $
 
 =cut
 

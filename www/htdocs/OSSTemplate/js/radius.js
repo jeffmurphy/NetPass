@@ -39,7 +39,9 @@ function radius_onchange_radiusServer(prefix) {
 		if (o.options[i].selected) {
 			gotOne = true;
 			xh_post("/Admin/cmd/getRadiusSecret.mhtml?server=" + 
-				o.options[i].value, "radius_xh_results_getSecret", prefix);
+				o.options[i].value +
+				"&npsess=" + session_id, 
+				"radius_xh_results_getSecret", prefix);
 		}
 	}
 	if (!gotOne) {
@@ -57,7 +59,8 @@ function radius_onblur_radiusSecret(prefix) {
 	if ( sc && sv && (sc.value != '') && (sv.selectedIndex > 0) ) {
 		xh_post("/Admin/cmd/setRadiusSecret.mhtml?server=" +
 			sv.options[sv.selectedIndex].value + 
-			"&secret=" + sc.value,
+			"&secret=" + sc.value +
+			"&npsess=" + session_id,
 			"radius_xh_results_setSecret", prefix);
 	}
 }

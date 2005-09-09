@@ -43,7 +43,9 @@ function ldap_onchange_ldapServer(prefix) {
 		if (o.options[i].selected) {
 			gotOne = true;
 			xh_post("/Admin/cmd/getLDAP.mhtml?server=" + 
-				o.options[i].value, "ldap_xh_results_getLDAP", prefix);
+				o.options[i].value +
+				"&npsess=" + session_id, 
+				"ldap_xh_results_getLDAP", prefix);
 		}
 	}
 	if (!gotOne) ldap_clear_fields(prefix);
@@ -83,7 +85,8 @@ function ldap_onblur_ldapPasswordField(prefix) {
 	if (f && s && (f.value != '') && (s.selectedIndex > 0)) {
 		xh_post("/Admin/cmd/setLDAP.mhtml?server=" +
 			s.options[s.selectedIndex].value + 
-			"&passwordField=" + f.value,
+			"&passwordField=" + f.value +
+			"&npsess=" + session_id,
 			"ldap_xh_results_setLDAP", prefix);
 	}
 }

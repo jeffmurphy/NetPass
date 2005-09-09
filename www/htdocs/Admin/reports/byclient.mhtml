@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.5 2005/08/22 19:26:08 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.6 2005/09/09 12:32:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -146,7 +146,7 @@ sub printNeighborTable {
 		$q->TR(
 			$q->th("Neighbor")   .
 			$q->th("Status")     .
-		   	$q->th("UBIT Name")  .
+		   	$q->th($np->cfg->policy(-key => 'USERNAME_PROMPT', -network => 'default'))  .
 			$q->th("IP Address") .
 			$q->th("OS")
 		);

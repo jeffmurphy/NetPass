@@ -67,7 +67,10 @@ function lockConfig(lock, force) {
 	}
 
 	lockOpPending = true;
-	var url = "/Admin/cmd/lockcfg.mhtml?printable=2&lock="+lock +"&force="+force;
+	var url = "/Admin/cmd/lockcfg.mhtml?printable=2&lock=" 
+		+ lock 
+		+ "&force=" + force
+		+ "&npsess=" + session_id;
 	xmlhttp.open("GET", url , true);
 	xmlhttp.onreadystatechange=function() {
 		if (xmlhttp.readyState == 4) {

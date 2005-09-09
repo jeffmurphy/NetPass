@@ -239,7 +239,7 @@ show_form:;
 </tr>
 <tr>
     <td style='text-align:center; vertical-align: top;'>
-	<%$q->scrolling_list(-name => 'netgroups', -values => [ $WH, NetPass::Network::ipsort($allNetgroups) ],
+	<%$q->scrolling_list(-name => 'netgroups', -values => [ $WH, @$allNetgroups ],
 		-default => $netgroups, -id => 'netgroups',
 		-attributes => { $WH => { 'disabled' => 1 } },
 		-onchange => 'netgroup_onchange_netgroups();',
