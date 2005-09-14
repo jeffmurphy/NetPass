@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.8 2005/08/31 20:09:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.9 2005/09/14 17:41:27 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -248,47 +248,40 @@ sub getAudits {
 
 	# double check the value, make sure noone can sneak an insertion attack in here ;)
 	$type = ($type eq "OR")?"OR":"AND";
+
+	my $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d %H:%i:%s') as dt, username, ipAddress, macAddress, severity, location, message FROM audit ";
 	
-	my @clause = ();
-	my @params = ();
+	my @SC = ();
 
 	if($ip) {
-		push(@clause, "ipAddress=?");
-		push(@params, $ip);
+		push @SC, " ipAddress = ".$dbh->quote($ip);
 	}
 
 	if($message) {
-		push(@clause, "message LIKE ?");
-		push(@params, $message);
+		push @SC, " message LIKE ".$dbh->quote($message);
 	}
 
 	if($mac) {
 		$mac =~ s/://g;
-
-		push(@clause, "macAddress=?");
-		push(@params, lc($mac));
+		push @SC, " macAddress = ".$dbh->quote($mac);
 	}
 	
 	if($uid) {
-		push(@clause, "username=?");
-		push(@params, $uid);
+		push @SC, "  username = ".$dbh->quote($uid);
 	}
 
 	if($sev) {
-		push(@clause, "severity=?");
-		push(@params, $sev);
+		push @SC, "  severity = ".$dbh->quote($sev);
 	}
 
-	my $query = "SELECT DATE_FORMAT(ts, '%Y-%m-%d %H:%i:%s') as dt, username, ipAddress, macAddress, severity, location, message FROM audit ";
 	
-	if($#clause>-1) {
-		$query .= " WHERE " . join(" $type ", @clause)
+	if($#SC > -1) {
+		$query .= " WHERE " . join(" $type ", @SC)
 	}
 
 	$query .= " ORDER BY ts DESC LIMIT $start,$limit";
 
-	#print $query;
-	#print join(',', @params);
+	#print "query ", $query, "<P>";
 
 	my $lres = $dbh->selectall_arrayref($query);
 
@@ -314,9 +307,7 @@ sub getAudits {
 
 	my @results = @$lres;
 
-print "others<P>";
 	foreach my $npserv (keys %hosts) {
-print "others=$npserv<P>";
 		my $rdbh = DBI->connect('dbi:mysql:database=netpass;host='.$npserv, 
 				$np->cfg->dbUsername, $np->cfg->dbPassword);
 		if ($rdbh) {
