@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.28 2005/09/09 12:32:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/qc.mhtml,v 1.29 2005/09/14 19:33:31 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -657,7 +657,8 @@ sub saveQuarChanges {
 				return "Error: $mac PQUAR requires that you specify a message.";
 			} else {
 				$resultsRV = $np->db->addResult(-mac => $mac, -type => 'manual', 
-								   -id => $args->{"message:$mac"});
+								-force => 1,
+								-id => $args->{"message:$mac"});
 			}
 		}
 
