@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.8 2005/09/09 12:32:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.9 2005/09/19 15:26:56 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -142,7 +142,7 @@ if ( $m->comp('/Admin/Login', %ARGS) ) {
 
 	printf("\n\ntotal registered  = $totalClients\n");
 	printf("total act in quar = $totalInQuar  (%2.2f%%)\n", 
-		100*($totalInQuar/$totalClients));
+		$totalClients ? 100*($totalInQuar/$totalClients) : 0 );
 
 	#print "printing took ", tv_interval($t0), "secs\n";
 

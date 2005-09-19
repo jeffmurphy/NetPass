@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.16 2005/08/03 20:22:40 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.17 2005/09/19 15:26:56 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,7 +88,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.16 2005/08/03 20:22:40 jeffmurphy Exp $
+$Id: resetport.pl,v 1.17 2005/09/19 15:26:56 jeffmurphy Exp $
 
 =cut
 
@@ -175,7 +175,7 @@ my $quar    = {};
 my $threads = {};
 my $me      = threads->self;
 
-my $ps = exists $opts{'t'} ? $opts{'t'} : 20;
+my $ps = exists $opts{'t'} ? $opts{'t'} : 50;
 my $threadPool = {};
 my $swThrAffin = {};
 
