@@ -232,3 +232,18 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug fix in bynet report (macos arp padding issue)
 	jcm bug fix in scan config (snort list limited to first 250)
 
+2005-09-09
+	jcm added sort by IP to various admin forms
+	jcm added cisco tree search patch by NU
+	jcm bug fix to quarctl form - couldnt change results status
+
+2005-09-19
+	jcm added feature to macscan: if the port contains unregistered macs _OR_ 
+		macs that have been quarantined, and the port is not in quarantine,
+		it will be placed in quarantine. OK macs (registered and not 
+		quarantined) will be given the multi-mac message)
+	jcm changed number-of-switches-per-thread to 50 in macscan to try and control
+		how many concurrent db queries it makes. 
+	jcm changed number-of-threads in resetport from 20 to 50 to see if it makes
+		it more responsive. 
+

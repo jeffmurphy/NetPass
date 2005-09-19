@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.11 2005/08/03 02:44:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.12 2005/09/19 15:25:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -13,13 +13,15 @@ as ports with multiple MACs.
 
 =head1 SYNOPSIS
 
- macscan.pl [-q] [-D] [-c cstr] [-U dbuser/dbpass] [-t thread-queue-size] [-s secs]
+ macscan.pl [-q] [-D] [-c cstr] [-U dbuser/dbpass] [-t thread-queue-size] [-s secs] [-n] [-1]
      -q             be quiet. exit status only.
      -D             enable debugging
      -c             db connect string
      -U             db user[/pass]
      -t             thread queue size
      -s             thread sleep time
+     -n             not really
+     -1             run just once
 
 =head1 OPTIONS
 
@@ -45,8 +47,8 @@ Credentials to connect to the database with.
 =item B<-t thead-queue-size> 
 
 A number denoting how many switches to delegate to each thread for monitoring.
-The default is 20. If you have 100 switches in your NetPass configuration,
-5 threads will be spawned. Each thread will linearly search each switch for
+The default is 50. If you have 100 switches in your NetPass configuration,
+2 threads will be spawned. Each thread will linearly search each switch for
 multi-mac violations. Each thread requires a connection to the database, 
 so don't set this number too low or you'll needless use DB resources.
 
@@ -61,6 +63,16 @@ time. The default is 300 seconds (5 minutes). So if you only have one switch,
 we'll check it every 5 minutes. If you have 2 switches, the check time will
 be somewhat (but not much) longer. You can estimate about 30 seconds to check 
 a switch.
+
+=item B<-n> 
+
+"not really" means just report when we've found ports we'd like to move back
+to quarantine - but don't really move them.
+
+=item B<-1> 
+
+Run only once. Process all of the switches, give us a report of bad ports and 
+exit. Should be run along with -D
 
 =back
 
@@ -82,13 +94,14 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.11 2005/08/03 02:44:38 jeffmurphy Exp $
+$Id: macscan.pl,v 1.12 2005/09/19 15:25:03 jeffmurphy Exp $
 
 =cut
 
 
 use strict;
 use threads;
+use threads::shared;
 use Getopt::Std;
 use lib '/opt/netpass/lib/';
 use FileHandle;
@@ -103,7 +116,7 @@ BEGIN {
 }
 
 my %opts : shared;
-getopts('c:U:qt:s:Dh?', \%opts);
+getopts('c:U:qt:s:Dn1h?', \%opts);
 pod2usage(2) if exists $opts{'h'} || exists $opts{'?'};
 
 # foreach network in <switchmap> {
@@ -132,16 +145,20 @@ $threadSleep = $opts{'s'} if exists $opts{'s'};
 
 my $dbuser : shared;
 my $dbpass : shared;
-($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
+($dbuser, $dbpass)     = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, undef);
 
-my $cstr : shared = exists $opts{'c'} ? $opts{'c'} : undef;
+my $cstr : shared      = exists $opts{'c'} ? $opts{'c'} : undef;
+my $notReally : shared = exists $opts{'n'} ? 1 : 0;
+my $once      : shared = exists $opts{'1'} ? 1 : 0;
+my $badPorts           = &share({});
+my $startTime          = time();
 
 print "Connecting to NetPass ..\n" if $D;
 
 my $np = new NetPass(-cstr   => $cstr,
-		     -dbuser => $dbuser, -dbpass => $dbpass,
-		     -debug => exists $opts{'D'} ? 1 : 0,
-		     -quiet => exists $opts{'q'} ? 1 : 0);
+		     -dbuser => $dbuser, -dbpass => $dbpass);
+#		     -debug => exists $opts{'D'} ? 1 : 0,
+#		     -quiet => exists $opts{'q'} ? 1 : 0);
 
 die "Failed to connect to NetPass: $np\n" unless (ref($np) eq "NetPass");
 
@@ -152,12 +169,11 @@ my @threads;
 
 my $allSwitches = $np->cfg->getSwitches();
 
-
 # we divide the switches up into groups of "$ps"
 # and give each group out to a thread for periodic
 # polling
 
-my $ps = exists $opts{'t'} ? $opts{'t'} : 20;
+my $ps = exists $opts{'t'} ? $opts{'t'} : 50;
 
 for(my $i = 0 ; $i <= $#{$allSwitches} ; $i += $ps) {
 	my $end = $i + $ps - 1;
@@ -172,6 +188,25 @@ print "Parent thread waiting\n" if $D;
 $threads[0]->join;
 print "Parent thread joined\n" if $D;
 
+if ($once) {
+	my $ns = netstats($np);
+
+	print "Processed ", $ns->{'networks'}, " networks, ";
+	print $ns->{'switches'}, " switches and ", $ns->{'ports'}, " ports\n";
+	print "in ", time()-$startTime, " seconds.\n\n";
+
+	print "Ports That Are Not In Quarantine But Should Be Report\n";
+	print "(MAC status NR=not registered, Q=status is P/QUAR):\n\n";
+	foreach my $switch (keys %$badPorts) {
+		print "$switch\n";
+		foreach my $port (keys %{$badPorts->{$switch}}) {
+			print "\t$port : ";
+			print join(',', @{$badPorts->{$switch}->{$port}});
+			print "\n";
+		}
+	}
+	print qq{\n\nThere might be a "cleanup" error printed next. You can ignore it.\n\n};
+}
 
 exit 0;
 
@@ -186,9 +221,9 @@ sub thread_entry {
 	# this means we need a private NP.
 	
 	my $np = new NetPass(-cstr   => $cstr,
-			     -dbuser => $dbuser, -dbpass => $dbpass,
-			     -debug  => exists $opts{'D'} ? 1 : 0,
-			     -quiet  => exists $opts{'q'} ? 1 : 0);
+			     -dbuser => $dbuser, -dbpass => $dbpass);
+			     #-debug  => exists $opts{'D'} ? 1 : 0,
+			     #-quiet  => exists $opts{'q'} ? 1 : 0);
 	
 	die "Failed to connect to NetPass: $np\n" unless (ref($np) eq "NetPass");
 
@@ -216,9 +251,9 @@ sub thread_entry {
 	print "[$tid] Entering loop.\n" if $D;
 
 	while ( 1 ) {
+		_log("DEBUG", "thread ".threads->self->tid. " wokeup\n");
 		for my $switch (sort keys %snmp) {
-			print "[$tid] Wokeup. Processing $switch ..\n" if $D;
-			_log("DEBUG", "thread ".threads->self->tid. " wokeup\n");
+			print "[$tid] Processing $switch ..\n" if $D;
 			
 			my ($mp, $pm) = $snmp{$switch}->get_mac_port_table();
 			
@@ -235,22 +270,33 @@ sub thread_entry {
 
 				next if ($nw eq "none"); # port is not managed by netpass
 
-				_log("DEBUG", "getMatchingNetwork($switch, $p) = $nw\n") if $D;
+				#_log("DEBUG", "getMatchingNetwork($switch, $p) = $nw\n") if $D;
+				
 
 				my $macscan   = $np->cfg->policy(-key => 'MACSCAN', 
 								 -network => $nw);
 				my $multi_mac = $np->cfg->policy(-key => 'MULTI_MAC',
 								 -network => $nw);
 
-				if ($macscan == 0) {
+				if (0 && $macscan == 0) {
 					# too verbose
 					#_log("INFO", "macscan is disabled for this port: $switch/$p ($nw)\n");
 					next;
 				}
 
-				if ($multi_mac ne "ALL_OK") {
+				if (0 && $multi_mac ne "ALL_OK") {
 					# too verbose
 					#_log("INFO", "multi_mac is $multi_mac for this port: $switch/$p ($nw)\n");
+					next;
+				}
+
+				# if the port is already quarantined, don't bother going any further
+				my @av = $np->cfg->availableVlans(-switch => $switch, -port => $p);
+				
+				my $curVlanSetting = $snmp{$switch}->get_vlan_membership($p);
+
+				if ($curVlanSetting->[0] == $av[1]) {
+					_log("INFO", "$switch $p is already quarantined\n");
 					next;
 				}
 
@@ -271,11 +317,18 @@ sub thread_entry {
 						if ( $mok == -1 ) {
 							_log("ERROR", "macIsRegistered($mac) failed: ".$np->db->error()."\n");
 						}
-						elsif( $mok == 0 ) {
+						elsif ( $mok == 0 ) {
+							# mac is not registered 
 							$portIsOK = 0;
-							push @nOkMacs, $mac;
+							push @nOkMacs, $mac."/NR";
 						} 
-						else {
+						elsif ($np->db->macStatus($mac) =~ /^[P]QUAR/) {
+							# mac registered but quarantined
+							$portIsOK = 0;
+							push @nOkMacs, $mac."/Q";
+							#_log("INFO", "$mac is quarantined, port state is ".join(',',@$curVlanSetting)."\n");
+						} else {
+							# mac is registered and unquar
 							push @okMacs, $mac;
 						}
 					}
@@ -293,20 +346,33 @@ sub thread_entry {
 								_log("INFO", "Found OK mac $mac on multimac port $switch/$p\n");
 								$np->db->addResult(-mac => $mac,
 										   -type => 'manual',
-										   -id => 'msg:multi_mac');
+										   -id => 'msg:multi_mac') unless $notReally;
 							}
 						}
 						
-						print "[$tid] Found nok macs ".(join(',', sort @nOkMacs))." on $switch/$p\n" if $D;
-						_log("INFO", "Found unreg'd macs ".(join(',', sort @nOkMacs))." on $switch/$p\n");
+						print "[$tid] Found NOK macs ".(join(',', sort @nOkMacs))." on $switch/$p\n" if $D;
+						_log("INFO", "Found NOK macs ".(join(',', sort @nOkMacs))." on $switch/$p\n");
+
+						if (! exists $badPorts->{$switch} ) {
+							$badPorts->{$switch} = &share({});
+						}
+						if (! exists $badPorts->{$switch}->{$p}) {
+							$badPorts->{$switch}->{$p} = &share([]);
+						}
+
+						push @{$badPorts->{$switch}->{$p}}, @nOkMacs;
 
 						$np->movePort(-switch => $switch,
 							      -port   => $p,
-							      -vlan   => 'quarantine');
+							      -vlan   => 'quarantine') unless $notReally;
 					}
 				}
 			}
 		}
+		if ($once) { 
+			return;
+		}
+		_log("DEBUG", "thread ".threads->self->tid. " going back to sleep\n");
 		sleep ($threadSleep);
 	}
 }
@@ -339,4 +405,39 @@ sub daemonize
     # child
     setsid                  or die "$myname: can't start a new session: $!";
     open STDERR, '>&STDOUT' or die "$myname: can't dup stdout: $!";
+}
+
+
+sub netstats {
+	my $np = shift;
+	return unless (ref($np) eq "NetPass");
+
+	my $networks = $np->cfg->getNetworks();
+	my $totsw = 0;
+	my $totpo = 0;
+
+	my %switchesSeen;
+	
+	foreach my $nw (@$networks) {
+		my $switches = $np->cfg->getSwitches($nw);
+		my $q = $np->cfg->quarantineVlan($nw);
+		my $u = $np->cfg->nonquarantineVlan($nw);
+		next unless $q && $u;
+		foreach my $sw (@$switches) {
+			$switchesSeen{$sw} = 1;
+			my $v = $np->cfg->getVlanMap($sw);
+			foreach my $section (split(';', $v)) {
+
+				if ($section =~ /$u\/$q$/) {
+					my $hr = NetPass::Config::expandTagList($section);
+					$totpo += scalar keys %$hr;
+				}
+			}
+		}
+	}
+
+	$totsw = scalar keys %switchesSeen;
+	return { 'networks' => ($#$networks + 1),
+		 'switches' => $totsw,
+		 'ports'    => $totpo };
 }
