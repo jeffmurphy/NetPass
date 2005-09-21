@@ -33,6 +33,7 @@
 				if ($rv) {
 					print "NOK $rid failed: $rv\n";
 				} else {
+					$m->comp('/Audit', msg => [ "result changed for $ma to $st" ]);
 					print "OK $rid\n";
 				}
 			} 
