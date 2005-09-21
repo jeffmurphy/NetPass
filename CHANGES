@@ -247,3 +247,7 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm changed number-of-threads in resetport from 20 to 50 to see if it makes
 		it more responsive. 
 
+2005-09-21
+	jcm bug fix message editor click cancel causes admin session to be logged out
+	jcm bug fix if you change the status of a client's "result" in QC, no audit log
+		entry is made reflecting which admin changed the status
