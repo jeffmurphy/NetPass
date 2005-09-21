@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.6 2005/08/03 20:22:40 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Editor/edit.mhtml,v 1.7 2005/09/21 19:51:40 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -132,7 +132,7 @@ function initEditor() {
 
 <input $readOnly type="submit" name="submit" value=" Save Changes " />
 <input $readOnly type="submit" name="submit" value=" Save Copy " />
-<input type="button" name="cancel" value=" Cancel " onClick="top.location='index.mhtml'"/>
+<input type="button" name="cancel" value=" Cancel " onClick="top.location='index.mhtml?npsess=<%$m->session->{_session_id}%>'"/>
 
 </form>
 
