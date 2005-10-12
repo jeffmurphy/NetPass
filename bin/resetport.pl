@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.17 2005/09/19 15:26:56 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.18 2005/10/12 20:38:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,7 +88,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.17 2005/09/19 15:26:56 jeffmurphy Exp $
+$Id: resetport.pl,v 1.18 2005/10/12 20:38:45 jeffmurphy Exp $
 
 =cut
 
@@ -141,7 +141,7 @@ my ($dbuser, $dbpass) = exists $opts{'U'} ? split('/', $opts{'U'}) : (undef, und
 
 my $np = new NetPass(-cstr   => exists $opts{'c'} ? $opts{'c'} :  undef,
 		     -dbuser => $dbuser, -dbpass => $dbpass,
-		     -debug  => exists $opts{'D'} ? 1 : 0,
+		     -debug  => 0 , #exists $opts{'D'} ? 1 : 0, # too verbose
 		     -quiet  => exists $opts{'q'} ? 1 : 0);
 
 die "failed to connect to NetPass: $np" unless (ref($np) eq "NetPass");
@@ -175,7 +175,7 @@ my $quar    = {};
 my $threads = {};
 my $me      = threads->self;
 
-my $ps = exists $opts{'t'} ? $opts{'t'} : 50;
+my $ps = exists $opts{'t'} ? $opts{'t'} : 20;
 my $threadPool = {};
 my $swThrAffin = {};
 
@@ -293,17 +293,19 @@ sub findThread {
 	my %qLens;
 	my $firstSeen;
 
-	foreach my $tid (keys %$tp) { 
+	foreach my $tid (sort keys %$tp) { 
 		lock($tp->{$tid}->{thrq});
 		$qLens{$tid} = $tp->{$tid}->{'thrq'}->{'workLoad'};
+		_log("DEBUG", "$tid workLoad=".$qLens{$tid}."\n");
 		$firstSeen = $tid unless $firstSeen;
 	}
 
 	my $assignToMe = '';
 	my $min = '';
 
-	foreach my $tid (keys %qLens) {
-		if ( ($min eq '') || ($qLens{$tid} < $min ) ) {
+	foreach my $tid (sort keys %qLens) {
+		$min = $qLens{$tid}+1 if ($min eq '');
+		if ( $qLens{$tid} < $min  ) {
 			$assignToMe = $tid;
 			$min = $qLens{$tid};
 		}
@@ -609,10 +611,10 @@ sub processLines {
 			
 			_log("DEBUG", "$switch/$port checking if resetport is enabled...\n") if exists $opts{'D'};
 			if (resetPortEnabled($np, $switch, $port) == 0) {
-				_log("DEBUG", "$switch/$port reset port is disabled for $switch $port. skipping.\n");
+				_log("DEBUG", "$switch/$port resetport is disabled for $switch $port. skipping.\n");
 				next;
 			}
-			_log("DEBUG", "$switch/$port yes, reserport is enabled and ttype=$ttype\n") if exists $opts{'D'};
+			_log("DEBUG", "$switch/$port yes, resetport is enabled and ttype=$ttype\n") if exists $opts{'D'};
 
 			if ($ttype == 2) { # LINKDOWN
 				_log("INFO", "$switch/$port LINKDOWN\n");
