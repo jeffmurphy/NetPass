@@ -251,3 +251,8 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug fix message editor click cancel causes admin session to be logged out
 	jcm bug fix if you change the status of a client's "result" in QC, no audit log
 		entry is made reflecting which admin changed the status
+
+2005-10-12
+	jcm bug fix. resetport.pl, bug in findThread caused most jobs to get assigned to 
+		same thread, possibly resulting in long delays.
+
