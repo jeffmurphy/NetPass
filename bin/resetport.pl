@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.18 2005/10/12 20:38:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.19 2005/10/12 20:45:04 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,7 +88,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.18 2005/10/12 20:38:45 jeffmurphy Exp $
+$Id: resetport.pl,v 1.19 2005/10/12 20:45:04 jeffmurphy Exp $
 
 =cut
 
@@ -296,7 +296,7 @@ sub findThread {
 	foreach my $tid (sort keys %$tp) { 
 		lock($tp->{$tid}->{thrq});
 		$qLens{$tid} = $tp->{$tid}->{'thrq'}->{'workLoad'};
-		_log("DEBUG", "$tid workLoad=".$qLens{$tid}."\n");
+		_log("DEBUG", "$tid workLoad=".$qLens{$tid}."\n") if exists $opts{'D'};
 		$firstSeen = $tid unless $firstSeen;
 	}
 
