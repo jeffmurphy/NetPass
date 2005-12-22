@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.20 2005/12/22 18:31:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.21 2005/12/22 18:36:41 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,14 +88,14 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.20 2005/12/22 18:31:02 jeffmurphy Exp $
+$Id: resetport.pl,v 1.21 2005/12/22 18:36:41 jeffmurphy Exp $
 
 =cut
 
 use strict;
 use Getopt::Std;
-#use lib '/opt/netpass/lib/';
-use lib '/u1/project/netpass/NetPass-2/lib/';
+use lib '/opt/netpass/lib/';
+#use lib '/u1/project/netpass/NetPass-2/lib/';
 use FileHandle;
 use Pod::Usage;
 use IO::Seekable;
