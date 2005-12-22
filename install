@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.28 2005/12/22 19:29:52 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.29 2005/12/22 21:12:21 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.28 2005/12/22 19:29:52 jeffmurphy Exp $
+$Id: install,v 1.29 2005/12/22 21:12:21 jeffmurphy Exp $
 
 =cut
 
@@ -1139,7 +1139,7 @@ connections that can be handled.\n";
 ENTER to keep our value: ");
 	$MaxClients ||= $mc;
 	ll("Apache httpd.conf\nMaxClients=$MaxClients\n");
-	apacheConfig_set(\@conf, '^#MaxClients', "MaxClients $MaxClients");
+	apacheConfig_set(\@conf, '^#MaxClients', "MaxClients $MaxClients\n");
 
 
 	# ^#ServerAdmin
@@ -1147,7 +1147,7 @@ ENTER to keep our value: ");
 
 	my $ServerAdmin = ask ("Enter an email address of the person/group that administers this webserver: ");
 	ll ("ServerAdmin=$ServerAdmin\n");
-	apacheConfig_set(\@conf, '^ServerAdmin', "ServerAdmin $ServerAdmin");
+	apacheConfig_set(\@conf, '^ServerAdmin', "ServerAdmin $ServerAdmin\n");
 
 	# ^#ServerName
 
@@ -1156,7 +1156,7 @@ in HA mode, then this is the name of the virtual server. Otherwise it's this mac
 real name.\n\n");
 
 	ll ("ServerName=$ServerName\n");
-	apacheConfig_set(\@conf, '^ServerName', "ServerName $ServerName");
+	apacheConfig_set(\@conf, '^ServerName', "ServerName $ServerName\n");
 
 	#XXX
 	squidGuardConfig("/opt/squidguard/SquidGuard.conf", $ServerName);

@@ -1,5 +1,12 @@
 dist:
-	(cd .. ; tar -cp --exclude CVS -f netpass-`cat NetPass/VERSION`.tar NetPass)
+	(NPVERSION=`head -1 VERSION` ; \
+	 NPBASEN=`basename $${PWD}` ; \
+	 cd .. ; \
+	 echo $${NPVERSION} $${NPBASEN} ; \
+	 mv $${NPBASEN} NetPass-$${NPVERSION} ;      \
+	 tar -cp --exclude CVS -f NetPass-$${NPVERSION}.tar NetPass-$${NPVERSION} ; \
+	 gzip -v -9 NetPass-$${NPVERSION}.tar ; \
+	 mv NetPass-$${NPVERSION} $${NPBASEN} )
 
 clean:
 	find . -name \*~ -exec rm -f {} \;
