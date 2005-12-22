@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.19 2005/10/12 20:45:04 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.20 2005/12/22 18:31:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,13 +88,14 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.19 2005/10/12 20:45:04 jeffmurphy Exp $
+$Id: resetport.pl,v 1.20 2005/12/22 18:31:02 jeffmurphy Exp $
 
 =cut
 
 use strict;
 use Getopt::Std;
-use lib '/opt/netpass/lib/';
+#use lib '/opt/netpass/lib/';
+use lib '/u1/project/netpass/NetPass-2/lib/';
 use FileHandle;
 use Pod::Usage;
 use IO::Seekable;
@@ -323,6 +324,10 @@ list and a switch:
 if a port on the pub queue is also on the priv queue, remove 
 it from the priv queue and remove it from the priv queue time.
 
+this means that link has come up on a port that we were going to 
+quarantine because link had gone down on it. since link is now 
+up, we remove it from the queue that tracks linkdown events.
+
 =cut
 
 sub removeFromQCheck {
@@ -333,13 +338,16 @@ sub removeFromQCheck {
 
 	return unless ( (ref($priv)  eq "HASH")  &&
 			(ref($pub)   eq "HASH")  &&
-			(ref($privT) eq "ARRAY") &&
+			(ref($privT) eq "HASH") &&
 			(exists $priv->{$sw})    &&
 			(exists $pub->{$sw}) );
 
 	# strip the ports from the priv queue
 
 	foreach my $port (@{$pub->{$sw}}) {
+		if (grep /^$port$/, @{$priv->{$sw}}) {
+			_log "DEBUG", "$sw $port is on the private Q. removing it.\n";
+		}
 		@{$priv->{$sw}} = grep !/^$port$/, @{$priv->{$sw}};
 	}
 
@@ -348,33 +356,6 @@ sub removeFromQCheck {
 	for (my $port = 1 ; $port <= $#{$privT->{$sw}} ; $port++) {
 		$privT->{$sw}->[$port] = undef 
 		  if (! grep /^$port$/, @{$priv->{$sw}});
-	}
-}
-
-=head2 removeFromUCheck($privU, $publicQ, $switch)
-
-Given the public quarantine (linkdown) queue and the private 
-unquarantine (linkup) queue and a switch:
-
-if a port on the pub queue is also on the priv queue, remove 
-it from the priv queue.
-
-=cut
-
-sub removeFromUCheck {
-	my $priv = shift;
-	my $pub  = shift;
-	my $sw   = shift;
-
-	return unless ( (ref($priv) eq "HASH") &&
-			(ref($pub)  eq "HASH") && 
-			(exists $priv->{$sw})  &&
-			(exists $pub->{$sw}) );
-
-	# strip the ports from the priv queue
-
-	foreach my $port (@{$pub->{$sw}}) {
-		@{$priv->{$sw}} = grep !/^$port$/, @{$priv->{$sw}};
 	}
 }
 
@@ -417,6 +398,8 @@ sub thread_entry {
 	}
 
 
+	my %SScache = (); # used in procUQ
+
 	while(1) {
 		my $didWork = 0;
 		{ 
@@ -425,13 +408,16 @@ sub thread_entry {
 			my $wl = workLoad($pq);
 			$thrq->{'workLoad'} = $wl;
 
-			#print $self->tid, " wakeup wl=$wl\n"; 
+			_log("DEBUG", $self->tid. " wakeup workload=$wl\n") if $wl; 
 
 			# move work to the private queues, deleting it from
 			# the public queue. if the port is not already on
 			# the linkdown queue, record the current time (and associate
 			# it with the port) so we can implement the linkflap
-			# tolerance feature.
+			# tolerance feature. similarly, if the port is not 
+			# already on the linkup queue, record the current time
+			# so we can expire the unquar job if no mac appears on the
+			# the port within a configurable timeframe.
 
 			# the ports coming are guaranteed (by 'processLines') to be
 			# unique. iow, you wont see the same port on both the 
@@ -462,9 +448,10 @@ sub thread_entry {
 					$pq->{'q'}->{$sw}  = &share([]);
 					$pq->{'qt'}->{$sw} = &share([]);
 					$pq->{'u'}->{$sw}  = &share([]);
+					$pq->{'ut'}->{$sw} = &share([]);
 				}
 
-				#print $self->tid, " sw=$sw moving u..\n";
+				_log("DEBUG", $self->tid, " $sw doing linkup->remove old linkdown check\n")  if exists $opts{'D'};
 
 				# run thru the new unquarantine ports (linkup ports)
 				# and see if any of them are on the private 
@@ -479,13 +466,25 @@ sub thread_entry {
 				# linkup queue. if they are, remove them from the
 				# priv linkup queue (unquar 'u' queue)
 
-				removeFromUCheck($pq->{'u'}, $thrq->{'q'}, $sw);
+				_log("DEBUG", $self->tid, " $sw doing linkdown->remove old linkup check\n")  if exists $opts{'D'};
+
+				removeFromQCheck($pq->{'u'}, $pq->{'ut'}, 
+						 $thrq->{'q'}, $sw);
 
 				# push the port onto the unquarantine work queue
-				# for this switch and then uniq that queue to remove
-				# duplicates. empty the public queue.
+				# for this switch. if the port wasn't already on
+				# the queue, record the current time so we can
+				# drop the linkup job if no mac appears on the port.
+				# then uniq that queue to remove duplicates. 
+				# empty the public queue.
 
-				push @{$pq->{'u'}->{$sw}}, @{$thrq->{'u'}->{$sw}};
+
+				($pq->{'u'}->{$sw},
+				 $pq->{'ut'}->{$sw})
+				  = starttime_calculation($pq->{'u'}->{$sw},
+							  $pq->{'ut'}->{$sw},
+							  $thrq->{'u'}->{$sw});
+
 				$pq->{'u'}->{$sw} = uniq($pq->{'u'}->{$sw});
 				$thrq->{'u'}->{$sw} = &share([]);
 
@@ -499,13 +498,13 @@ sub thread_entry {
 
 				($pq->{'q'}->{$sw},
 				 $pq->{'qt'}->{$sw})
-				  = linkflap_starttime_calculation($pq->{'q'}->{$sw},
-								   $pq->{'qt'}->{$sw},
-								   $thrq->{'q'}->{$sw});
+				  = starttime_calculation($pq->{'q'}->{$sw},
+							  $pq->{'qt'}->{$sw},
+							  $thrq->{'q'}->{$sw});
 
 				$pq->{'q'}->{$sw} = uniq($pq->{'q'}->{$sw});
 				$thrq->{'q'}->{$sw} = &share([]);
-				$pq = procUQ($pq, $np);
+				$pq = procUQ($pq, $np, \%SScache);
 			}
 
 		}
@@ -513,7 +512,16 @@ sub thread_entry {
 	}
 }
 
-sub linkflap_starttime_calculation {
+=head2 starttime_calculation
+
+Iterate over the list of new ports and if we find a port that is not 
+already known (is not on our thread-private list) then record
+the current time so we can track how long the port sits in the 
+queue.
+
+=cut
+
+sub starttime_calculation {
 	my $priv = shift; # private queue (arrayref)
 	my $ptl  = shift; # port time list (arrayref)
 	my $pub  = shift; # public queue (arrayref)
@@ -536,6 +544,13 @@ sub linkflap_starttime_calculation {
 	return ($priv, $ptl);
 }
 
+=head2 uniq
+
+Given a list, 'uniq' it so that each element appears only
+once.
+
+=cut
+
 
 sub uniq {
         my $ar = shift;
@@ -544,6 +559,13 @@ sub uniq {
         $ar = [ sort keys %h ];
         return $ar;
 }
+
+=head2 workLoad
+
+Add up all of the ports in the Q and U lists. The total is
+the work load for this thread.
+
+=cut
 
 sub workLoad {
 	my $pq = shift;
@@ -578,7 +600,7 @@ sub processLines {
 
 	while (defined(my $l = shift @{$lines})) {
 		chomp $l;
-		
+
 		if ($l !~ /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/) {
 			_log("ERROR", "Line looks funny, skipping: \"$l\"\n");
 			next;
@@ -602,10 +624,10 @@ sub processLines {
 			if ($_port  =~ /ifIndex.(\d+)\s/) {
 				$port = $1;
 			} else {
-				print "cant parse port out of \"$_port\". skip\n"
-				  if exists $opts{'D'};
-				_log("WARNING", "cant parse port out of \"$_port\"\n")
-				  unless exists $opts{'q'};
+				#print "cant parse port out of \"$_port\". skip\n"
+				#  if exists $opts{'D'};
+				#_log("WARNING", "cant parse port out of \"$_port\"\n")
+				#  unless exists $opts{'q'};
 				next;
 			}
 			
@@ -649,7 +671,10 @@ will be left alone (we assume the port is currently quarantined).
 
 Those that we cant make a decision on (because the port doesnt
 show any attached macs) will be left on the list and reviewed
-again the next time we are called.
+again the next time we are called. if too much time goes by
+(ResetPort Max Port Poll Time) we will drop the port from the 
+work queue and that user will have to visit the web page to get
+unquarantined.
 
 A port will be reviewed for a maximum of 1 hour. If we don't see a MAC
 appear in that time, we stop looking.
@@ -658,15 +683,19 @@ appear in that time, we stop looking.
 
 # 
 
+my $SScache = {};
+
 sub procUQ {
-	my $pq = shift;
-	my $np = shift;
+	my $pq      = shift;
+	my $np      = shift;
+	my $SScache = shift;
 
 	my $self = threads->self;
 
 	# process unquarantine (linkup) events
 
 	my $switches = uniq [ keys %{$pq->{'u'}}, keys %{$pq->{'q'}} ];
+
 
 	foreach my $switch (@$switches) {
 		my $cn = ($np->cfg->getCommunities($switch))[1];
@@ -676,21 +705,36 @@ sub procUQ {
 		next if (!exists($pq->{'u'}->{$switch}) && !exists($pq->{'q'}->{$switch}));
 		next if (($#{$pq->{'u'}->{$switch}} == -1) && ($#{$pq->{'q'}->{$switch}} == -1));
 
-                my $snmp = new SNMP::Device('hostname'       => $switch,
-                                            'snmp_community' => $cn);
+		my $snmp;
+
+		if (exists $SScache->{$switch}) {
+			_log("DEBUG", $self->tid, " using cached SNMP object $switch...\n") if exists $opts{'D'};
+			$snmp = $SScache->{$switch};
+		} else {
+			_log("DEBUG", $self->tid. " making a new SNMP object $switch ...\n") if exists $opts{'D'};
+			$snmp = new SNMP::Device('hostname'       => $switch,
+						 'snmp_community' => $cn);
+			$SScache->{$switch} = $snmp;
+		}
+			
                 my ($mp, $pm) = $snmp->get_mac_port_table();
+
+
+		# if the port is on Q and U and Q occurred after U then we need to
+		# drop from U
 
 		if (exists ($pq->{'u'}->{$switch})) {
 			foreach my $port (@{$pq->{'u'}->{$switch}}) {
+				my $firstSeen = $pq->{'ut'}->{$switch}->[$port];
 
 				# if the port is on the 'q' queue, remove it from that queue since
 				# link is now, apparently, up.
 
 				if (exists ($pq->{'q'}->{$switch})) {
-					_log("DEBUG", $self->tid(). " $switch $port possibly removing from 'q'\n");
-					@{$pq->{'q'}->{$switch}} = grep !/^$port$/, @{$pq->{'q'}->{$switch}};
-					if (exists ($pq->{'qt'}->{$switch})) {
-						$pq->{'qt'}->{$switch}->[$port] = undef;
+					if (grep /^$port$/,  @{$pq->{'q'}->{$switch}}) {
+						_log("DEBUG", $self->tid(). " $switch $port link is now up. removing from 'q' queue.\n");
+						@{$pq->{'q'}->{$switch}} = grep !/^$port$/, @{$pq->{'q'}->{$switch}};
+						$pq->{'qt'}->{$switch}->[$port] = undef if (exists ($pq->{'qt'}->{$switch}));
 					}
 				}
 
@@ -712,26 +756,41 @@ sub procUQ {
 				
 				_log("DEBUG", $self->tid. " link up $switch $port and unq_lu=$unq_on_linkup rppt=$rppt\n");
 				
-				print $self->tid. " fetch maclist\n" if exists $opts{'D'};
+				_log("DEBUG",  $self->tid. " fetch maclist\n") if exists $opts{'D'};
 				
 				if (!exists ($failed->{$switch})) {
 					$failed->{$switch} = [];
-					$failed->{$switch."PT"} = [];
 				}
 				
 				my $macList = $pm->{$port};
-				if (!defined($macList)) {
+
+				# if we find NO macs on the port, check to see how long we've been polling this port. if it's
+				# been too long, drop it.
+
+				if (!defined($macList) || $#$macList == -1) {
+					my $dropTime  = time() - $pq->{'ut'}->{$switch}->[$port];
+					my $droppedIn = $rppt-$dropTime;
+					$droppedIn    = $droppedIn < 0 ? 0 : $droppedIn;
 					_log ("ERROR", $self->tid(). 
-					      " we want to unquar on linkup, but $switch doesnt have mac information available for port $port yet!\n");
-					push @{$failed->{$switch}}, $port;
-					$failed->{$switch."PT"}->[$port] = time(); #XXX
+					      " we want to unquar on linkup, but $switch doesnt have mac information available for port $port yet! dropped in $droppedIn secs\n");
+					if (!defined($pq->{'ut'}->{$switch}->[$port])) {
+						_log ("WARNING", $self->tid(). " $switch $port no UT start time recorded for this port. dropping it from the watch queue.\n");
+					}
+					elsif ($dropTime > $rppt) {
+						_log ("WARNING", $self->tid(). " we've been polling $switch $port for too long (>$rppt secs). dropping it from the watch queue.\n");
+						$pq->{'ut'}->{$switch}->[$port] = undef;
+					} 
+					else {
+						# save the port and poll it again next time
+						push @{$failed->{$switch}}, $port;
+					}
 					next;
 				}
 				
-				print "macList=".join(',', @$macList)."\n" if exists $opts{'D'};
+				_log ("DEBUG", $self->tid. " macList=".join(',', @$macList)."\n") if exists $opts{'D'};
 				
 				if ($unq_on_linkup eq "1") {
-					print $self->tid(), " unq=ON findRegMac\n" if exists $opts{'D'};
+					_log("DEBUG", $self->tid(). " unq=ON findRegMac\n") if exists $opts{'D'};
 					
 					# in order to move the port to unquarantine
 					# we just need to call validateMac on the first
@@ -739,7 +798,7 @@ sub procUQ {
 					
 					my ($regMac, $regMacStatus) = findRegMac($np, $macList);
 					if (!defined($regMac)) {
-						_log ("WARNING", $self->tid(). " no macs registered on $switch $port. leaving in quarantine.\n");
+						_log ("WARNING", $self->tid(). " no registered macs found on $switch $port. leaving in quarantine.\n");
 					} else {
 						_log("DEBUG",  $self->tid(). " regMac $regMac $regMacStatus\n") if exists $opts{'D'};
 						
@@ -750,7 +809,7 @@ sub procUQ {
 						if ($#{$macList} == 0) {
 							_log ("DEBUG", $self->tid(). " $regMac is alone on $switch $port. status is $regMacStatus\n");
 							if ($regMacStatus =~ /UNQUAR$/) {
-								_log ("DEBUG", $self->tid(). " $regMac unquarantine $switch $port\n");
+								_log ("DEBUG", $self->tid(). " $regMac unquarantine $switch $port. port event is ".(time()-$firstSeen)." secs old.\n");
 								if(exists $opts{'n'}) {
 									_log("DEBUG", $self->tid(). " not really!\n");
 								} else {
@@ -771,7 +830,7 @@ sub procUQ {
 													   $switch, $port, 
 													   undef, {$port => $macList});
 							if ($_rv =~ /UNQUAR$/) {
-								_log ("DEBUG", $self->tid(). " $switch $port multiMac said to unquarantine the port.\n");
+								_log ("DEBUG", $self->tid(). " $switch $port multiMac said to unquarantine the port. port event is ".(time()-$firstSeen)." secs old.\n");
 								if (exists $opts{'n'}) {
 									_log("DEBUG", "not really!\n");
 								} else {
@@ -826,9 +885,10 @@ sub procUQ {
 			if (exists $pq->{'q'}->{$switch}) {
 				foreach my $port (@{$pq->{'q'}->{$switch}}) {
 					my $unq_on_linkup = $np->cfg->policy(-key => 'UNQUAR_ON_LINKUP') || "0";
-					my $rppt = $np->cfg->policy(-key => 'RESETPORT_PORT_POLL_TIME') || 0;
-                                        my $lftol = $np->cfg->policy(-key => 'LINKFLAP_TOLERANCE') || 0;
-					
+					my $rppt          = $np->cfg->policy(-key => 'RESETPORT_PORT_POLL_TIME') || 0;
+                                        my $lftol         = $np->cfg->policy(-key => 'LINKFLAP_TOLERANCE') || 0;
+					my $firstSeen     = $pq->{'qt'}->{$switch}->[$port];
+
 					# if possible, we'll resolve the switch/port to a specific network and the
 					# look to see if the above policy settings are over-ridden at the network or
 					# netgroup level.
@@ -848,7 +908,7 @@ sub procUQ {
 					# will be removed from the 'q' queue by the linkup code above. if the timer
 					# expires, quarantine the port.
 
-					if ($rppt) {
+					if ($lftol) {
 						if ($pq->{'qt'}->{$switch}->[$port]) {
 							# if we are on the 'u' list then link is up and we'll be
 							# removed from the 'u' list by the linkup code above.
@@ -862,7 +922,7 @@ sub procUQ {
 											 -vlan => 'quarantine', 
 											 -by => 'resetport.pl') ||
 											   _log("ERROR", $np->db->error());
-								_log ("DEBUG", $self->tid()." quarantined $switch $port because rppt expired\n") 
+								_log ("DEBUG", $self->tid()." quarantined $switch $port because linkflap tolerance expired\n") 
 								  if exists $opts{'D'};
 								
 								# remove the port from the linkdown queue since we've processed it
@@ -879,13 +939,13 @@ sub procUQ {
 							$pq->{'qt'}->{$switch}->[$port] = time();
 						}
 					} else {
-						# rppt is not set (or set to zero) so immediate quarantine the port
+						# lftol is not set (or set to zero) so immediately quarantine the port
 
 						$np->db->requestMovePort(-switch => $switch, -port => $port, 
 									 -vlan => 'quarantine', 
 									 -by => 'resetport.pl') ||
 									   _log("ERROR", $np->db->error());
-						_log ("DEBUG", $self->tid()." immediately quarantined $switch $port because rppt=0\n") 
+						_log ("DEBUG", $self->tid()." immediately quarantined $switch $port because lftol=0. port event is ".(time()-$firstSeen)." secs old.\n") 
 						  if exists $opts{'D'};
 
 						# remove the port from the linkdown queue since we've processed it
@@ -893,7 +953,7 @@ sub procUQ {
 						@{$pq->{'q'}->{$switch}} = grep /!$port$/, @{$pq->{'q'}->{$switch}};
 						$pq->{'qt'}->{$switch}->[$port] = undef;
                                        }
-				}
+				} # foreach port on this switch
 			}
 
 			# save the ports that have failed so we can take care of 
@@ -904,8 +964,9 @@ sub procUQ {
 				@{$pq->{'u'}->{$switch}} = @{$failed->{$switch}};
 			} else {
 				$pq->{'u'}->{$switch} = [];
+				$pq->{'ut'}->{$switch} = [];
 			}
-	      }
+		}
 
 	} # end foreach 
 

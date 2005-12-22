@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.7 2005/09/06 20:29:18 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Network.pm,v 1.8 2005/12/22 18:31:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -182,8 +182,9 @@ sub host2addr {
 	my $res   = new Net::DNS::Resolver;
 	my $query = $res->search($hn);
 	
+
 	return $hn if ($hn =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
-	
+
 	my $addr;
 	
 	if ($query) {
@@ -333,7 +334,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: Network.pm,v 1.7 2005/09/06 20:29:18 jeffmurphy Exp $
+$Id: Network.pm,v 1.8 2005/12/22 18:31:03 jeffmurphy Exp $
 
 =cut
 

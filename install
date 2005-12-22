@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.26 2005/08/16 14:04:31 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.27 2005/12/22 18:31:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.26 2005/08/16 14:04:31 jeffmurphy Exp $
+$Id: install,v 1.27 2005/12/22 18:31:02 jeffmurphy Exp $
 
 =cut
 
@@ -249,9 +249,9 @@ my $smtp_server = ask("Some of the NetPass subsystems send problem alerts via em
 Enter an SMTP server here: ");
 
 patchConf("/etc", "inittab", { '%SMTPHOST%' => $smtp_server });
+configureNPSVC($PKGDIR."/etc/npsvc-example.conf", $TARGET."/etc/npsvc.conf");
 lsystem("/sbin/init q");
 
-configureNPSVC($TARGET);
 
 my $squidRV = patchSquidConf($PKGDIR, "install.d/squid.conf");
 
@@ -1256,6 +1256,28 @@ sub installReiserprogs {
 	fetchRemoteFile("http://foobar.cit.buffalo.edu/netpass/ttt/RHAS".$ver,
 			"reiserfsprogs-3.6.19-1.i386.rpm");
 	lsystem("rpm -U /tmp/reiserfsprogs-3.6.19-1.i386.rpm");
+}
+
+
+sub configureNPSVC {
+	my $cf = shift;
+	my $sf = shift;
+
+	# edit npsvc.conf
+
+	print "\nWe use 'npsvc' to make sure critical processes are running.\n";
+	my $em = ask ("Enter an email address that npsvc can mail if it spots something wrong: ");
+	my $fh = new FileHandle $cf, "r";
+	ldie "failed to open $cf for reading: $!" unless defined $cf;
+	my $f2 = new FileHandle $sf, "w";
+	ldie "failed to open $sf for writing: $!" unless defined $sf;
+	while(my $line = <$fh>) {
+		$line =~ s/%EMAIL%/$em/g;
+		print $f2 $line;
+	}
+	$fh->close;
+	$f2->close;
+	lprint "NPSVC configuration file installed to $sf\n";
 }
 
 

@@ -51,6 +51,10 @@ iptables -A PREROUTING -t mangle -p tcp --dport 80        -j RETURN
 iptables -A PREROUTING -t mangle -p tcp --dport 443        -j MARK --set-mark 1
 iptables -A PREROUTING -t mangle -p tcp --dport 443        -j RETURN
 
+iptables -A PREROUTING -t mangle -p tcp --dport 20003        -j MARK --set-mark 1
+iptables -A PREROUTING -t mangle -p tcp --dport 20003        -j RETURN
+
+
 iptables -A PREROUTING -t mangle        -j DROP
 
 #iptables -A PREROUTING -t mangle         -j MARK --set-mark 1

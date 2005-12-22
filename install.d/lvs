@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/install.d/lvs,v 1.3 2005/03/17 17:38:38 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install.d/lvs,v 1.4 2005/12/22 18:31:02 jeffmurphy Exp $
 #
 # installation script for redirectors
 
@@ -31,7 +31,7 @@ my $vip = ask("\nWe'll now configure /etc/ha.d/ldirectord.cf. What's the virtual
 you've decided to use? ");
 my $rs1 = ask("\nWhat's the IP address of the first NetPass server? ");
 my $rs2 = ask("\nWhat's the IP address of the second NetPass server? ");
-my $d2  = ask("\nWhat's the IP address of the other NetPass redirector? ");
+my $d2  = ask("\nWhat's the IP address of the other NetPass redirector (not this one)? ");
 
 my $fhI = new FileHandle "$PKGDIR/install.d/ldirectord.cf", "r";
 die "can't open $PKGDIR/install.d/ldirectord.cf for reading: $!" unless defined $fhI;
@@ -48,10 +48,10 @@ while(my $line = <$fhI>) {
 $fhI->close;
 $fhO->close;
 
-print "We will not configure /etc/ha.d/ha.cf. The 'hostname' that we are\n\
+print "We will now configure /etc/ha.d/ha.cf. The 'hostname' that we are\n\
 about to ask for must match the output of 'uname -n' on each redirector.\n";
-my $dir1 = ask("\nEnter the hostname address of the primary redirector: ");
-my $dir2 = ask("\nEnter the hostname address of the backup redirector: ");
+my $dir1 = ask("\nEnter the HOSTNAME of the primary redirector: ");
+my $dir2 = ask("\nEnter the HOSTNAME of the backup redirector: ");
 
 $fh = new FileHandle "/etc/ha.d/ha.cf", "w";
 die "cant open /etc/ha.d/ha.cf for writing: $!" unless defined $fh;
@@ -75,8 +75,8 @@ if ($fh) {
 print "XXX IPTABLES, perl, /var/run/netpass, startup scripts (netpassha, garp) CONFIG HERE\n\n";
 
 
-print "\nHA configuration complete. Use the netpass/bin/interfacecfg.pl script
-to generate your HA interface configuration script.\n";
+print "\nHA configuration complete. Use the netpassha init script
+to bring this redirector online.\n";
 
 exit 0;
 

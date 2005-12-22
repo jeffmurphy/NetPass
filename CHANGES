@@ -256,3 +256,13 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug fix. resetport.pl, bug in findThread caused most jobs to get assigned to 
 		same thread, possibly resulting in long delays.
 
+2005-12-23
+	jcm bug fix. resetport.pl. bug in quarantine/linkdown processing if you 
+		had linkflap tolerance enabled but port-polling disabled. it would
+		ignore the linkflap tolerance setting.
+	jcm resetport.pl added feature for port polling. if linkup on a port but
+		no mac appears on the port for N seconds (settable) resetport will
+		drop the port from the work queue.
+	jcm bug fix. apparently i missed a routine in the install script, causing
+		it to error out.
+

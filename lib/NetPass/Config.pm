@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.53 2005/08/22 19:26:07 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.54 2005/12/22 18:31:03 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -90,7 +90,7 @@ sub reloadIfChanged {
 
 	    _log ("DEBUG", "config changed. reloading. cur=".
 		  $self->{'cfg_from_db'}->{'rev'}.
-		  " new=".$newCfg->{'rev'});
+		  " new=".$newCfg->{'rev'}."\n");
 
 	    $self->{'cfg'} = new Config::General(-String           => $newCfg->{'config'},
 						 -AutoTrue         => 1,
@@ -2872,7 +2872,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.53 2005/08/22 19:26:07 jeffmurphy Exp $
+$Id: Config.pm,v 1.54 2005/12/22 18:31:03 jeffmurphy Exp $
 
 =cut
 

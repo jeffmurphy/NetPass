@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.12 2005/09/19 15:25:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.13 2005/12/22 18:31:02 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -94,7 +94,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.12 2005/09/19 15:25:03 jeffmurphy Exp $
+$Id: macscan.pl,v 1.13 2005/12/22 18:31:02 jeffmurphy Exp $
 
 =cut
 
@@ -386,7 +386,7 @@ sub daemonize
 
     my ($myname, $pidDir) = (shift, shift);
     chdir $pidDir or die "$myname: can't chdir to $pidDir: $!";
-    -w $pidDir or die "$myname: can't write to $pidDir\n";
+    -w $pidDir or warn "$myname: can't write to $pidDir\n";
 
     open STDIN, '/dev/null' or die "$myname: can't read /dev/null: $!";
     open STDOUT, '>/dev/null'
@@ -396,10 +396,12 @@ sub daemonize
     if($pid) {
 	# parent
 	my $pidFile = $pidDir . "/" . $myname . ".pid";
-	open PIDFILE, "> " . $pidFile
-	  or die "$myname: can't write to $pidFile: $!\n";
-	print PIDFILE "$pid\n";
-	close(PIDFILE);
+	if(open PIDFILE, "> " . $pidFile) {
+		print PIDFILE "$pid\n";
+		close(PIDFILE);
+	} else {
+		warn "$myname: can't write to $pidFile: $!\n";
+	}
 	exit 0;
     }
     # child
