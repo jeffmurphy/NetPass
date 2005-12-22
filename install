@@ -4,7 +4,7 @@
 # iptables
 
 
-# $Header: /tmp/netpass/NetPass/install,v 1.27 2005/12/22 18:31:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/install,v 1.28 2005/12/22 19:29:52 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -67,7 +67,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: install,v 1.27 2005/12/22 18:31:02 jeffmurphy Exp $
+$Id: install,v 1.28 2005/12/22 19:29:52 jeffmurphy Exp $
 
 =cut
 
@@ -138,11 +138,21 @@ my $SQUIDG   = "sg.tar.bz2";
 
 if ($uninstall) {
 	lprint("Uninstalling NetPass ..\n");
+
 	foreach my $etcf ('services', 'syslog.conf') {
 		depatchConf("/etc", $etcf);
 	}
 	lsystem("/etc/init.d/syslog restart");
+
+	depatchConf("/etc", "inittab");
+	lsystem("/sbin/init q");
+
+	lsystem("/etc/init.d/netpass stop");
+
+	lsystem("/etc/init.d/syslog restart");
+	lsystem("/etc/init.d/syslog restart");
 	depatchConf("/etc/squid", "squid.conf");
+
 	removeTree($TARGET);
 	lsystem("crontab -u netpass -r");
 	lsystem("/usr/sbin/userdel netpass") && lprint("userdel netpass failed $!\n");
@@ -171,11 +181,10 @@ if ($uninstall) {
 	lsystem("rm /etc/iptables.sh");
 
 	uninstallSwatch();
-
 	depatchConf("/etc", "fstab");
-	depatchConf("/etc", "inittab");
-	lsystem("/sbin/init q");
 	dropDatabase();
+
+	uninstallStartupScripts($PKGDIR."/install.d/init.d");
 
 	lprint ("NetPass uninstall finished.\n");
 	exit 0;
@@ -250,8 +259,6 @@ Enter an SMTP server here: ");
 
 patchConf("/etc", "inittab", { '%SMTPHOST%' => $smtp_server });
 configureNPSVC($PKGDIR."/etc/npsvc-example.conf", $TARGET."/etc/npsvc.conf");
-lsystem("/sbin/init q");
-
 
 my $squidRV = patchSquidConf($PKGDIR, "install.d/squid.conf");
 
@@ -271,6 +278,8 @@ startupProcs();
 lprint("Installation finished. Connect to this host with a web browser to
 configure netpass. Login as netpass/netpass. Be sure to change your 
 authentication method and/or reset the password as soon as you login.\n");
+
+lsystem("/sbin/init q");
 
 $LOG->close;
 
@@ -332,6 +341,7 @@ sub startupProcs {
 	lsystem("/etc/init.d/apache start");
 	lsystem("/etc/init.d/squid start");
 	lsystem("/etc/init.d/swatch start");
+	lsystem("/etc/init.d/netpass start");
 }
 
 sub installIPTables {
@@ -383,7 +393,7 @@ separated by spaces:
 	if ($useha =~ /^y/i) {
 		$npvip  = ask("Enter the virtual IP address for this NetPass cluster: ");
 		$redir1 = ask("Enter the DNS name (or IP address) for the primary redirector: ");
-		$redir2 = ask("Enter the DNS name (or IP address) for the primary redirector (hit enter if you only have one redirector): ");
+		$redir2 = ask("Enter the DNS name (or IP address) for the secondary redirector (hit enter if you only have one redirector): ");
 		$R->{'npvip'}  = $npvip;
 		$R->{'redir1'} = $redir1;
 		$R->{'redir2'} = $redir2;
@@ -507,11 +517,12 @@ sub installStartupScripts {
 
 	installApacheStartupScript($ssdir, "apache", $skip->{'apache'});
 
-	foreach my $script ("nessusd", "netpass", "swatch") {
+	foreach my $script ("nessusd", "netpass", "swatch", "netpassha") {
 		next if exists $skip->{$script} && $skip->{$script};
 		lsystem("/bin/cp $ssdir/$script /etc/init.d/")
 		  unless (-f "/etc/init.d/$script");
-		lsystem("chkconfig --level 2345 $script on");
+		lsystem("chkconfig --level 2345 $script on")
+		  unless ($script eq "netpassha"); # manually do this
 	}
 
 	# squid init script installed via RPM
@@ -520,6 +531,24 @@ sub installStartupScripts {
 	lsystem ("chkconfig --level 2345 dhcrelay on");
 	lsystem ("chkconfig --level 2345 snmptrapd on");
 	lsystem ("chkconfig --level 2345 apache on");
+}
+
+sub uninstallStartupScripts {
+	my $ssdir = shift;
+	my $skip  = shift;
+	$skip = {} if (!defined($skip) || (ref($skip) ne "HASH"));
+
+	lsystem ("chkconfig --level 2345 squid off");
+	lsystem ("chkconfig --level 2345 dhcrelay off");
+	lsystem ("chkconfig --level 2345 snmptrapd off");
+	lsystem ("chkconfig --level 2345 apache off");
+
+	foreach my $script ("nessusd", "netpass", "swatch", "netpassha") {
+		next if exists $skip->{$script} && $skip->{$script};
+		lsystem("chkconfig --level 2345 $script off");
+		lsystem("chkconfig --del $script");
+		lsystem("/bin/rm -f /etc/init.d/$script");
+	}
 }
 
 sub installApacheStartupScript {
@@ -1381,19 +1410,19 @@ sub loadTables {
 	$rv = lsystem(qq{echo "insert into users values ('$u', 'Admin')" | mysql -fu $u $p netpass});
 	ldie "failed to create '$u' netpass account" if $rv;
 
-	$rv = lsystem(qq{insert into user values "('127.0.0.1', '$u', '', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0)" | mysql -fu $u $p mysql });
+	$rv = lsystem(qq{echo insert into user values "('127.0.0.1', '$u', '', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0)" | mysql -fu $u $p mysql });
 	ldie "failed to add 127.0.0.1 to table mysql:user" if $rv;
 
-	$rv = lsystem(qq{insert into db values "('127.0.0.1', '%', '$u', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y')" | mysql -fu $u $p mysql});
+	$rv = lsystem(qq{echo insert into db values "('127.0.0.1', '%', '$u', 'Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y')" | mysql -fu $u $p mysql});
 
 	ldie "failed to add 127.0.0.1 to table mysql:user" if $rv;
 
 	# redirectors
 
 	foreach my $rd ($R->{'redir1'}, $R->{'redir2'}) {
-		$rv = lsystem(qq{insert into db values "('$rd', '%', '$u', 'Y','N','N','N','N','N','N','N','N','N','N','N')" | mysql -fu $u $p mysql});
+		$rv = lsystem(qq{echo insert into db values "('$rd', '%', '$u', 'Y','N','N','N','N','N','N','N','N','N','N','N')" | mysql -fu $u $p mysql});
 		ldie "failed to add $rd to mysql:db table ($rv)" if $rv;
-		$rv = lsystem(qq{insert into user values "('$rd', '$u', '$p','y','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','','','','',0,0,0)" | mysql -fu $u $p mysql});
+		$rv = lsystem(qq{echo insert into user values "('$rd', '$u', '$p','y','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','n','','','','',0,0,0)" | mysql -fu $u $p mysql});
 		ldie "failed to add $rd to mysql:user table ($rv)" if $rv;
 	}
 
