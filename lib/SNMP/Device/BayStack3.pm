@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack3.pm,v 1.3 2004/10/15 15:49:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack3.pm,v 1.4 2006/01/05 21:02:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -123,13 +123,15 @@ sub get_unit_info {
 
 }
 
-=head2 B<get_if_info()>
+=head2 B<get_if_info($port)>
 
 =over 8
 
-This will return a hash with all interfaces and their information,
-including unit, port, admin status, operational status, autonegotiation,
-duplex, speed, fcs errors, vlan tagged/untagged, PVID, and member VLANS.
+This will return a hash with all interfaces (or just the one
+you specified) and their information, including unit, port, admin status, 
+operational status, autonegotiation, duplex, speed, fcs errors, vlan 
+tagged/untagged, PVID, and member VLANS. The B<$port> parameter
+is the final digit of the OID, not really the port number.
 
 =back
 
@@ -137,6 +139,7 @@ duplex, speed, fcs errors, vlan tagged/untagged, PVID, and member VLANS.
 
 sub get_if_info {
 	my $self = shift;
+	my $port = shift;
 
 	my $port_info = {};
 
@@ -152,6 +155,27 @@ sub get_if_info {
                         'autoneg'         => '.1.3.6.1.4.1.2272.1.4.10.1.1.11',
                         'fcs_errors'      => '.1.3.6.1.2.1.10.7.2.1.3',
                    };
+
+	if ($port) {
+		my @vbl;
+		my $oid2name = {};
+		foreach my $name (keys %$oids) {
+			push @vbl, $oids->{$name}.".$port";
+			$oid2name->{$oids->{$name}.".$port"} = $name;
+		}
+
+		my $r = $self->snmp->get_request(-varbindlist => \@vbl);
+
+		if ($self->snmp->error) {
+			$port_info->{$port}->{'error'} = $self->snmp->error;
+		} else {
+			foreach my $oid (keys %$oid2name) {
+				$port_info->{$port}->{$oid2name->{$oid}} = $r->{$oid};
+			}
+		}
+		return $port_info;
+	}
+
 
         foreach my $oid (keys %$oids) {
                 $self->_loadTable($oids->{$oid}, $oid, $port_info);
@@ -762,7 +786,7 @@ sub HexMac2DecMac {
 
 =head1 REVISION
 
-$Id: BayStack3.pm,v 1.3 2004/10/15 15:49:35 jeffmurphy Exp $
+$Id: BayStack3.pm,v 1.4 2006/01/05 21:02:35 jeffmurphy Exp $
 
 =cut
 

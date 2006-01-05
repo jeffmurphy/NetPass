@@ -266,3 +266,18 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug fix. apparently i missed a routine in the install script, causing
 		it to error out.
 
+2005-12-23
+	jcm NP 2.1 released
+
+2006-01-03
+	jcm bug fix in install-lvs.sh - added gcc, et al, to up2date install line
+	jcm bug fix in iptables-lvs.sh - moved 'allow loopback INPUT traffic' to above
+		INPUT drop all rule
+	jcm bug fix in ldirectord.cf - set persistant to 600 for SNMP trap packets
+
+2006-01-05
+	jcm fixed getRegisterInfo so the return values matched the doc. 
+	jcm fixed bug in byclient report so it handled the rv from gri correctly
+	jcm modified gri so it can handle a -switch and -port parameter
+	jcm added bin/portinfo.pl report
+	jcm changed the workLoad calculation in resetport

@@ -402,4 +402,25 @@ sub check_if_tagged {
     return ($res->{$oid} == 1) ? 1 : 0;
 }
 
+
+=head2 B<get_if_info($port)>
+
+=over 8
+
+This will return a hash with all interfaces (or just the one
+you specified) and their information, including unit, port, admin status, 
+operational status, autonegotiation, duplex, speed, fcs errors, vlan 
+tagged/untagged, PVID, and member VLANS. The B<$port> parameter
+is the final digit of the OID, not really the port number.
+
+=back
+
+=cut
+
+sub get_if_info {
+	my $self = shift;
+	my $port = shift;
+	die "not implemented";
+}
+
 1;

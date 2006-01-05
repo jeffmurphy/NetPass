@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.56 2005/09/01 18:27:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.57 2006/01/05 21:02:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -300,7 +300,7 @@ sub setSwitchPort {
     return 0;
 }
 
-=head2 $rv = getRegisterInfo(-mac => mac, -macs => [], -ip => ip, -ips => [])
+=head2 $rv = getRegisterInfo(-mac => mac, -macs => [], -ip => ip, -ips => [], -switch => ip, -port => number)
 
 This routine will get the registered info on an already registered MAC. Returns:
 
@@ -308,11 +308,17 @@ This routine will get the registered info on an already registered MAC. Returns:
 
 =item C<HASHREF> 
 
-containing keys that correspond to the macAddresses given.
-values of C<HASHREF> are C<HASHREF>s containing keys: ipAddress, lastSeen,
-registeredOn, status, message, username, OS, switchIP, switchPort, uqlinkup.
+keys in the hash contain either macAddresses or IP Addresses. 
+If you specify the B<mac>, B<macs> or B<switch>/B<port> parameters
+then the keys are mac addresses. If you specify the B<ip> or
+B<ips> parameters, then the keys are IP Addresses.
 
-If the Mac is not registered, it won't be in the HASHREF returned.  
+values of C<HASHREF> are themselves C<HASHREF>s containing 
+keys: ipAddress, lastSeen, registeredOn, status, message, 
+username, OS, switchIP, switchPort, uqlinkup.
+
+If no matches are found (e.g. the Mac is not registered),
+the HASREF will be empty.  
 
 on success
 
@@ -336,19 +342,23 @@ sub getRegisterInfo {
 
     my $parms = parse_parms({
 			     -parms    => \@_,
-			     -legal    => [ qw(-mac -macs -ip -ips) ],
-			     -defaults => { -mac  => '',
-					    -macs => [],
-					    -ip   => '',
-					    -ips  => []
+			     -legal    => [ qw(-mac -macs -ip -ips -switch -port) ],
+			     -defaults => { -mac    => '',
+					    -macs   => [],
+					    -ip     => '',
+					    -ips    => [],
+					    -switch => '',
+					    -port   => ''
 					  }
 			    }
 			   );
 
     return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
     
-    my ($mac, $macs, $ip, $ips) = $parms->get('-mac', '-macs', 
-					      '-ip', '-ips');
+    my ($mac, $macs, $ip, $ips, $switch, $port) = 
+      $parms->get('-mac', '-macs', 
+		  '-ip', '-ips',
+		  '-switch', '-port');
 
     my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE ";
     if ($mac ne "") {
@@ -359,6 +369,11 @@ sub getRegisterInfo {
 	    $sql .= " ipAddress = ".$self->dbh->quote($ip);
 	    $kfield = "ipAddress";
     }
+    elsif ($switch ne "" && $port ne "") {
+	    $sql .= " ( switchIP = ".$self->dbh->quote($switch) .
+	      " AND switchPort = ".$self->dbh->quote($port) . " ) ";
+	    $kfield = "macAddress";
+    }
     elsif ($#{$macs} > -1) {
 	    $sql .= join (" OR ", (map (" macAddress = ".$self->dbh->quote($_), @{$macs})));
 	    $kfield = "macAddress";
@@ -367,13 +382,16 @@ sub getRegisterInfo {
 	    $sql .= join (" OR ", (map (" ipAddress = ".$self->dbh->quote($_), @{$ip})));
 	    $kfield = "ipAddress";
     }
+    elsif (($switch && !$port) || (!$switch && $port)) {
+	    return "invalid parameters";
+    }
 
     my $a    = $self->{'dbh'}->selectall_hashref($sql, $kfield);
 
     return $a if (defined($a) && (ref($a) eq "HASH"));
 
     _log "ERROR", "select failed: ".$self->{'dbh'}->errstr."\n";
-    return undef;
+    return "db failure ". $self->{'dbh'}->errstr;
 }
 
 =head2 $msg = getPageList(-name => $name, -group => '')
@@ -2899,7 +2917,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.56 2005/09/01 18:27:20 jeffmurphy Exp $
+$Id: DB.pm,v 1.57 2006/01/05 21:02:35 jeffmurphy Exp $
 
 =cut
 

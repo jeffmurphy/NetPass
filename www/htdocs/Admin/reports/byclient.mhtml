@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.6 2005/09/09 12:32:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.7 2006/01/05 21:02:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -151,47 +151,51 @@ sub printNeighborTable {
 			$q->th("OS")
 		);
 
-	if ($#{$neis} < 1) {
-		push @rows, $q->td({-align=>'center', -colspan=>5}, "<I>none</I>");
-	}
-
-	foreach my $m (sort @$neis) {
-		next if ($m eq $mac);
-
-	        my $ldap_url = $np->cfg->policy(-key => 'LDAP_USER_QUERY', -network => $ri->{$m}->{'ipAddress'} );
-        	my $ldap_puh = $np->cfg->policy(-key => 'LDAP_POPUP_HEIGHT', -network => $ri->{$m}->{'ipAddress'} );
-        	my $ldap_puw = $np->cfg->policy(-key => 'LDAP_POPUP_WIDTH', -network => $ri->{$m}->{'ipAddress'}  );
-		my $ldap_ref = '';
-		if ($ldap_url) {
-			$ldap_puh ||= 480;
-			$ldap_puw ||= 640;
-			$ldap_ref = sprintf(qq{<a href="javascript:ldap_popup('$ldap_url', %d, %d);">}, 
-					$ri->{$m}->{'username'},
-					$ldap_puw, $ldap_puh);
+	if (ref($ri) ne "HASH") {
+		push @rows, $q->td({-align=>'center', -colspan=>5}, "<I>Error: $ri</I>");
+	} else {
+		if ($#{$neis} < 1) {
+			push @rows, $q->td({-align=>'center', -colspan=>5}, "<I>none</I>");
 		}
 
-		my $row = "";
-		if (exists $ri->{$m}) {
-			$row .= 
-				$q->td(qq{<a href="/Admin/qc.mhtml?mac=$m&submit=search">}.
-					$ri->{$m}->{'status'}."</a>")     .
-				$q->td($ldap_ref.$ri->{$m}->{'username'}.($ldap_ref?"</a>":""))   .
-				$q->td($ri->{$m}->{'ipAddress'})  .
-				$q->td($ri->{$m}->{'OS'});
-		} else {
-			$row .= $q->td("UNREG") .
-				    $q->td({-align=>'center'}, "-")  .
-				    $q->td({-align=>'center'},"-")  .
-				    $q->td({-align=>'center'},"-");
+		foreach my $m (sort @$neis) {
+			next if ($m eq $mac);
+
+		        my $ldap_url = $np->cfg->policy(-key => 'LDAP_USER_QUERY', -network => $ri->{$m}->{'ipAddress'} );
+	        	my $ldap_puh = $np->cfg->policy(-key => 'LDAP_POPUP_HEIGHT', -network => $ri->{$m}->{'ipAddress'} );
+	        	my $ldap_puw = $np->cfg->policy(-key => 'LDAP_POPUP_WIDTH', -network => $ri->{$m}->{'ipAddress'}  );
+			my $ldap_ref = '';
+			if ($ldap_url) {
+				$ldap_puh ||= 480;
+				$ldap_puw ||= 640;
+				$ldap_ref = sprintf(qq{<a href="javascript:ldap_popup('$ldap_url', %d, %d);">}, 
+						$ri->{$m}->{'username'},
+						$ldap_puw, $ldap_puh);
+			}
+
+			my $row = "";
+			if (exists $ri->{$m}) {
+				$row .= 
+					$q->td(qq{<a href="/Admin/qc.mhtml?mac=$m&submit=search">}.
+						$ri->{$m}->{'status'}."</a>")     .
+					$q->td($ldap_ref.$ri->{$m}->{'username'}.($ldap_ref?"</a>":""))   .
+					$q->td($ri->{$m}->{'ipAddress'})  .
+					$q->td($ri->{$m}->{'OS'});
+			} else {
+				$row .= $q->td("UNREG") .
+					    $q->td({-align=>'center'}, "-")  .
+					    $q->td({-align=>'center'},"-")  .
+					    $q->td({-align=>'center'},"-");
+			}
+
+			push @rows, $q->TR(
+				{ -id => $rl[$rn % 2].$rn, -class => $rl[$rn % 2] } ,
+				$q->td({-class => 'mono', -id => "nei-$mac-Cell-$rn"}, 
+					NetPass::padMac($m)),
+				$row);
+
+			$rn++;
 		}
-
-		push @rows, $q->TR(
-			{ -id => $rl[$rn % 2].$rn, -class => $rl[$rn % 2] } ,
-			$q->td({-class => 'mono', -id => "nei-$mac-Cell-$rn"}, 
-				NetPass::padMac($m)),
-			$row);
-
-		$rn++;
 	}
 
 	print $q->table({-border=>0, -id => 'nei_'.$mac}, 

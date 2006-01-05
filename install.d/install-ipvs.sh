@@ -1,6 +1,7 @@
 #!/bin/sh 
 
 R="http://foobar.cit.buffalo.edu/netpass/ttt/RHAS4";
+BD=`dirname "$0"`
 
 mkdir /tmp/npipvs.$$
 cd /tmp/npipvs.$$
@@ -21,7 +22,7 @@ done
 rpm -iv libnet-1.1.2.1-2.i386.rpm
 mkdir -p /var/cache/cpan/build /var/cache/cpan/sources
 unset DISPLAY
-up2date --nox -i glib-devel openssl-devel libnet   perl-CPAN
+up2date --nox -i glib-devel openssl-devel libnet   perl-CPAN gcc flex bison
 # 5.8.5 = RH4
 cp Config.pm /usr/lib/perl5/5.8.5/CPAN/Config.pm
 cat <<EOF
@@ -64,6 +65,14 @@ chkconfig --level 345 ipvsadm on
 echo "install Parse::RecDescent" | perl -MCPAN -e shell
 
 up2date --nox -i perl-Digest-HMAC
+
+cat <<EOF >>/etc/syslog.conf
+local0.*        /var/log/ha.log
+EOF
+
+cp /dev/null /var/log/ha.log
+/etc/init.d/syslog restart
+cp ${BD}/iptables-lvs.sh /etc/iptables.sh
 
 cat <<EOF
 

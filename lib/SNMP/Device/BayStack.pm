@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack.pm,v 1.6 2005/04/12 17:02:37 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device/BayStack.pm,v 1.7 2006/01/05 21:02:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -128,13 +128,15 @@ sub get_unit_info {
 
 }
 
-=head2 B<get_if_info()>
+=head2 B<get_if_info($port)>
 
 =over 8
 
-This will return a hash with all interfaces and their information,
-including unit, port, admin status, operational status, autonegotiation,
-duplex, speed, fcs errors, vlan tagged/untagged, PVID, and member VLANS.
+This will return a hash with all interfaces (or just the one
+you specified) and their information, including unit, port, admin status, 
+operational status, autonegotiation, duplex, speed, fcs errors, vlan 
+tagged/untagged, PVID, and member VLANS. The B<$port> parameter
+is the final digit of the OID, not really the port number.
 
 =back
 
@@ -142,6 +144,7 @@ duplex, speed, fcs errors, vlan tagged/untagged, PVID, and member VLANS.
 
 sub get_if_info {
 	my $self = shift;
+	my $port = shift;
 
 	my $port_info = {};
 
@@ -164,8 +167,32 @@ sub get_if_info {
 			'fcs_errors'      => '.1.3.6.1.2.1.10.7.2.1.3',
 
 			'vlan_port_type'  => '.1.3.6.1.4.1.2272.1.3.3.1.4',
+		        # 1 = not trunk, 2 = trunk
         		'vlan_default_id' => '.1.3.6.1.4.1.2272.1.3.3.1.7'
 		   };
+
+	if ($port) {
+		my @vbl;
+		my $oid2name = {};
+		foreach my $name (keys %$oids) {
+			push @vbl, $oids->{$name}.".$port";
+			$oid2name->{$oids->{$name}.".$port"} = $name;
+		}
+
+		my $r = $self->snmp->get_request(-varbindlist => \@vbl);
+
+		if ($self->snmp->error) {
+			$port_info->{$port}->{'error'} = $self->snmp->error;
+		} else {
+			foreach my $oid (keys %$oid2name) {
+				$port_info->{$port}->{$oid2name->{$oid}} = $r->{$oid};
+			}
+		}
+		return $port_info;
+	}
+
+
+	# otherwise, we need to fetch all of the ports and do a bigger hash
 
         foreach my $oid (keys %$oids) {
                 $self->_loadTable($oids->{$oid}, $oid, $port_info);
@@ -876,20 +903,20 @@ OIDs contain mac address... .1.3.6.4.9999.2.1.0.255.0.255.0.255 = ...
 =cut
 
 sub HexMac2DecMac {
+	my $hex_mac = shift; # hexadecimal mac in raw 12-character format (no : or - separators). 
+	my $dec_mac = ''; # rv
 
-   my $hex_mac = shift; # hexadecimal mac in raw 12-character format (no : or - separators). 
-   my $dec_mac = ''; # rv
-
-   my ($m1, $m2, $m3, $m4, $m5, $m6) = ($hex_mac =~ /^(\w{2})(\w{2})(\w{2})(\w{2})(\w{2})(\w{2})$/); # MAC pieces, base 16.
-
-   $m1 = hex($m1);
-   $m2 = hex($m2);
-   $m3 = hex($m3);
-   $m4 = hex($m4);
-   $m5 = hex($m5);
-   $m6 = hex($m6);
-
-   return "$m1.$m2.$m3.$m4.$m5.$m6"; # decimal equivalent of hexadecimal mac address.
+	my ($m1, $m2, $m3, $m4, $m5, $m6) = 
+	  ($hex_mac =~ /^(\w{2})(\w{2})(\w{2})(\w{2})(\w{2})(\w{2})$/); # MAC pieces, base 16.
+	
+	$m1 = hex($m1);
+	$m2 = hex($m2);
+	$m3 = hex($m3);
+	$m4 = hex($m4);
+	$m5 = hex($m5);
+	$m6 = hex($m6);
+	
+	return "$m1.$m2.$m3.$m4.$m5.$m6"; # decimal equivalent of hexadecimal mac address.
 }
 
 =head1 AUTHOR
@@ -906,7 +933,7 @@ sub HexMac2DecMac {
 
 =head1 REVISION
 
-$Id: BayStack.pm,v 1.6 2005/04/12 17:02:37 jeffmurphy Exp $
+$Id: BayStack.pm,v 1.7 2006/01/05 21:02:35 jeffmurphy Exp $
 
 =cut
 

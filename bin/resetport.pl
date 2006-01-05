@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.21 2005/12/22 18:36:41 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/resetport.pl,v 1.22 2006/01/05 21:02:35 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -88,7 +88,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: resetport.pl,v 1.21 2005/12/22 18:36:41 jeffmurphy Exp $
+$Id: resetport.pl,v 1.22 2006/01/05 21:02:35 jeffmurphy Exp $
 
 =cut
 
@@ -408,7 +408,7 @@ sub thread_entry {
 			my $wl = workLoad($pq);
 			$thrq->{'workLoad'} = $wl;
 
-			_log("DEBUG", $self->tid. " wakeup workload=$wl\n") if $wl; 
+			#_log("DEBUG", $self->tid. " wakeup workload=$wl\n") if $wl; 
 
 			# move work to the private queues, deleting it from
 			# the public queue. if the port is not already on
@@ -562,7 +562,8 @@ sub uniq {
 
 =head2 workLoad
 
-Add up all of the ports in the Q and U lists. The total is
+Add up all of the ports in the Q and U lists. Add to 
+that the number of switches assigned to us. That total is
 the work load for this thread.
 
 =cut
@@ -578,7 +579,8 @@ sub workLoad {
 			$wl += @{$pq->{'q'}->{$sw}};
 		}
 	}
-	return $wl;
+	my $numSwitches = keys %{$pq->{'u'}};
+	return $wl + $numSwitches;
 }
 
 =head2 processLines(\@lines)
