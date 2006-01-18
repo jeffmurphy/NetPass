@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/portinfo.pl,v 1.1 2006/01/05 21:02:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/portinfo.pl,v 1.2 2006/01/18 17:01:30 jeffmurphy Exp $
 #
 #   (c) 2006 University at Buffalo.
 #   Available under the "Artistic License"
@@ -41,7 +41,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: portinfo.pl,v 1.1 2006/01/05 21:02:35 jeffmurphy Exp $
+$Id: portinfo.pl,v 1.2 2006/01/18 17:01:30 jeffmurphy Exp $
 
 =cut
 
@@ -86,10 +86,17 @@ my $cn = ($np->cfg->getCommunities($s))[1];
 if (!defined($cn)) {
 	print "Switch community name isn't configured in NetPass. Can't query switch.\n";
 } else {
+	my ($uv, $qv) = $np->cfg->availableVlans(-switch => $s, -port => $p);
 	my $snmp = new SNMP::Device('hostname'       => $s,
 				    'snmp_community' => $cn);
 	my $vlans = $snmp->get_vlan_membership($p);
-	my $vlns  = join(',', sort {$a <=> $b} @$vlans);
+	my $vlns;
+	foreach my $vl (sort {$a <=> $b} @$vlans) {
+		$vlns .= $vl;
+		$vlns .= "(U)" if $vl == $uv;
+		$vlns .= "(Q)" if $vl == $qv;
+		$vlns .= " ";
+	}
 	my $defid = $snmp->get_default_vlan_id($p);
 	my $h = $snmp->get_if_info($p);
 	my ($mp, $pm) = $snmp->get_mac_port_table();
@@ -97,8 +104,11 @@ if (!defined($cn)) {
 	print "Desc   : ", $h->{$p}->{if_descr}, "\n";
 	
 	print "VLANS  : $vlns\n";
-	print "PVID   : $defid\n"; 
-	print "State  : ", ("?", "Down", "Up")[$h->{$p}->{if_status}], "\n";
+	print "PVID   : $defid"; 
+	print "(U)\n" if $defid == $uv;
+	print "(Q)\n" if $defid == $qv;
+
+	print "State  : ", ("?", "Up", "Down")[$h->{$p}->{if_status}], "\n";
 	print "Trunk  ? ", ("?", "No", "Yes")[$h->{$p}->{vlan_port_type}], "\n";
 	print "Speed  : ", ("?", "10", "100", "1000")[$h->{$p}->{speed}], " Mbps\n";
 	print "Duplex : ", ("?", "Half", "Full")[$h->{$p}->{duplex}], "\n";

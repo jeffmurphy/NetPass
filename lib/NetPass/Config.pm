@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.54 2005/12/22 18:31:03 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.55 2006/01/18 17:01:30 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -2247,17 +2247,19 @@ sub configuredPorts {
 }
 
 
-=head2 my @tagList = $cfg-E<gt>availableVlans(-host => host, -port => port)
+=head2 my @tagList = $cfg-E<gt>availableVlans(-switch => IP, -port => port)
 
 =head2 my @tagList = $cfg-E<gt>availableVlans(-network => network)
 
 Given a hostname (or IP) and a port, return the list of available tags
 for that port. This list will always be two elements. The first is the 
-"good" vlan and the second is the "quarantine" vlan. Returns:
+"unquarantine" vlan and the second is the "quarantine" vlan. 
+
+RETURNS
 
 =over 4
 
-=item ($good, $bad)
+=item ($unquar_vlanid, $quar_vlanid)
 
 a two element list of integers
 
@@ -2872,7 +2874,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.54 2005/12/22 18:31:03 jeffmurphy Exp $
+$Id: Config.pm,v 1.55 2006/01/18 17:01:30 jeffmurphy Exp $
 
 =cut
 

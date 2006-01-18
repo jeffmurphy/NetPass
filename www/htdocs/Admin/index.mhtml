@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.13 2005/08/31 20:09:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/index.mhtml,v 1.14 2006/01/18 17:01:30 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -132,8 +132,9 @@ sub makeSoapConnection {
 
         my $proxy = "tcp://$host:$port";
         my $soap  = SOAP::Lite->new(
-                                    uri   => 'tcp://netpass/NetPass/Snort',
-                                    proxy => $proxy,
+                                    uri     => 'tcp://netpass/NetPass/Snort',
+                                    proxy   => $proxy,
+				    timeout => 5
                                    );
         return undef unless defined $soap;
 

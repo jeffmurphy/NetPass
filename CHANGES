@@ -281,3 +281,8 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm modified gri so it can handle a -switch and -port parameter
 	jcm added bin/portinfo.pl report
 	jcm changed the workLoad calculation in resetport
+
+2006-01-18
+	jcm fixed a bug in qc.mhtml where changing the 'unquar when?' field would
+		cause the port to be quarantined. #1409203
+
