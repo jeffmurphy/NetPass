@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.19 2005/09/09 12:32:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/autohandler,v 1.20 2006/01/18 19:21:37 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -20,7 +20,9 @@
 	my $lt  = shift;
 	my $url = shift;
 	my $SID = $m->session->{_session_id};
+#print STDERR "url $url\n";
 	return $lt.$url.'"' if $url =~ m{^\w+://}; # Don't alter external URLs
+	return $lt.$url.'"' if $url =~ m{javascript:ldap_popup}; # Don't alter external URLs
 	if ( $url !~ /npsess=/ ) {
 		if ($url =~ /\?/) {
 			$url =~ s/\?/?npsess=$SID&/;

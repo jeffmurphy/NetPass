@@ -283,6 +283,10 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm changed the workLoad calculation in resetport
 
 2006-01-18
-	jcm fixed a bug in qc.mhtml where changing the 'unquar when?' field would
-		cause the port to be quarantined. #1409203
-
+	jcm bug#1409203 in qc.mhtml where changing the 'unquar when?' field would
+		cause the port to be quarantined.
+	jcm bug#1409317 last-seen and registered-on column headers were swapped on
+		qc.mhtml
+	jcm bug#1409318 ldap_popup (which wraps occurances of usernames on the admin
+		pages) would have the npsess cgi var appended to it. stopped that
+		from happening.
