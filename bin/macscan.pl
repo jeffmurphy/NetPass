@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.14 2006/01/19 21:41:48 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.15 2006/01/19 21:46:45 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -94,7 +94,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.14 2006/01/19 21:41:48 jeffmurphy Exp $
+$Id: macscan.pl,v 1.15 2006/01/19 21:46:45 jeffmurphy Exp $
 
 =cut
 
@@ -103,7 +103,7 @@ use strict;
 use threads;
 use threads::shared;
 use Getopt::Std;
-use lib '/u1/project/netpass/NetPass-2/lib';
+#use lib '/u1/project/netpass/NetPass-2/lib';
 use lib '/opt/netpass/lib/';
 use FileHandle;
 use Pod::Usage;
