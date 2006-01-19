@@ -290,3 +290,19 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug#1409318 ldap_popup (which wraps occurances of usernames on the admin
 		pages) would have the npsess cgi var appended to it. stopped that
 		from happening.
+
+2006-01-19
+	jcm bug#1410167 results in audit page didnt sort correctly and included
+		duplicates.
+	jcm features: audit page gets clickable mac, username fields. clicking on
+		the mac column jumps to the byclient report. clicking the username
+		opens an ldap lookup. also for messages of type 
+		"multi-mac: BAD neighbor $mac status ..." clicking on the neighbor
+		$mac address will jump to the manual registration screen.
+	jcm fixed table header in mr.mhtml which said "Search" even tho that 
+		didn't make sense.
+	jcm feature: BeginScan now obeys the "What to do when Nessus is down?"
+		setting (Config->General). If you set When_Down to "FAIL" then
+		you need to also create a page called "msg:nessus_down" which
+		will be displayed so that the user knows why they can't get
+		out of quarantine.
