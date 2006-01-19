@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.9 2005/09/14 17:41:27 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.10 2006/01/19 21:41:48 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -44,6 +44,15 @@ if (! $m->comp('/Admin/MemberOf', 'acl' => [ 'Admin', 'Reports' ]) ) {
 
 </%perl>
 <P>Note: a mac address of 000000000000 (all zeros) means "remote user"<P>
+
+<script language="JavaScript">
+function ldap_popup(url, w, h) {
+	var opts="top=0,left=0,scrollbars,status=no,menubar=no,location=no,toolbar=no,resizable=yes,fullsize=no,width="
+		+ w + ",height=" + h;
+        window.open(url, "LDAP Query", opts);
+}
+</script>
+
 <%perl>
 
 print "<!--";
@@ -190,7 +199,16 @@ my @rows = (
 			$q->th("Message")
 		));
 
-foreach my $row ( sort { $a->[0] <=> $b->[0] } @$results ) {
+
+# it would be nice to put the ldap url lookup in the loop
+# so that we can fetch any per-network custom ldap settings,
+# but it's too slow.
+
+my $ldap_url = $np->cfg->policy(-key => 'LDAP_USER_QUERY');
+my $ldap_puh = $np->cfg->policy(-key => 'LDAP_POPUP_HEIGHT');
+my $ldap_puw = $np->cfg->policy(-key => 'LDAP_POPUP_WIDTH');
+
+foreach my $row ( sort { $b->[0] cmp $a->[0] } @$results ) {
 	# 0 dt
 	# 1 username
 	# 2 ipAddress
@@ -198,14 +216,38 @@ foreach my $row ( sort { $a->[0] <=> $b->[0] } @$results ) {
 	# 4 severity
 	# 5 location
 	# 6 message
+
+	my $user = $row->[1];
+	my $ip   = $row->[2];
+	my $mac  = NetPass::padMac($row->[3]);
+	my $msg  = $row->[6];
+
+	if ($mac ne '' && $mac ne '0'x12) {
+		$mac = qq{<a href="/Admin/reports/byclient.mhtml?macs=$mac">$mac</a>};
+	}
+
+	if ($msg =~ /multi-mac: BAD neighbor ([0-9a-f]+) status (\S+)/) {
+		$msg  = "multi-mac: BAD neighbor ";
+		$msg .= qq{<a href="/Admin/mr.mhtml?mac=$1&uid=$user&ip=$ip">$1</a>};
+		$msg .= " status $2";
+	}
+
+	if ($ldap_url && $user) {
+		$ldap_puh ||= 480;
+		$ldap_puw ||= 640;
+		$user = sprintf(qq{<a href="javascript:ldap_popup('$ldap_url', %d, %d);">$user</a>}, 
+				$user,
+				$ldap_puw, $ldap_puh);
+	}
+
 	push( @rows,	$q->TR( {-class=> $row->[4] },
-				$q->td({-align=>'center'}, $row->[0])         .
-				$q->td({-align=>'center'}, $row->[1])   .
-				$q->td({-align=>'center'}, $row->[2])  .
-				$q->td({-align=>'center'}, NetPass::padMac($row->[3])) .
-				#$q->td({-align=>'center'}, $row->[4])   .
-				#$q->td({-align=>'center'}, $row->[5])   . 
-				$q->td({-align=>'center'}, $row->[6]) 
+				$q->td({-align=>'center'}, $row->[0])                  .
+				$q->td({-align=>'center'}, $user)                      .
+				$q->td({-align=>'center'}, $ip)                        .
+				$q->td({-align=>'center'}, $mac)                       .
+				#$q->td({-align=>'center'}, $row->[4])                 .
+				#$q->td({-align=>'center'}, $row->[5])                 . 
+				$q->td({-align=>'center'}, $msg) 
 			));
 }
 
@@ -307,7 +349,10 @@ sub getAudits {
 
 	my @results = @$lres;
 
+	use Sys::Hostname;
 	foreach my $npserv (keys %hosts) {
+		next if $npserv eq hostname;
+		print "Retrieving results from $npserv <BR>\n";
 		my $rdbh = DBI->connect('dbi:mysql:database=netpass;host='.$npserv, 
 				$np->cfg->dbUsername, $np->cfg->dbPassword);
 		if ($rdbh) {

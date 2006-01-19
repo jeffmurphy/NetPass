@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.13 2005/12/22 18:31:02 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.14 2006/01/19 21:41:48 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -94,7 +94,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.13 2005/12/22 18:31:02 jeffmurphy Exp $
+$Id: macscan.pl,v 1.14 2006/01/19 21:41:48 jeffmurphy Exp $
 
 =cut
 
@@ -103,6 +103,7 @@ use strict;
 use threads;
 use threads::shared;
 use Getopt::Std;
+use lib '/u1/project/netpass/NetPass-2/lib';
 use lib '/opt/netpass/lib/';
 use FileHandle;
 use Pod::Usage;
@@ -311,24 +312,29 @@ sub thread_entry {
 					my @nOkMacs;
 					my $mac;
 					
+					print "[$tid] Port $p contains macs: ".join(',', @{$pm->{$p}})."\n" if $D;
+
 					foreach $mac (@{$pm->{$p}}) {
 						my $mok = $np->db->macIsRegistered($mac);
-
 						if ( $mok == -1 ) {
+							print "[$tid] reg status of $mac is 'dbfailure'\n" if $D;
 							_log("ERROR", "macIsRegistered($mac) failed: ".$np->db->error()."\n");
 						}
 						elsif ( $mok == 0 ) {
 							# mac is not registered 
+							print "[$tid] reg status of $mac is 'not registered'\n" if $D;
 							$portIsOK = 0;
 							push @nOkMacs, $mac."/NR";
 						} 
 						elsif ($np->db->macStatus($mac) =~ /^[P]QUAR/) {
 							# mac registered but quarantined
+							print "[$tid] reg status of $mac is 'registered but quarantined'\n" if $D;
 							$portIsOK = 0;
 							push @nOkMacs, $mac."/Q";
 							#_log("INFO", "$mac is quarantined, port state is ".join(',',@$curVlanSetting)."\n");
 						} else {
 							# mac is registered and unquar
+							print "[$tid] reg status of $mac is 'registered and unquarantined'\n" if $D;
 							push @okMacs, $mac;
 						}
 					}

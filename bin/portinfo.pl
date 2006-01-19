@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/portinfo.pl,v 1.2 2006/01/18 17:01:30 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/portinfo.pl,v 1.3 2006/01/19 21:41:48 jeffmurphy Exp $
 #
 #   (c) 2006 University at Buffalo.
 #   Available under the "Artistic License"
@@ -41,13 +41,14 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: portinfo.pl,v 1.2 2006/01/18 17:01:30 jeffmurphy Exp $
+$Id: portinfo.pl,v 1.3 2006/01/19 21:41:48 jeffmurphy Exp $
 
 =cut
 
 use strict;
 use Getopt::Std;
-use lib '/opt/netpass/lib';
+use lib '/u1/project/netpass/NetPass-2/lib';
+#use lib '/opt/netpass/lib';
 use FileHandle;
 use Pod::Usage;
 
