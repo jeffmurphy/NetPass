@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.11 2005/08/10 19:52:16 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/Scan/ids.mhtml,v 1.12 2006/02/07 19:54:33 jeffmurphy Exp $
 #
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -103,13 +103,18 @@ setWhereAmI('IDS Config');
 my @rwGroups = ('Admin', 'ScanAdmin');
 my @roGroups = ('Reports');
 my $readOnly = "disabled";
-my @aclGroups = ();
 
-if (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ])) {
+my $isRO = ($m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ]))[0];
+my $isRW = ($m->comp('/Admin/MemberOf', 'acl' => [ @rwGroups ]))[0];
+
+if ($isRW) {
         $readOnly = "";
-} elsif (@aclGroups = $m->comp('/Admin/MemberOf', 'acl' => [ @roGroups ])) {
+	$isRO     = 0; 
+} 
+elsif ($isRO) { 
         $readOnly = "disabled";
-} else {
+} 
+else {
         print $q->p({-class=>'error'},
                 "Sorry, permission denied.<BR>You must be in one of these groups: ",
                 join(',', @rwGroups, @roGroups));

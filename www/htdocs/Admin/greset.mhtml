@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.7 2005/08/31 20:09:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/greset.mhtml,v 1.8 2006/02/07 19:54:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -38,6 +38,7 @@ setWhereAmI('Global Reset');
 </script>
 
 <%perl>
+
 
 use Sys::Hostname;
 

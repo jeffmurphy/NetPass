@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.13 2005/08/31 20:09:17 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/Login,v 1.14 2006/02/07 19:54:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -17,8 +17,13 @@ logged in, otherwise it returns 0.
 <%perl>
 #use Data::Dumper; print "<PRE>", Dumper($m->session), "</PRE>";
 
+	my $ngroups = exists($m->session->{'my_groups'}) && (ref($m->session->{'my_groups'}) eq "HASH") ?
+			scalar keys %{$m->session->{'my_groups'}} : 0;
+
 	return 1 if (exists $m->session->{'logged_in'} && 
-			($m->session->{'logged_in'} == 1));
+		     ($m->session->{'logged_in'} == 1) &&
+		     $ngroups > 0
+		    );
 
 	delete $m->session->{'username'};
 	delete $m->session->{'my_groups'};
@@ -30,24 +35,37 @@ logged in, otherwise it returns 0.
         		                        $password);
 
 		if (defined($aok) && ($aok == 1)) {
-			_log("INFO", $username." is logging in to Admin tool\n");
-			$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
-				-user => $username, -msg => [ "$username logged in to Admin tool" ]);
-			$m->session->{'logged_in'} = 1; # FIX/Client/Login
-			$m->session->{'username'}  = $username;
 			$m->session->{'my_groups'} = $np->db->getUserGroups($username);
-			my $uri = $r->uri;
-			if ($uri =~ /^\/Admin/) {
-				_log("DEBUG", "redir ".add_session_id2($uri)."\n");
-				$m->redirect(add_session_id2($uri));
-			} else {
-				_log("DEBUG", "redir2 /Admin/index.mhtml\n");
-				$m->redirect('/Admin/index.mhtml');
-			}
+			$ngroups = exists($m->session->{'my_groups'}) && (ref($m->session->{'my_groups'}) eq "HASH") ?
+				scalar keys %{$m->session->{'my_groups'}} : 0;
 
-                	return 1;
+			if ($ngroups > 0) {
+				$m->session->{'username'}  = $username;
+				$m->session->{'logged_in'} = 1; # FIX/Client/Login
+				my $uri = $r->uri;
+				if ($uri =~ /^\/Admin/) {
+					_log("DEBUG", "redir ".add_session_id2($uri)."\n");
+					$m->redirect(add_session_id2($uri));
+				} else {
+					_log("DEBUG", "redir2 /Admin/index.mhtml\n");
+					$m->redirect('/Admin/index.mhtml');
+				}
+				_log("INFO", $username." logged in to Admin tool\n");
+				$np->db->audit(-severity => 'NOTICE', -ip => $ENV{'REMOTE_ADDR'},
+					-user => $username, -msg => [ "$username logged in to Admin tool" ]);
+
+	                	return 1;
+			} else {
+	                        print "<center>Authentication failed.</center><P>";
+				_log("INFO", $username." authenticated to Admin tool, but is not a member of any groups.\n");
+				$np->db->audit(-severity => 'ALERT', -ip => $ENV{'REMOTE_ADDR'},
+					-user => $username, -msg => [ "$username authenticated to Admin tool, but is not a member of any groups." ]);
+			}
                 } else {
                         print "<center>Authentication failed.</center><P>";
+			_log("INFO", $username." failed to authenticate to Admin tool.\n");
+			$np->db->audit(-severity => 'ALERT', -ip => $ENV{'REMOTE_ADDR'},
+				-user => $username, -msg => [ "$username failed to authenticate to Admin tool." ]);
                 }
         } 
 </%perl>

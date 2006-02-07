@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.9 2005/09/19 15:26:56 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/bynet.mhtml,v 1.10 2006/02/07 19:54:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -15,9 +15,15 @@ setWhereAmI('Reports');
 
 <%perl>
 
+if (! ($m->comp('/Admin/MemberOf', 'acl' => [ 'Admin', 'Reports' ]))[0] ) {
+	print $q->p({-class=>'error'}, "Sorry, permission denied.<BR>(You must be an Admin or in the Reports group)");
+	return;
+}
+
 use Time::HiRes qw(gettimeofday tv_interval);
 use NetPass::Network qw (cidr2int searchArpCache int2cidr ip2int int2ip allOnesBroadcast);
 use Net::Ping::External qw(ping);
+
 
 
 if ( $m->comp('/Admin/Login', %ARGS) ) {

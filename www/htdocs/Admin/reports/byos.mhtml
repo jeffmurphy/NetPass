@@ -22,6 +22,11 @@ my $GRAPHIMG   = "byospiechart.png";
 my @cols;
 my @vals;
 
+if (! ($m->comp('/Admin/MemberOf', 'acl' => [ 'Admin', 'Reports' ]))[0] ) {
+	print $q->p({-class=>'error'}, "Sorry, permission denied.<BR>(You must be an Admin or in the Reports group)");
+	return;
+}
+
 if ( $m->comp('/Admin/Login', %ARGS) ) {
 	my $data = get_OS_data($dbh);
 

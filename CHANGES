@@ -306,3 +306,11 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 		you need to also create a page called "msg:nessus_down" which
 		will be displayed so that the user knows why they can't get
 		out of quarantine.
+
+2006-02-07
+	jcm bug#1426340 fixed a bug where users who could authenticate (i.e via 
+		radius) but did not have any explicit permissions (group membership)
+		would still get readonly access to certain pages
+	jcm bug#1426335 fixed a bug on a few forms (IDS, Audit, Reports) allowed readonly
+		access even if you werent in the appropriate readonly group(s)
+

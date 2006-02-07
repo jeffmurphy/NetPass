@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/Admin/MemberOf,v 1.4 2005/08/11 00:04:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/Admin/MemberOf,v 1.5 2006/02/07 19:54:33 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -26,7 +26,7 @@
 <%perl>
 
 	my $D = 0;
-	if (0) { #$m->session->{'username'} eq "jefftest") {
+	if (0) { #($m->session->{'username'} eq "jefftest") {
 		$D = 1;
 		use Data::Dumper;
 
