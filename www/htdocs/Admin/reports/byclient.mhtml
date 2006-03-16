@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.8 2006/02/07 19:54:33 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/reports/byclient.mhtml,v 1.9 2006/03/16 21:27:51 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -214,6 +214,8 @@ sub printMacInfo {
 	my $mi = shift;
 	my $nk = keys %$mi;
 
+	my $unameprompt = $np->cfg->policy(-key => 'USERNAME_PROMPT') || "Username";
+	$unameprompt =~ s/:$//;
 
 	if ($nk > -1) {
 		my @rows = ();
@@ -221,7 +223,7 @@ sub printMacInfo {
 		push @rows, $q->TR(
 			$q->th("Mac Address") .
 			$q->th("Status"),
-		   	$q->th("UBIT Name") .
+		   	$q->th($unameprompt) .
 			$q->th("IP Address") .
 			$q->th("OS") .
 			$q->th("Switch"),

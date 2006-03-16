@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.12 2005/08/04 06:45:24 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.13 2006/03/16 21:27:51 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -45,7 +45,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.12 2005/08/04 06:45:24 jeffmurphy Exp $
+$Id: interfacecfg.pl,v 1.13 2006/03/16 21:27:51 jeffmurphy Exp $
 
 =cut
 
@@ -76,7 +76,7 @@ my $IFCONFIG	= "/sbin/ifconfig";
 my $ROUTE	= "/sbin/route";
 my $HARESOURCES	= "/etc/ha.d/haresources";
 
-getopts('U:d:r:c:h', \%opts);
+getopts('DU:d:r:c:h', \%opts);
 
 pod2usage(2) if ($opts{'h'});
 

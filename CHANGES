@@ -314,3 +314,9 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug#1426335 fixed a bug on a few forms (IDS, Audit, Reports) allowed readonly
 		access even if you werent in the appropriate readonly group(s)
 
+2006-03-16
+	jcm bug#1451624 table column in reports/byclient and audit page referenced 
+		'UBIT Name'
+	jcm bug#1451626 user editored emitted debugging output in some circumstances
+	jcm bug#1451625 remove a user from all groups, sometimes doesnt delete the
+		user from the database

@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.11 2006/02/07 19:54:33 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/audit.mhtml,v 1.12 2006/03/16 21:27:51 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -177,7 +177,7 @@ if ($count < 0) {
 
 print $q->h4("Showing Results $result_set");
 
-if($count==0 && $start==0) {
+if($count == 0 && $start == 0) {
 	print $q->p("You may want to re-define your search to be less strict.<br>I would suggest removing one or more fields and modifying the Search Type.");
 	return;
 }
@@ -187,10 +187,13 @@ print "&nbsp;";
 print $q->a({ -href=>$next_link }, "Next Page -->") if($next_link ne '');
 print $q->br;
 
+my $unameprompt = $np->cfg->policy(-key => 'USERNAME_PROMPT') || "Username";
+$unameprompt =~ s/:$//;
+
 my @rows = (
 		$q->TR(
 			$q->th("Date/Time") .
-			$q->th("UBIT Name") .
+			$q->th($unameprompt) .
 			$q->th("IP Address") .
 			$q->th("Mac Address") .
 			#$q->th("Severity") .
@@ -327,10 +330,11 @@ sub getAudits {
 	my $lres = $dbh->selectall_arrayref($query);
 
 	if(!defined($lres)) {
-        	return ("failed to retrieve local results: ". $dbh->errstr, -1);
+		print $q->p({-class => 'error'}, "Failed to retrieve local results: ". $dbh->errstr);
+        	return ([], 0, "failed to retrieve local results: ". $dbh->errstr, -1);
     	}
 
-	my $count      = $#{$lres};
+	my $count      = $#{$lres} > -1 ? $#{$lres} : 0;
 
 	my $link      = "audit.mhtml?ip=$ip&mac=$mac&uid=$uid&type=$type&message=$message&search=Search&start=";
 	my $prev_link = $link . ($start-$limit);
@@ -347,6 +351,7 @@ sub getAudits {
 	}
 
 	my @results = @$lres;
+	my $rcount = 0;
 
 	use Sys::Hostname;
 	foreach my $npserv (keys %hosts) {
@@ -356,6 +361,7 @@ sub getAudits {
 				$np->cfg->dbUsername, $np->cfg->dbPassword);
 		if ($rdbh) {
 			my $rres = $rdbh->selectall_arrayref($query);
+			$rcount += ($#{$rres}+1);
 			if (ref($rres) eq "ARRAY") {
 				push @results, @$rres;
 			} else {
@@ -366,8 +372,7 @@ sub getAudits {
 			print $q->p({-class => 'error'}, "Failed to connect to database on $npserv");
 		}
 	}
-
-	return (\@results, $count, $result_set, $next_link, $prev_link);
+	return (\@results, $count || $rcount, $result_set, $next_link, $prev_link);
 }
 
 </%perl>

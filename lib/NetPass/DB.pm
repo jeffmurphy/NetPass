@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.57 2006/01/05 21:02:35 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.58 2006/03/16 21:27:51 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -1451,8 +1451,9 @@ Reports and Users screens for the "128.205.10.0/24" network.
 
 =cut
 
-# go from NetAdmin;Test Network+NetAdmin;128.205.10.0/24+Reports+Users
-# to the hash
+# go from Test Network+NetAdmin;128.205.10.0/24+Reports+Users
+# to the hash. All DB entries must be in the form 
+# Group+perm+perm+...
 
 sub decomposeGroupMembership {
 	my $self = shift;
@@ -1464,15 +1465,13 @@ sub decomposeGroupMembership {
 			my $network   = $1;
 			my $netgroups = $2;
 			$rv->{$network} = [ split(/\+/, $netgroups) ];
-		} else {
-			$rv->{$c} = 1;
-		}
+		} 
 	}
 	return $rv;
 }
 
 # go from the hash back to 
-# NetAdmin;Test Network+NetAdmin;128.205.10.0/24+Reports+Users
+# Test Network+NetAdmin;128.205.10.0/24+Reports+Users
 
 sub composeGroupMembership {
 	my $self = shift;
@@ -1481,11 +1480,9 @@ sub composeGroupMembership {
 
 	my $gstring = "";
 	foreach my $g (sort keys %$gh) {
-		if (ref($gh->{$g}) eq "ARRAY") {
+		if ( (ref($gh->{$g}) eq "ARRAY") && ($#{$gh->{$g}} > -1) ) {
 			$gstring .= "$g+".join('+', @{$gh->{$g}}).";";
-		} else {
-			$gstring .= "$g;";
-		}
+		} 
 	}
 	$gstring =~ s/;$//;
 	return $gstring;
@@ -2917,7 +2914,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.57 2006/01/05 21:02:35 jeffmurphy Exp $
+$Id: DB.pm,v 1.58 2006/03/16 21:27:51 jeffmurphy Exp $
 
 =cut
 

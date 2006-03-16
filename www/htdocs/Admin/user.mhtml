@@ -1,6 +1,6 @@
 
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.24 2005/06/23 20:21:09 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/user.mhtml,v 1.25 2006/03/16 21:27:51 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -42,7 +42,7 @@ if (!$isRoot && !$isReadWrite) {
 # these are reserved group names.
 
 my %groups = ( 'Admin' => 1, 'ScanAdmin' => 1, 'Editor' => 1, 'Reports' => 1,
-		'UserEditor' => 1, 'QuarAdmin' => 1 ); #, 'NetAdmin' => 1 );
+		'UserEditor' => 1, 'QuarAdmin' => 1 );
 my @groups = (keys %groups);
 my $error  = "";
 my $whoami = $m->session->{'username'};
@@ -148,7 +148,7 @@ if ($submit eq "Commit Changes") {
 		foreach $user (keys %$uh) {
 			print "PASS1($user): examine group membership from webdata..\n" if $D;
 			foreach my $bdgrp (keys %{$uh->{$user}}) {
-				print "\texamining group $bdgrp ..\n";
+				print "\texamining group $bdgrp ..\n" if $D;
 				if ($bdgrp !~ /$mygrpRE/) {
 					print "\t\twe found a group $bdgrp that we arent allowed to edit\n" if $D;
 
