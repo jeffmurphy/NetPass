@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.55 2006/01/18 17:01:30 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/Config.pm,v 1.56 2006/03/23 18:50:04 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -899,6 +899,27 @@ sub nonquarantineVlan {
         return undef;
 }
 
+=head2 my $cmac = $cfg-E<gt>getCustomMAC(network)
+
+return the custom MAC address we've set for this network.
+See Appendix D of the NetPass manual for a discussion on how this is used.
+
+=cut
+
+sub getCustomMAC {
+        my $self = shift;
+        my $nw = shift;
+
+	$self->reloadIfChanged();
+
+        if ($self->{'cfg'}->obj('network')->exists($nw)) {
+                if ($self->{'cfg'}->obj('network')->obj($nw)->exists('cmac')) {
+                        return $self->{'cfg'}->obj('network')->obj($nw)->value('cmac');
+                }
+        }
+        return undef;
+}
+
 =head2 my $int = $cfg-E<gt>getInterface(network)
 
 return the interface that is connected to the given network. returns undef
@@ -1014,10 +1035,10 @@ sub getNetComment {
     return "";
 }
 
-=head2 $cfg-E<gt>setNetwork(-network => '', -comment => '', -interface => '', -qvid => #, -uqvid => #)
+=head2 $cfg-E<gt>setNetwork(-network => '', -comment => '', -interface => '', -qvid => #, -uqvid => #, -cmac => '')
 
-Given a network, set the various "core" network fields. A comment of "" or undef is OK. All other
-fields are required.
+Given a network, set the various "core" network fields. A comment of "" or undef is OK. 'cmac'
+is optional. All other fields are required.
 
 RETURNS
 
@@ -1032,9 +1053,9 @@ sub setNetwork {
 
         my $parms = parse_parms({
 				 -parms => \@_,
-				 -legal => [qw(-network -comment -interface -qvid -uqvid)],
+				 -legal => [qw(-network -comment -interface -qvid -uqvid -cmac)],
 				 -required => [qw(-network -interface -qvid -uqvid)],
-				 -defaults => { -comment => '' }
+				 -defaults => { -comment => '', -cmac => '' }
 			    }
 			   );
 
@@ -1042,10 +1063,15 @@ sub setNetwork {
 		return "invalid parameters: ".Carp::longmess("invalid parameters ".Class::ParmList->error);
 	}
 
-	my ($network, $comment, $interface, $qvid, $uqvid) = 
-	  $parms->get('-network', '-comment', '-interface', '-qvid', '-uqvid');
+	my ($network, $comment, $interface, $qvid, $uqvid, $cmac) = 
+	  $parms->get('-network', '-comment', '-interface', '-qvid', '-uqvid', '-cmac');
 
 	$comment ||= '';
+	$cmac    ||= '';
+
+	if ($cmac ne '' && ($cmac !~ /^[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}$/i) ) {
+		return "invalid parameters: cmac does not look like a MAC address";
+	}
 
 	$self->reloadIfChanged();
 
@@ -1057,11 +1083,15 @@ sub setNetwork {
 	_log("DEBUG", "set network int $interface\n");
 	_log("DEBUG", "set network qid $qvid\n");
 	_log("DEBUG", "set network nqid $uqvid\n");
+	_log("DEBUG", "set network cmac $cmac\n");
 
 	$self->{'cfg'}->obj('network')->obj($network)->comment($comment);
 	$self->{'cfg'}->obj('network')->obj($network)->interface($interface);
 	$self->{'cfg'}->obj('network')->obj($network)->quarantine($qvid);
 	$self->{'cfg'}->obj('network')->obj($network)->nonquarantine($uqvid);
+
+	$self->{'cfg'}->obj('network')->obj($network)->cmac($cmac) if ($cmac ne '');
+	$self->{'cfg'}->obj('network')->obj($network)->delete('cmac') if ($cmac eq '');
 
 	return 0;
 }
@@ -2874,7 +2904,7 @@ configuration file.
 
 =head1 REVISION
 
-$Id: Config.pm,v 1.55 2006/01/18 17:01:30 jeffmurphy Exp $
+$Id: Config.pm,v 1.56 2006/03/23 18:50:04 jeffmurphy Exp $
 
 =cut
 

@@ -6,6 +6,7 @@ This form allows you to:
  - add/remove networks
  - configure per-network settings
 	- comment
+	- custom mac address (see Appendix D)
 	- ha enabled/disabled + settings
 	- garp enabled/disabled + settings
 	- netgroup membership
@@ -24,6 +25,7 @@ PERMISSIONS
 	$submitButton        => '';
 	$network             => '';
 	$comment             => '';
+	$cmac                => '';
 	$interface           => '';
 	$qvid                => '';
 	$uqvid               => '';
@@ -79,11 +81,12 @@ if ( ($delNetwork eq "Delete Network") && $network && ($network ne $WH) ) {
 if ( ($submitButton eq "Commit Changes") && $network && ($network ne $WH) ) {
 	_log("DEBUG", $m->session->{'username'}. " is updating $network $secondaryRedirector\n");
 
-	$rv = $np->cfg->setNetwork(-network => $network,
-					-comment => $comment,
+	$rv = $np->cfg->setNetwork(-network        => $network,
+					-comment   => $comment,
 					-interface => $interface,
-					-qvid => $qvid,
-					-uqvid => $uqvid);
+					-qvid      => $qvid,
+					-uqvid     => $uqvid,
+					-cmac      => $cmac);
 	push @setResults, "Failed to set 'network' fields: $rv" if $rv;
 
 	$rv = $np->cfg->setHA(  -network   => $network, 
@@ -175,6 +178,7 @@ if ($network && ($network ne $WH)) {
 	$uqvid      = $np->cfg->nonquarantineVlan($network);
 	$interface  = $np->cfg->getInterface($network);
 	$comment    = $np->cfg->getNetComment($network);
+	$cmac       = $np->cfg->getCustomMAC($network);
 	$ng         = $np->cfg->getNetgroup(-network => $network);
 	$ng       ||= '';
 	$switches   = $np->cfg->getSwitches($network);
@@ -275,6 +279,8 @@ DBG_init();
 <tr class='garpOptions' id='garpOptions1'><td class='left'>Delay:</td><td colspan=2><input size=4 maxlength=8 name='garpDelay' value="<%$garpDelay%>"> seconds </td></tr>
 <tr class='garpOptions' id='garpOptions2'><td class='left'>Number:</td><td colspan=2><input size=4 maxlength=8 name='garpNumber' value="<%$garpNumber%>"></td></tr>
 
+<tr class='left' id='cmac'><td class='left'>Custom MAC:</td><td colspan=2><input size=18 maxlength=22 name='cmac' value="<%$cmac%>"></td></tr>
+
 <tr><td class='left'>Switches:<BR>
 <button id='delSwitch' onclick='network_onclick_delSwitch(); return false;' 
 	type='button'>Delete</button><BR>
@@ -290,11 +296,6 @@ BSW: <input name='BSW' id='BSW' value='<%$BSW%>' size=16 maxlength=80><BR>
 	-values => [ $WH2, NetPass::Network::ipsort($switches) ] , -multiple => 'true')%></td></tr>
 </td>
 </tr>
-<tr><td colspan=3>
-<PRE><B>TODO:
-        - when click netgroup .. highlight networks list</B>
-</PRE>
-</td></tr>
 <tr><td colspan=3>
 %       my $ngtxt = $ng ? qq{<BR>(Part of the "<a href='netgroups.mhtml?netgroups=$ng'>$ng</a>" netgroup)} : "";
 % 	$m->comp('/Admin/TableEditPolicy', %ARGS, 'tableName' => 'Network General Settings for '.$network.$ngtxt, 

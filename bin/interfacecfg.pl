@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.13 2006/03/16 21:27:51 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/interfacecfg.pl,v 1.14 2006/03/23 18:50:04 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -45,7 +45,7 @@ Matt Bell <mtbell@buffalo.edu>
 
 =head1 REVISION
 
-$Id: interfacecfg.pl,v 1.13 2006/03/16 21:27:51 jeffmurphy Exp $
+$Id: interfacecfg.pl,v 1.14 2006/03/23 18:50:04 jeffmurphy Exp $
 
 =cut
 
@@ -106,6 +106,7 @@ foreach my $net (@$networks) {
 	$ifaces{$net}{'int'}     = $np->cfg->getInterface($net); 
 	$ifaces{$net}{'qvlan'}   = $np->cfg->quarantineVlan($net);
 	$ifaces{$net}{'nqvlan'}  = $np->cfg->nonquarantineVlan($net);
+	$ifaces{$net}{'cmac'}    = $np->cfg->getCustomMAC($net);
 	$ifaces{$net}{'vip'}	 = ($np->cfg->virtualIP($net)) ? $np->cfg->virtualIP($net) : $ips[0]; 
 	$ifaces{$net}{'d1'}	 = $ips[1]; 
 	$ifaces{$net}{'d2'}	 = $ips[2]; 
@@ -144,6 +145,10 @@ foreach (keys %ifaces) {
 	       		' netmask '.$ifaces{$_}{'mask'}." up\n";
 	} else {
 		print "$IFCONFIG ".$ifaces{$_}{'int'}." 0.0.0.0 up\n";
+		# cisco 65xx custom-mac feature. See Appendix D for details.
+		if (exists $ifaces{$_}{'cmac'} && $ifaces{$_}{'cmac'}) { 
+			print "$IFCONFIG ".$ifaces{$_}{'int'}.'.'.$ifaces{$_}{'qvlan'}." hw ether ".$ifaces{$_}{'cmac'}."\n";
+		}
 		print "$IFCONFIG ".$ifaces{$_}{'int'}.'.'.$ifaces{$_}{'qvlan'}." up\n";
 	}
 	print "$VCONFIG add ".$ifaces{$_}{'int'}.' '.$ifaces{$_}{'nqvlan'}."\n";

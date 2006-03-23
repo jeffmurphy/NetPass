@@ -320,3 +320,8 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug#1451626 user editored emitted debugging output in some circumstances
 	jcm bug#1451625 remove a user from all groups, sometimes doesnt delete the
 		user from the database
+
+2006-03-20
+	jcm added 'custom mac' to per-network configuration. this can be used to set the 
+		redirector's per-vlan mac address to the same as the router, which will
+		let you disable garp. see Appendix D in the doc for a discussion.
