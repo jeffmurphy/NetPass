@@ -325,3 +325,7 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm added 'custom mac' to per-network configuration. this can be used to set the 
 		redirector's per-vlan mac address to the same as the router, which will
 		let you disable garp. see Appendix D in the doc for a discussion.
+
+2006-03-28
+	jcm rebuilt apache to version 1.3.34 and posted binaries
+
