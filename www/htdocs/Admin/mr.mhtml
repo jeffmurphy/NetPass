@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.12 2006/01/19 21:41:48 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/htdocs/Admin/mr.mhtml,v 1.13 2006/04/07 20:44:11 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -125,17 +125,23 @@ if ($register) {
 		$err = "The network ($nw) that the address ($ip) is a part of, is not managed by NetPass.";
 	}
 
+	if ($mac !~ /^[a-f0-9:]+$/) {
+		$err .= "<BR>The MAC address you gave doesn't look right.";
+	}
+
 	if ( ! $isRoot ) {
 		my $netgroup = $np->cfg->getNetgroup(-network => $nw);
 		if ( !grep(/^default$/, @$rwGroups) && !grep(/^$nw$/, @$rwGroups) && !grep(/^$netgroup$/, @$rwGroups) ) {
-			$err = "You don't have permission to register an IP address on the $nw network.";
+			$err .= "<BR>You don't have permission to register an IP address on the $nw network.";
 		}
 	}
 
-	$err = saveReg($np->db->{'dbh'}, NetPass::padMac($mac), $ip, $uid) if ($err eq "");
+	if ($err eq '') {
+		$err = saveReg($np->db->{'dbh'}, NetPass::padMac($mac), $ip, $uid) if ($err eq "");
 
-	$err = "This MAC address (".NetPass::padMac($mac).") is already registered."
-		if ($err =~ /duplicate/i);
+		$err = "This MAC address (".NetPass::padMac($mac).") is already registered."
+			if ($err =~ /duplicate/i);
+	}
 
 	if ($err ne "") {
 		print $q->p({-class => "error"}, $err);

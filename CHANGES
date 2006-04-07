@@ -329,3 +329,7 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 2006-03-28
 	jcm rebuilt apache to version 1.3.34 and posted binaries
 
+2006-04-07
+	jcm bug#1465448  Input validation on manual register form allowed invalid mac
+		addresses to be registered.
+
