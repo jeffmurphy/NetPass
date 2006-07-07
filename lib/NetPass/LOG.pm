@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/LOG.pm,v 1.2 2005/05/04 03:09:44 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/LOG.pm,v 1.3 2006/07/07 13:31:37 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -55,7 +55,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: LOG.pm,v 1.2 2005/05/04 03:09:44 jeffmurphy Exp $
+$Id: LOG.pm,v 1.3 2006/07/07 13:31:37 jeffmurphy Exp $
 
 =cut
 
@@ -125,6 +125,8 @@ sub _log {
 	if ($SL == 0) {
 	    print $lh '[', scalar(localtime), "] [$MTYPE] ${subr} [$line]: ";
 	    print $lh join(' ', @_);
+	    print $lh "\n";
+	    $lh->flush();
 	} else {
 	    my $s = sprintf("[$MTYPE] ${subr} [$line]: %s", join(' ', @_));
 	    chomp($s);

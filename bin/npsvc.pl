@@ -162,14 +162,14 @@ sub processConfFile {
         	next if ($line =~ /^\s*\#/);
         	my($port, $email, $action, $cmd) = split(/\s+/, $line, 4);
 		print "config(pre-regexp): <$port> <$email> <$action> <$cmd>\n" if $D;
-		if ($email !~ /^\w+\@\w*\.*\w*\.*\w+\.\w+$/) {
+		if ($email !~ /^[^@]+\@\w*\.*\w*\.*\w+\.\w+$/) {
 			print "config(email) <$email> didnt parse\n";
 		}
 		if (! -e (split(/\s+/, $cmd))[0]) {
 			print "config(cmd) <$cmd> not executable\n";
 		}
         	next	 if ($cmd eq '' || 
-			     $email !~ /^\w+\@\w*\.*\w*\.*\w+\.\w+$/ || 
+			     $email !~ /^[^@]+\@\w*\.*\w*\.*\w+\.\w+$/ || 
 			     $port eq '' ||
 			     $action !~ /^(restart|norestart)$/ ||
 			     !-e (split(/\s+/, $cmd))[0]);

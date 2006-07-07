@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.23 2005/09/09 12:32:11 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass.pm,v 1.24 2006/07/07 13:31:37 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -237,8 +237,10 @@ Available tags are:\n";
 
     if (grep (/^$_vlan$/, @$x)) {
 	    _log ("WARNING", "$hn/$port is already in vlan $vlan ($_vlan)\n");
-	    $self->error("already in that vlan: nothing to do!");
-	    return 1; # success
+	    # this bit of efficiency tends to cause problems, it's best to 
+	    # go ahead and just reset the vlan membership regardless.
+	    #$self->error("already in that vlan: nothing to do!");
+	    #return 1; # success
     }
 
     _log ("INFO", "Setting port $port on $hn to PVID $_vlan ($vlan)\n")
@@ -943,7 +945,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: NetPass.pm,v 1.23 2005/09/09 12:32:11 jeffmurphy Exp $
+$Id: NetPass.pm,v 1.24 2006/07/07 13:31:37 jeffmurphy Exp $
 
 =cut
 

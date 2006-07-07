@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.58 2006/03/16 21:27:51 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/NetPass/DB.pm,v 1.59 2006/07/07 13:31:37 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -300,7 +300,7 @@ sub setSwitchPort {
     return 0;
 }
 
-=head2 $rv = getRegisterInfo(-mac => mac, -macs => [], -ip => ip, -ips => [], -switch => ip, -port => number)
+=head2 $rv = getRegisterInfo(-mac => mac, -macs => [], -ip => ip, -ips => [], -user => user, -users => [], -switch => ip, -port => number)
 
 This routine will get the registered info on an already registered MAC. Returns:
 
@@ -347,6 +347,8 @@ sub getRegisterInfo {
 					    -macs   => [],
 					    -ip     => '',
 					    -ips    => [],
+					    -user   => '',
+					    -users  => [],
 					    -switch => '',
 					    -port   => ''
 					  }
@@ -355,14 +357,18 @@ sub getRegisterInfo {
 
     return "invalid params\n".Carp::longmess(Class::ParmList->error) if (!defined($parms));
     
-    my ($mac, $macs, $ip, $ips, $switch, $port) = 
+    my ($mac, $macs, $ip, $ips, $switch, $port, $user, $users) = 
       $parms->get('-mac', '-macs', 
 		  '-ip', '-ips',
-		  '-switch', '-port');
+		  '-switch', '-port', '-user', '-users');
 
-    my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, username, OS, switchIP, switchPort, uqlinkup FROM register WHERE ";
+    my $sql = "SELECT macAddress, ipAddress, lastSeen, registeredOn, status, username, OS, switchIP, switchPort, uqlinkup, username FROM register WHERE ";
     if ($mac ne "") {
 	    $sql .= " macAddress = ".$self->dbh->quote($mac);
+	    $kfield = "macAddress";
+    }
+    elsif ($user ne "") {
+	    $sql .= " username = ".$self->dbh->quote($user);
 	    $kfield = "macAddress";
     }
     elsif ($ip ne "") {
@@ -376,6 +382,10 @@ sub getRegisterInfo {
     }
     elsif ($#{$macs} > -1) {
 	    $sql .= join (" OR ", (map (" macAddress = ".$self->dbh->quote($_), @{$macs})));
+	    $kfield = "macAddress";
+    }
+    elsif ($#{$users} > -1) {
+	    $sql .= join (" OR ", (map (" username = ".$self->dbh->quote($_), @{$users})));
 	    $kfield = "macAddress";
     }
     elsif ($#{$ips} > -1) {
@@ -506,7 +516,6 @@ sub getPage {
     
     my ($name, $massageHTML, $ip, $npcfg, $group) = $parms->get('-name', '-nohtml', '-ip', '-npcfg',
 								'-group');
-
     $self->reconnect() || return undef;
 
     return undef unless defined($name);
@@ -558,11 +567,11 @@ sub getPage2 {
 	my $sql         = shift;
 
 	my $sth = $self->{'dbh'}->prepare($sql);
-	return undef unless defined $sth;
+	return undef if(!$sth);
 
-	my $rv = $sth->execute;
+	my $rv = $sth->execute();
 	if (!defined($rv)) {
-		$sth->finish;
+		$sth->finish();
 		return undef;
 	}
 	my $val = $sth->fetchrow_arrayref;
@@ -2914,7 +2923,7 @@ Jeff Murphy <jcmurphy@buffalo.edu>
 
 =head1 REVISION
 
-$Id: DB.pm,v 1.58 2006/03/16 21:27:51 jeffmurphy Exp $
+$Id: DB.pm,v 1.59 2006/07/07 13:31:37 jeffmurphy Exp $
 
 =cut
 

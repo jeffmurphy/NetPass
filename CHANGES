@@ -333,3 +333,17 @@ sudo perl -MCPAN -e 'install Net::Ping::External'
 	jcm bug#1465448  Input validation on manual register form allowed invalid mac
 		addresses to be registered.
 
+2006-04-10
+	jcm removed "port is already in that VLAN" check from NetPass.pm - occasionally
+		a port would get stuck in both VLANs, and this check would stop NetPass
+		from fixing that when it occurred.
+
+2006-07-06
+	jcm modified API.pm to allow quarantining even if autoquar is not enabled on 
+		a network (via a toggle)
+	wcy modified LOG.pm to fix a STDOUT flush problem
+	jcm modified macscan.pl to fix a bug where QUAR would be ignored
+	jcm modified API.pm to allow quaranting by MAC as well as to expose a few
+		more functions
+	wcy modified DB.pm to allow fetching of register records by username
+

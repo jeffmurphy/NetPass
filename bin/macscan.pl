@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.15 2006/01/19 21:46:45 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/macscan.pl,v 1.16 2006/07/07 13:31:36 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -94,7 +94,7 @@ is set to ALL_OK.
 
 Jeff Murphy <jcmurphy@buffalo.edu>
 
-$Id: macscan.pl,v 1.15 2006/01/19 21:46:45 jeffmurphy Exp $
+$Id: macscan.pl,v 1.16 2006/07/07 13:31:36 jeffmurphy Exp $
 
 =cut
 
@@ -110,6 +110,8 @@ use Pod::Usage;
 
 use NetPass::LOG qw(_log _cont);
 require NetPass;
+
+use Data::Dumper;
 
 BEGIN {
     use Config;
@@ -326,7 +328,7 @@ sub thread_entry {
 							$portIsOK = 0;
 							push @nOkMacs, $mac."/NR";
 						} 
-						elsif ($np->db->macStatus($mac) =~ /^[P]QUAR/) {
+						elsif ($np->db->macStatus($mac) =~ /^[P]{0,1}QUAR/) {
 							# mac registered but quarantined
 							print "[$tid] reg status of $mac is 'registered but quarantined'\n" if $D;
 							$portIsOK = 0;
