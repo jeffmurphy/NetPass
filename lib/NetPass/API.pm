@@ -362,7 +362,7 @@ sub addSnortRuleEntry {
 	return $np->db->addSnortRuleEntry(@$args);
 }
 
-=head2 my $results = quarantineIP(-secret => $secret, -ip => $ip, -id => $id, -type => $type, -time => $time, -aqo => [0 | 1])
+=head2 my $results = quarantineByIP(-secret => $secret, -ip => $ip, -id => $id, -type => $type, -time => $time, -aqo => [0 | 1])
 
 Arguments to this function include a secret key, IP address to be
 quarantined, an ID associated to either a Nessus or Snort ID,
@@ -480,6 +480,7 @@ sub quarantineByIP {
 	return ("nothing") if $mode eq "not_really"; 
 
 	foreach my $npid (($arrays) ? @$id : $id) {
+		last if($aqo); # don't log a result if we've got aqo
 		my $rv = $np->db->addResult (
 				      		-mac	=> $mac,
 				      		-id	=> $npid,
@@ -659,6 +660,7 @@ sub quarantineByMAC {
 
 	unless($nr){
 		foreach my $npid (($arrays) ? @$id : $id) {
+		 last if($aqo); # don't log a result if we've got aqo
 			my $rv = $np->db->addResult (
 					      		-mac	=> $mac,
 					      		-id	=> $npid,

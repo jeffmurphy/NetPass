@@ -1,6 +1,6 @@
 #!/opt/perl/bin/perl -w
 #
-# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.6 2005/08/22 19:26:06 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/bin/import_nessus_scans.pl,v 1.7 2006/12/15 19:25:44 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -36,7 +36,7 @@ Rob Colantuoni <rgc@buffalo.edu>
 
 =head1 REVISION
 
-$Id: import_nessus_scans.pl,v 1.6 2005/08/22 19:26:06 jeffmurphy Exp $
+$Id: import_nessus_scans.pl,v 1.7 2006/12/15 19:25:44 jeffmurphy Exp $
 
 =cut
 
@@ -86,7 +86,7 @@ my $user = $np->cfg->nessus(-key => 'username');
 my $pass = $np->cfg->nessus(-key => 'password');
 my $port = $np->cfg->nessus(-key => 'port');
 
-my $ncmd = "$bd/bin/nessus -c /dev/null -x -q -p $host $port $user $pass "; 
+my $ncmd = "$bd/bin/nessus -x -q -p $host $port $user $pass "; 
 
 print qq{Nessus command is: "$ncmd"\n} if $D;
 
