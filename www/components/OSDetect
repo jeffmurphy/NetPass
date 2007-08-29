@@ -1,5 +1,5 @@
 <%doc>
-# $Header: /tmp/netpass/NetPass/www/components/OSDetect,v 1.1 2004/09/24 01:05:20 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/www/components/OSDetect,v 1.2 2007/08/29 17:34:25 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -13,16 +13,22 @@
 	my $ua = lc($ENV{'HTTP_USER_AGENT'});
         my $os = "Unknown";
 
+	my @os_list = ( 'linux', 'x11', 'mac',
+		'Windows NT 6.0', 'Windows NT 5.1', 'Windows',
+		'bsd' );
+
         my $os_map =    {
                          'linux' => 'Linux',
                          'x11'   => 'Unix',
                          'mac'   => 'Mac',
-                         'win'   => 'Windows',
+                         'Windows NT 6.0'   => 'Windows Vista',
+                         'Windows NT 5.1'   => 'Windows XP',
+                         'Windows'   => 'Windows Other',
                          'bsd'   => 'BSD'
                         };
 
-        foreach my $k (sort keys(%$os_map)) {
-                if($ua =~ /$k/) {
+        foreach my $k (@os_list)) {
+                if($ua =~ /$k/i) {
                         $os = $os_map->{$k};
                         last;
                 }
