@@ -1,4 +1,4 @@
-# $Header: /tmp/netpass/NetPass/lib/SNMP/Device.pm,v 1.5 2007/08/29 17:34:23 jeffmurphy Exp $
+# $Header: /tmp/netpass/NetPass/lib/SNMP/Device.pm,v 1.6 2007/08/29 17:35:30 jeffmurphy Exp $
 
 #   (c) 2004 University at Buffalo.
 #   Available under the "Artistic License"
@@ -295,7 +295,6 @@ sub map_desc_to_plugin {
                     };
 
 	foreach my $k (keys %{$types}) {
-print "k=$k  $desc\n";
 		if($desc =~ /$k/) {
 			$plugin = $types->{$k}->{'Module'};
 			$self->device_type($types->{$k}->{'Desc'});
@@ -428,7 +427,7 @@ sub port_status {
 
 =head1 REVISION
 
-$Id: Device.pm,v 1.5 2007/08/29 17:34:23 jeffmurphy Exp $
+$Id: Device.pm,v 1.6 2007/08/29 17:35:30 jeffmurphy Exp $
 
 =cut
 
